@@ -1,0 +1,34 @@
+Ubuntu:
+
+export ACCTEMPL_DIR=../../acctempl
+export COG=cog.py
+export DUT=cycle_detection
+
+EC machines:
+
+source ~smburns/ppt4_work_area/cog/COG_ENV_DIR/bin/activate.csh
+setenv ACCTEMPL_DIR ../../acctempl
+setenv COG $VIRTUAL_ENV/bin/cog.py
+setenv DUT cycle_detection
+
+
+foreach ty ( CycleExistInfo Node)
+  ${COG} -c -I. -Dty=${ty} -I${ACCTEMPL_DIR} -o ${ty}.h ${ACCTEMPL_DIR}/Usertype-cog.h
+end
+
+${COG} -c -I. -I${ACCTEMPL_DIR} -o Config.h ${ACCTEMPL_DIR}/Config-cog.h
+${COG} -c -I. -I${ACCTEMPL_DIR} -o ${DUT}_hls.h ${ACCTEMPL_DIR}/dut_hls-cog.h
+${COG} -c -I. -I${ACCTEMPL_DIR} -o ${DUT}_hls_tb.h ${ACCTEMPL_DIR}/dut_hls_tb-cog.h
+${COG} -c -I. -I${ACCTEMPL_DIR} -o ${DUT}_acc.h ${ACCTEMPL_DIR}/dut_acc-cog.h
+${COG} -c -I. -I${ACCTEMPL_DIR} -o ${DUT}_sched.h ${ACCTEMPL_DIR}/dut_sched-cog.h
+${COG} -c -I. -I${ACCTEMPL_DIR} -o ${DUT}_acc_tb.h ${ACCTEMPL_DIR}/dut_acc_tb-cog.h
+
+foreach ty ( CycleExistInfo Node )
+  ${COG} -c -I. -Dty=${ty} -I${ACCTEMPL_DIR} -o ${ty}.h ${ACCTEMPL_DIR}/${ty}.h
+end
+${COG} -r -c -I. -I${ACCTEMPL_DIR} Config.h
+${COG} -r -c -I. -I${ACCTEMPL_DIR} ${DUT}_hls.h
+${COG} -r -c -I. -I${ACCTEMPL_DIR} ${DUT}_hls_tb.h
+${COG} -r -c -I. -I${ACCTEMPL_DIR} ${DUT}_acc.h
+${COG} -r -c -I. -I${ACCTEMPL_DIR} ${DUT}_sched.h
+${COG} -r -c -I. -I${ACCTEMPL_DIR} ${DUT}_acc_tb.h

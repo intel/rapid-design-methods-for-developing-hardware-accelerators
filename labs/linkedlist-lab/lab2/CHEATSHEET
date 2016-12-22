@@ -1,0 +1,10 @@
+Ubuntu:
+
+export PYTHONPATH=.:${HLD_ROOT}/scripts/systemc-gen
+
+EC machines:
+
+setenv PYTHONPATH ".:${HLD_ROOT}/scripts/systemc-gen"
+
+${HLD_ROOT}/scripts/systemc-gen/gen-all-usertypes.py
+${HLD_ROOT}/scripts/systemc-gen/gen-all-other.py

@@ -1,0 +1,11 @@
+This is a SystemC implementation of the cycle detection algorithm in a linked list
+
+The partitioned SW (cycle_detection_sw.cpp from one level above) can be used to drive the SystemC model. 
+If not done, create a symbolic link to ../cycle_detection_sw.cpp. 
+Note that Makefile adds -DSC_KERNEL define that instructs cycle_detection_sw.cpp to include the SystemC model instead of original SW
+#ifdef SC_KERNEL
+#include "kernel_test.h" // SystemC implementation
+#else
+#include "cycle_detection_hw.h" // SW emulation using original SW
+#endif
+

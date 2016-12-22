@@ -1,0 +1,4 @@
+setenv LD_LIBRARY_PATH /nfs/site/disks/scl.work.59/ppt/smburns/quick-assist/SR-5.0.3-Release/atd_fpga_app-qa_bblocks/BBB_cci_mpf/sw:`realpath $HLD_ROOT/fpga_sw/5.0.3/AcclAppVtp`
+
+make prefix=`realpath /nfs/site/disks/scl.work.59/ppt/smburns/quick-assist/SR-5.0.3-Release/Base/SW/install`
+

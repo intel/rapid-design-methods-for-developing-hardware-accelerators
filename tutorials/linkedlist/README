@@ -1,0 +1,14 @@
+
+cycle_detection.c 
+    
+    Original software code 
+
+cycle_detection_sw.cpp  
+cycle_detection_hw.h    
+    
+    The SW code is partitioned based on the FPGA accelerator API. cycle_detection_hw.h is HW emulation using the original SW implementation but it is now part of the HW partition
+    The idea is to reuse the cycle_detection_sw.cpp driver for SystemC TB and then as an FPGA driver
+
+Makefile
+
+    By default, it compiles the partitioned version of the SW (cycle_detection_sw.cpp). 

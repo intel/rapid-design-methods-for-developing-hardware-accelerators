@@ -1,0 +1,10 @@
+export GTEST_DIR=/home/smburns/pg-sobel/googletest
+
+setenv GTEST_DIR /nfs/site/disks/scl.work.58/ppt/aayupov/gtest/googletest/googletest
+
+g++ -O3 -Wall -I${GTEST_DIR}/include vectoradd.cpp ${GTEST_DIR}/make/gtest_main.a -pthread
+
+g++ -O3 -Wall -I${GTEST_DIR}/include -I${HLD_ROOT}/common -I${HLD_ROOT}/acctempl tb.cpp AcclApp.cpp ${GTEST_DIR}/make/gtest_main.a -pthread -DUSE_SOFTWARE
+
+
+

@@ -1,0 +1,26 @@
+To render the Wiki:
+
+Get into Steve's python virtual environment (3.5.1).
+
+   source ~smburns/ppt4_work_area/cog/COG_ENV_DIR/bin/activate.csh
+
+Then run grip:
+
+setenv http_proxy http://proxy.jf.intel.com:911
+setenv https_proxy https://proxy.jf.intel.com:911
+
+   $VIRTUAL_ENV/bin/grip wiki
+
+Then is another window, start up firefox and connect to the grip server.
+
+   firefox http://localhost:6419/
+
+Saved changes to the wiki files should be updated in the browser.
+
+The Wiki uses "Github Flavored Markdown" and should eventually transfer without issue to a GITHUB Wiki.
+
+Or you can use a local javascript renderer.
+
+Try:
+
+firefox 'wiki/index.html#\!Home.md'

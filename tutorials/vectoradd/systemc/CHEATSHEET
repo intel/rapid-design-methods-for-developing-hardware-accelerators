@@ -1,0 +1,8 @@
+export HLD_ROOT=`realpath ~/hld_fpga-sysc`
+
+export PYTHONPATH=.:$HLD_ROOT/scripts/systemc-gen
+
+$HLD_ROOT/scripts/systemc-gen/gen-all-usertypes.py
+$HLD_ROOT/scripts/systemc-gen/gen-all-other.py
+$HLD_ROOT/scripts/systemc-gen/gen-all-cthreads.py
+#$HLD_ROOT/scripts/systemc-gen/gen-all-modules.py

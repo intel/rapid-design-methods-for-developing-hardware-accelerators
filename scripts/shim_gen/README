@@ -1,0 +1,3 @@
+#cog has to be installed first from here: http://nedbatchelder.com/code/cog/
+pip install cogapp
+./gen.sh

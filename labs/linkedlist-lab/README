@@ -1,0 +1,44 @@
+
+cycle_detection.c 
+    
+    Original software code 
+
+cycle_detection_sw.cpp  
+cycle_detection_hw_emul.h    
+    
+    The SW code is partitioned based on the FPGA accelerator API. cycle_detection_hw_emul.h is HW emulation using the original SW implementation but it is now part of the HW partition
+    The idea is to reuse the cycle_detection_sw.cpp driver for SystemC TB and then as an FPGA driver
+
+CHEATSHEET     
+    Instructions how to generate kernel-level and accelerator level source code and testbench harnesses
+    
+Makefile
+    By default, it compiles the partitioned version of the SW (cycle_detection_sw.cpp). 
+    Use "make MODE=kernel" to compile at a kernel level after kernel-level files are generated (see CHEATSHEET)
+    Use "make MODE=acc" to compile an a accelerator level after accelerator-level files are generated (see CHEATSHEET)
+
+
+       LAB INSTRUCTIONS
+ 
+LAB 1: In cycle_detection_hw_emul.h implement the compute() method as a redirection to cycle_detect()
+       Hint1: Look at the Config struct methods and ones that return memory addresses for the linked list header and the result
+       Hint2: Use reinterpret_cast to go from an address to C-pointer
+
+LAB 2: In dut_params.py file, specify two user memory ports
+       - Read port for type Node
+       - Write port for type CycleInfoExist
+       Hint1: Follow Python Interface Spec API from the wiki using TypedRead and TypedWrite types correspondingly 
+       Hint2: What should be max_burst_count parameter value for the input TypedRead port for type Node? What about buf_size_in_cl?
+       Generate all SystemC collaterals following the CHEATSHEET
+
+LAB 3: Complete the code where requests to memory are done to get the next Node in the linked list to update slow and fast offsets
+       Hint1: see how the fast_offset gets updated in the same function
+
+
+LAB 4: In cycle_detection_acc_tb.h change the frequency of design to 200Mhz and observe changes in the memory BW report
+       In cycle_detection_acc_tb.h change memory latency to 500ns and observe changes in the memory BW report
+
+LAB 5: Integrate generated RTL using hld_defines.vh. Modify vlog_file.list for ASE. Run SW simulation in MODE=fpga
+
+
+       
