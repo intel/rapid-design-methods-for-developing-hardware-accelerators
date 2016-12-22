@@ -50,13 +50,13 @@ public:
   SC_HAS_PROCESS(TypedMemReadTestbench);
 
   // limit number of responses
-//  template <size_t SIZE>
-//  void fill_randomly(std::array<CacheLineType, SIZE> &array) {
-//    for (int i = 0; i < SIZE; ++i) {
-//      CacheLineType cl = CacheLineType::generate_random();
-//      array[i] = cl;
-//    }
-//  }
+  //  template <size_t SIZE>
+  //  void fill_randomly(std::array<CacheLineType, SIZE> &array) {
+  //    for (int i = 0; i < SIZE; ++i) {
+  //      CacheLineType cl = CacheLineType::generate_random();
+  //      array[i] = cl;
+  //    }
+  //  }
 
   void acc_thread() {
     active = false;
@@ -128,8 +128,8 @@ public:
 
 
   TypedMemReadTestbench(sc_module_name modname, std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> &dram, TbInType &test_in, TbOutType &test_out) :
-      sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_resp_in(
-          "acc_resp_in"), spl_req_in("spl_req_in"), spl_resp_out("spl_resp_out")  {
+    sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_resp_in(
+        "acc_resp_in"), spl_req_in("spl_req_in"), spl_resp_out("spl_resp_out")  {
     SC_CTHREAD(acc_thread, clk.pos());
     async_reset_signal_is(rst, false);
     SC_CTHREAD(spl_thread, clk.pos());
@@ -170,10 +170,10 @@ public:
 
 
   TypedTestMemReadTop(sc_module_name modname = sc_gen_unique_name("TypedTestMemReadTop")) :
-      sc_module(modname), clkgen("clkgen"), acc_read_tb("acc_read_tb", dram,
-          test_in,
-          test_out), acc_cl_in("acc_cl_in"), acc_mem_typed_in(
-          "acc_mem_typed_in"), clk_ch("clk_ch"), rst_ch("rst_ch") {
+    sc_module(modname), clkgen("clkgen"), acc_read_tb("acc_read_tb", dram,
+        test_in,
+        test_out), acc_cl_in("acc_cl_in"), acc_mem_typed_in(
+            "acc_mem_typed_in"), clk_ch("clk_ch"), rst_ch("rst_ch") {
     acc_read_tb.clk(clk_ch);
     clkgen.clk(clk_ch);
     acc_read_tb.rst(rst_ch);

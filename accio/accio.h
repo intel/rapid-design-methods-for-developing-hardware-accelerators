@@ -12,20 +12,14 @@ template <size_t OUTSTANDING_BUFFER_SIZE>
 struct OutstandingRequestToken {
   SplTag tag;
   OutstandingRequestToken() : tag(0) {
-    // this size should be possible to address with OutstandingRequestToken.tag,
-    // i.e. log2(OUTSTANDING_BUFFER_SIZE)-1 < bitwidth(OutstandingRequestToken.tag)
-    //assert(OUTSTANDING_BUFFER_SIZE <= 64);
   }
   OutstandingRequestToken(SplTag tag) :
     tag(tag) {
-    // this size should be possible to address with OutstandingRequestToken.tag,
-    // i.e. log2(OUTSTANDING_BUFFER_SIZE)-1 < bitwidth(OutstandingRequestToken.tag)
-    //assert(OUTSTANDING_BUFFER_SIZE <= 64);
   }
-	inline friend std::ostream& operator<<(std::ostream& os, OutstandingRequestToken& rhs)
-	{
-	  return os;
-	}
+  inline friend std::ostream& operator<<(std::ostream& os, OutstandingRequestToken& rhs)
+  {
+    return os;
+  }
 
   inline friend void sc_trace(sc_trace_file* tf,
       const OutstandingRequestToken& d, const std::string& name) {
@@ -45,37 +39,35 @@ struct AccMemIn : sc_module {
 #endif
 public:
   // clk/rst
-	sc_in_clk clk;
-	sc_in<bool> rst;
-	//sc_out<bool> idle;
+  sc_in_clk clk;
+  sc_in<bool> rst;
+  //sc_out<bool> idle;
 
-	// functional ports
+  // functional ports
   ga::tlm_fifo_out<AccMemReadRespType> acc_resp_out;
-	ga::tlm_fifo_out<SplMemReadReqType> spl_req_out;
-	ga::tlm_fifo_in<AccMemReadReqType> acc_req_in;
-	ga::tlm_fifo_in<SplMemReadRespType> spl_resp_in;
+  ga::tlm_fifo_out<SplMemReadReqType> spl_req_out;
+  ga::tlm_fifo_in<AccMemReadReqType> acc_req_in;
+  ga::tlm_fifo_in<SplMemReadRespType> spl_resp_in;
 
-	// request queue is needed to keep track of outstanding requests (credit like mechanism). when response comes in we pop the queue.
-	// also it keeps responses in order of requests
-	ga::ga_storage_fifo<OutstandingRequestToken<OUTSTANDING_BUFFER_SIZE>, OUTSTANDING_BUFFER_SIZE> request_queue;
+  // request queue is needed to keep track of outstanding requests (credit like mechanism). when response comes in we pop the queue.
+  // also it keeps responses in order of requests
+  ga::ga_storage_fifo<OutstandingRequestToken<OUTSTANDING_BUFFER_SIZE>, OUTSTANDING_BUFFER_SIZE> request_queue;
 
-	// this fifo takes care of indices of available entries in response_data_array
+  // this fifo takes care of indices of available entries in response_data_array
   ga::ga_storage_fifo<OutstandingRequestToken<OUTSTANDING_BUFFER_SIZE>, OUTSTANDING_BUFFER_SIZE> available_slots;
 
   //scide_waive SCIDE.8.2
   //scide_waive SCIDE.6.2
   // indexed by OutstandingRequestToken.tag
-	AccMemReadRespType response_data_array[OUTSTANDING_BUFFER_SIZE];
-	SC_SIGNAL_MULTIW(bool, response_data_ready[OUTSTANDING_BUFFER_SIZE]);
+  AccMemReadRespType response_data_array[OUTSTANDING_BUFFER_SIZE];
+  SC_SIGNAL_MULTIW(bool, response_data_ready[OUTSTANDING_BUFFER_SIZE]);
 
   IOUnitIdType unit_id;
 
-	SC_HAS_PROCESS(AccMemIn);
+  SC_HAS_PROCESS(AccMemIn);
 
   AccMemIn(sc_module_name modname=sc_gen_unique_name("acc_mem_in")) :
-      sc_module(modname), clk("clk"), rst("rst"), acc_resp_out("acc_resp_out"), spl_req_out(
-          "spl_req_out"), acc_req_in("acc_req_in"), spl_resp_in("spl_resp_in"), request_queue(
-          "request_queue"), available_slots("response_queue"), unit_id(-1) {
+    sc_module(modname), clk("clk"), rst("rst"), acc_resp_out("acc_resp_out"), spl_req_out("spl_req_out"), acc_req_in("acc_req_in"), spl_resp_in("spl_resp_in"), request_queue("request_queue"), available_slots("response_queue"), unit_id(-1) {
     acc_req_in.clk_rst(clk, rst);
     spl_resp_in.clk_rst(clk, rst);
     acc_resp_out.clk_rst(clk, rst);
@@ -172,7 +164,7 @@ public:
         if (!request_queue.nb_can_get())
           _no_outstanding_reqs ++;
         if (!acc_resp_out.nb_can_put())
-           _consumer_not_ready ++;
+          _consumer_not_ready ++;
 
         // multi cycle reset modeled here to fill up a fifo with credits
         if (available_slots_index != 0) {
@@ -181,14 +173,14 @@ public:
           available_slots.nb_put(OutstandingRequestToken<OUTSTANDING_BUFFER_SIZE>(available_slots_index));
         } else {
           if (out_data_ready && acc_resp_out.nb_can_put()) {
-          //if (awaiting_response && response_data_ready[response_tag] == true && acc_resp_out.nb_can_put() ) {
-             // have response come in and send it out
-             assert(available_slots.nb_can_put());
-             available_slots.nb_put(OutstandingRequestToken<OUTSTANDING_BUFFER_SIZE>(response_tag));
-             acc_resp_out.nb_put(response_data);
-             DBG_OUT << sc_time_stamp() << " AccMemIn:acc_response_handler SPL response popped sent to accelerator with data " << response_data_array[response_tag] << " and response_tag " << response_tag << endl;
-             out_data_ready = false;
-           }
+            //if (awaiting_response && response_data_ready[response_tag] == true && acc_resp_out.nb_can_put() ) {
+            // have response come in and send it out
+            assert(available_slots.nb_can_put());
+            available_slots.nb_put(OutstandingRequestToken<OUTSTANDING_BUFFER_SIZE>(response_tag));
+            acc_resp_out.nb_put(response_data);
+            DBG_OUT << sc_time_stamp() << " AccMemIn:acc_response_handler SPL response popped sent to accelerator with data " << response_data_array[response_tag] << " and response_tag " << response_tag << endl;
+            out_data_ready = false;
+          }
 
           // if not awaiting any response, fetch a new token from request queue to wait for
           if (!awaiting_response && request_queue.nb_can_get()) {
@@ -211,13 +203,13 @@ public:
             DBG_OUT << sc_time_stamp() << " AccMemIn:acc_response_handler _reorder incremented to " << _reorder << endl;
           }
 #endif
-         if (!out_data_ready && awaiting_response && response_data_ready[next_req.tag] == true) {
-           out_data_ready = true;
-           response_tag = next_req.tag;
-           response_data_ready[response_tag] = false;
-           response_data = response_data_array[response_tag];
-           awaiting_response = false;
-         }
+          if (!out_data_ready && awaiting_response && response_data_ready[next_req.tag] == true) {
+            out_data_ready = true;
+            response_tag = next_req.tag;
+            response_data_ready[response_tag] = false;
+            response_data = response_data_array[response_tag];
+            awaiting_response = false;
+          }
 
         }
       }
@@ -291,9 +283,7 @@ struct AccMemOut : sc_module {
 
   //scide_waive SCIDE.8.15
   AccMemOut(sc_module_name name=sc_gen_unique_name("AccMemOut")) :
-      clk("clk"), rst("rst"), spl_req_out("spl_req_out"), acc_req_in(
-          "acc_req_in"), acc_data_in("acc_data_in"), spl_resp_out("spl_resp_out"), unit_id(
-          -1) {
+    clk("clk"), rst("rst"), spl_req_out("spl_req_out"), acc_req_in("acc_req_in"), acc_data_in("acc_data_in"), spl_resp_out("spl_resp_out"), unit_id(-1) {
     SC_CTHREAD(request_handler, clk.pos());
     async_reset_signal_is(rst, false);
     acc_req_in.clk_rst(clk, rst);

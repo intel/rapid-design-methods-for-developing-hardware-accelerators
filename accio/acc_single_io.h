@@ -104,9 +104,9 @@ public:
   SC_HAS_PROCESS(AccIn);
 
   AccIn(sc_module_name name) :
-      clk("clk"), rst(
-          "rst"),spl_req_out("spl_req_out"), spl_resp_in("spl_resp_in"), acc_resp_out(
-          "acc_resp_out"), acc_req_in("acc_req_in") {
+    clk("clk"), rst(
+        "rst"),spl_req_out("spl_req_out"), spl_resp_in("spl_resp_in"), acc_resp_out(
+            "acc_resp_out"), acc_req_in("acc_req_in") {
 
 
     SC_CTHREAD(request_handler, clk.pos());
@@ -402,8 +402,8 @@ struct AccTypedCache : sc_module {
 
   // scheduled responses
   ga::ga_storage_fifo<IndexWayMshrIndexType, SCHEDULED_RESPONSE_Q_SIZE> miss_cl_location_q;
-//  ga::ga_storage_fifo<AccRequestT, SCHEDULED_RESPONSE_Q_SIZE> hit_requests;
-//  ga::ga_storage_fifo<IndexWayPair, SCHEDULED_RESPONSE_Q_SIZE> hit_cl_location_q;
+  //  ga::ga_storage_fifo<AccRequestT, SCHEDULED_RESPONSE_Q_SIZE> hit_requests;
+  //  ga::ga_storage_fifo<IndexWayPair, SCHEDULED_RESPONSE_Q_SIZE> hit_cl_location_q;
   AccRequestT hit_request;
   IndexWayPair hit_cl_location;
   bool hit_request_valid;
@@ -432,10 +432,10 @@ struct AccTypedCache : sc_module {
   SC_HAS_PROCESS(AccTypedCache);
 
   AccTypedCache(sc_module_name name) :
-      clk("clk"), rst("rst"), acc_rd_req_in("acc_rd_req_in"), acc_wr_req_in(
-          "acc_wr_req_in"), acc_rd_resp_out("acc_rd_resp_out"), cl_rd_req_out(
-          "cl_rd_req_out"), cl_rd_resp_in("cl_rd_resp_in"), cl_wr_req_out(
-          "cl_wr_req_out") {
+    clk("clk"), rst("rst"), acc_rd_req_in("acc_rd_req_in"), acc_wr_req_in(
+        "acc_wr_req_in"), acc_rd_resp_out("acc_rd_resp_out"), cl_rd_req_out(
+            "cl_rd_req_out"), cl_rd_resp_in("cl_rd_resp_in"), cl_wr_req_out(
+                "cl_wr_req_out") {
     SC_CTHREAD(main_proc, clk.pos());
     async_reset_signal_is(rst, false);
     acc_rd_req_in.clk_rst(clk,rst);
@@ -445,9 +445,9 @@ struct AccTypedCache : sc_module {
     cl_rd_resp_in.clk_rst(clk,rst);
     cl_wr_req_out.clk_rst(clk,rst);
     //spl_wr_resp_in.clk_rst(clk,rst);
-	acc_req_out.clk_rst(clk, rst);
-	acc_wr_resp_out.clk_rst(clk,rst);
-	}
+    acc_req_out.clk_rst(clk, rst);
+    acc_wr_resp_out.clk_rst(clk,rst);
+  }
 
   T extractDataFromCL(CacheLineType cl, CacheLineType::IndexType offset) {
     CacheLineMarshal<T::BitCnt> cl_marsh;
@@ -528,21 +528,21 @@ struct AccTypedCache : sc_module {
         }
       }
       RESET_REQ_Q_UNROLL: for(unsigned int i = 0; i < MSHR_SIZE; ++i) {
-          mshr_pending_request_queue[i].reset_put();
-          mshr_pending_request_queue[i].reset_get();
+        mshr_pending_request_queue[i].reset_put();
+        mshr_pending_request_queue[i].reset_get();
       }
       RESET_MSHR_RECORDS_UNROLL: for(unsigned int i = 0; i < MSHR_SIZE; ++i) {
-          mshr_records[i].reset();
+        mshr_records[i].reset();
       }
 
       acc_rd_req_in.reset_get();
       acc_wr_req_in.reset_get();
       acc_wr_resp_out.reset_put();
       hit_request_valid = false;
-//      hit_cl_location_q.reset_get();
-//      hit_cl_location_q.reset_put();
-//      hit_requests.reset_put();
-//      hit_requests.reset_get();
+      //      hit_cl_location_q.reset_get();
+      //      hit_cl_location_q.reset_put();
+      //      hit_requests.reset_put();
+      //      hit_requests.reset_get();
       miss_cl_location_q.reset_put();
       miss_cl_location_q.reset_get();
       available_pending_q_slots.reset_get();
@@ -553,12 +553,12 @@ struct AccTypedCache : sc_module {
     num_of_evicts = num_of_misses = num_of_hits = num_of_mshr_hits = 0;
     num_inp_stalls = 0;
     RESET_INIT_COUNTERS_UNROLL: for(size_t i = 0; i < 6; ++i) {
-    	num_stall_itemzed[i] = 0;
+      num_stall_itemzed[i] = 0;
     }
     wait();
     MAIN_PROC_WHILE: while (1) {
       {
-    	bool acc_req_tx = false;
+        bool acc_req_tx = false;
         bool multi_cycle_reset_done = true;
         //credit fifo reset
         if (avail_pending_q_reset_count) {
@@ -581,12 +581,12 @@ struct AccTypedCache : sc_module {
 
           // handles write transactions and has support for eviction writes
           if (next_wr_req_valid && cl_wr_req_out.nb_can_put() && acc_req_out.nb_can_put()) {
-              next_wr_req_valid = false;
-              SplAddressType addr = IndexWayPair::computeSplAddress(next_wr_req.index, next_wr_req.tag);
-              DBG_OUT << sc_time_stamp() << "cl_wr_req_out: at="<< addr << " data " << next_wr_req.cl << endl;
-              cl_wr_req_out.nb_put(MemSingleWriteReqType<CacheLineType, UTAG>(addr, next_wr_req.cl));
-              acc_req_out.nb_put(ACC_REQ_WRITE);
-              acc_req_tx = true;
+            next_wr_req_valid = false;
+            SplAddressType addr = IndexWayPair::computeSplAddress(next_wr_req.index, next_wr_req.tag);
+            DBG_OUT << sc_time_stamp() << "cl_wr_req_out: at="<< addr << " data " << next_wr_req.cl << endl;
+            cl_wr_req_out.nb_put(MemSingleWriteReqType<CacheLineType, UTAG>(addr, next_wr_req.cl));
+            acc_req_out.nb_put(ACC_REQ_WRITE);
+            acc_req_tx = true;
           }
           // if it is an eviction and no write needed, we release the slot immediately
           if (!next_wr_req_valid && need_to_complete_eviction) {
@@ -686,97 +686,97 @@ struct AccTypedCache : sc_module {
           }
 
           if ((acc_req_tx || !acc_req_out.nb_can_put()))
-        	  num_stall_itemzed[0]++;
+            num_stall_itemzed[0]++;
 
           if (!cl_rd_req_out.nb_can_put())
-        	  num_stall_itemzed[1]++;
+            num_stall_itemzed[1]++;
 
           if (hit_request_valid)
-        	  num_stall_itemzed[2]++;
+            num_stall_itemzed[2]++;
 
           if (mshr_pending_req_valid)
-        	  num_stall_itemzed[3]++;
+            num_stall_itemzed[3]++;
 
           if (!available_pending_q_slots.nb_can_get())
-        	  num_stall_itemzed[4]++;
+            num_stall_itemzed[4]++;
 
           if (eviction_needed && !hit_request_valid)
-        	  num_stall_itemzed[5]++;
+            num_stall_itemzed[5]++;
 
           // stage 2 where we process input request (registered in stage 1) or handle eviction and not reading anything from the input
           bool new_mshr_req_added = false;
           MSHRIndexT mshr_added_index = 0;
           // eviction will flush the pipeline, no more requests from input serviced
           if (eviction_needed && !hit_request_valid) {
-        	  eviction_loc = IndexWayPair(mshr_records[mshr_rsp.utag].index, mshr_found_way);
-        	  //hit_cl_location_q.nb_put(eviction_loc);
-        	  hit_request_valid = true;
-        	  hit_cl_location = eviction_loc;
-        	  //assert(hit_requests.nb_can_put());
-        	  AccRequestT evict_req;
-        	  evict_req.is_evict = true;
-        	  hit_request = evict_req;
-        	  eviction_needed = false;
-        	  num_of_evicts++;
+            eviction_loc = IndexWayPair(mshr_records[mshr_rsp.utag].index, mshr_found_way);
+            //hit_cl_location_q.nb_put(eviction_loc);
+            hit_request_valid = true;
+            hit_cl_location = eviction_loc;
+            //assert(hit_requests.nb_can_put());
+            AccRequestT evict_req;
+            evict_req.is_evict = true;
+            hit_request = evict_req;
+            eviction_needed = false;
+            num_of_evicts++;
           } else if (inp_req_valid && (!acc_req_tx && acc_req_out.nb_can_put()) && cl_rd_req_out.nb_can_put() && !hit_request_valid && !mshr_pending_req_valid && available_pending_q_slots.nb_can_get()) {
-        	  MemSingleReadWriteReqType<T,UTAG> rdwr_req = inp_req;
-        	  typename IndexWayPair::IndexType index = IndexWayPair::getIndex(rdwr_req.addr);
-        	  typename IndexWayPair::TagType tag = IndexWayPair::getTag(rdwr_req.addr);
-        	  typename IndexWayPair::TagType word_index = IndexWayPair::getWordIndex(rdwr_req.addr);
+            MemSingleReadWriteReqType<T,UTAG> rdwr_req = inp_req;
+            typename IndexWayPair::IndexType index = IndexWayPair::getIndex(rdwr_req.addr);
+            typename IndexWayPair::TagType tag = IndexWayPair::getTag(rdwr_req.addr);
+            typename IndexWayPair::TagType word_index = IndexWayPair::getWordIndex(rdwr_req.addr);
 
-        	  assert(index < NUM_OF_SETS);
-        	  typename IndexWayPair::WayIndexType way_index = 0;
-        	  bool being_evicted = false;
-        	  bool found = sets[index].findWayWithMatchingTag(tag, way_index, being_evicted);
-        	  //typename AccInOutWayT::TagRecordT::RecordState state = sets[index].ways[way_index].data.state;
-        	  //bool has_pending_reqs = sets[index].ways[way_index].data.has_pending_reqs;
-        	  MSHRIndexT pending_q_index = 0;
-        	  bool isInMshr = checkMshrRecords(index, tag, pending_q_index);
-        	  new_mshr_req_added = isInMshr;
-        	  mshr_added_index = pending_q_index;
+            assert(index < NUM_OF_SETS);
+            typename IndexWayPair::WayIndexType way_index = 0;
+            bool being_evicted = false;
+            bool found = sets[index].findWayWithMatchingTag(tag, way_index, being_evicted);
+            //typename AccInOutWayT::TagRecordT::RecordState state = sets[index].ways[way_index].data.state;
+            //bool has_pending_reqs = sets[index].ways[way_index].data.has_pending_reqs;
+            MSHRIndexT pending_q_index = 0;
+            bool isInMshr = checkMshrRecords(index, tag, pending_q_index);
+            new_mshr_req_added = isInMshr;
+            mshr_added_index = pending_q_index;
 
-        	  if (found) { // hit
-        		  if (being_evicted) {
-        			  //under eviction, so have to stall
+            if (found) { // hit
+              if (being_evicted) {
+                //under eviction, so have to stall
 
-        			  DBG_OUT << "EVICT_PENDING" << endl;
-        		  } else if (isInMshr) {// may be processing requests accumulated from miss
-        			  //prepare request to be added to the pending request queue next cycle
-        			  mshr_pending_req_valid = true;
-        			  mshr_pending_req_index = pending_q_index;
-        			  mshr_pending_req = AccRequestT(rdwr_req.utag, rdwr_req.is_write,word_index, rdwr_req.data);
-        			  inp_req_valid = false;
-        		  } else {
-        			  // found matching tag
-        			  IndexWayPair indtag (index, way_index);
-        			  hit_request_valid = true;
-        			  hit_cl_location = indtag;
-        			  hit_request = AccRequestT(rdwr_req.utag, rdwr_req.is_write, word_index, rdwr_req.data);
-        			  inp_req_valid = false;
-        		  }
-        		  num_of_hits++;
-        	  } else { // miss
-        		  inp_req_valid = false;
-        		  // check if the miss is in mshr already
-        		  if (isInMshr) {
-        			  mshr_pending_req_index = pending_q_index;
-        			  num_of_mshr_hits++;
-        		  } else  { // new miss
-        			  MSHRIndexT pend_index;
-        			  available_pending_q_slots.nb_get(pend_index);
-        			  mshr_records[pend_index] = MshrRecord<NUM_OF_SETS, NUM_OF_WAYS>(index, tag);
-        			  DBG_OUT << sc_time_stamp() << "new MSHR req at " << rdwr_req.addr << endl;
+                DBG_OUT << "EVICT_PENDING" << endl;
+              } else if (isInMshr) {// may be processing requests accumulated from miss
+                //prepare request to be added to the pending request queue next cycle
+                mshr_pending_req_valid = true;
+                mshr_pending_req_index = pending_q_index;
+                mshr_pending_req = AccRequestT(rdwr_req.utag, rdwr_req.is_write,word_index, rdwr_req.data);
+                inp_req_valid = false;
+              } else {
+                // found matching tag
+                IndexWayPair indtag (index, way_index);
+                hit_request_valid = true;
+                hit_cl_location = indtag;
+                hit_request = AccRequestT(rdwr_req.utag, rdwr_req.is_write, word_index, rdwr_req.data);
+                inp_req_valid = false;
+              }
+              num_of_hits++;
+            } else { // miss
+              inp_req_valid = false;
+              // check if the miss is in mshr already
+              if (isInMshr) {
+                mshr_pending_req_index = pending_q_index;
+                num_of_mshr_hits++;
+              } else  { // new miss
+                MSHRIndexT pend_index;
+                available_pending_q_slots.nb_get(pend_index);
+                mshr_records[pend_index] = MshrRecord<NUM_OF_SETS, NUM_OF_WAYS>(index, tag);
+                DBG_OUT << sc_time_stamp() << "new MSHR req at " << rdwr_req.addr << endl;
 
-        			  cl_rd_req_out.nb_put(MemSingleReadReqType<CacheLineType, MSHRIndexT>(CacheLineType::getCacheAlignedAddress(rdwr_req.addr),pend_index));
-        			  acc_req_out.nb_put(ACC_REQ_READ);
-        			  num_of_misses++;
-        			  mshr_pending_req_index = pend_index;
-        		  }
-        		  //waiting for read response, or has pending requests, prepare request to be added to the pending request queue next cycle
-        		  mshr_pending_req_valid = true;
-        		  mshr_pending_req = AccRequestT(rdwr_req.utag, rdwr_req.is_write, word_index,rdwr_req.data);
+                cl_rd_req_out.nb_put(MemSingleReadReqType<CacheLineType, MSHRIndexT>(CacheLineType::getCacheAlignedAddress(rdwr_req.addr),pend_index));
+                acc_req_out.nb_put(ACC_REQ_READ);
+                num_of_misses++;
+                mshr_pending_req_index = pend_index;
+              }
+              //waiting for read response, or has pending requests, prepare request to be added to the pending request queue next cycle
+              mshr_pending_req_valid = true;
+              mshr_pending_req = AccRequestT(rdwr_req.utag, rdwr_req.is_write, word_index,rdwr_req.data);
 
-        	  }
+            }
           }
 
           bool evict = false;
@@ -812,27 +812,27 @@ struct AccTypedCache : sc_module {
           // check if we pulled the last element from the pending request queue before and no one added another one from the input
           // if this is the last pending request we change has_pending_request and release MSHR credit
           if (miss_cl_location_nb_can_get) {
-              MSHRIndexT pending_q_index = indway_mshrind.mshr_index;
-              bool has_pending_reqs = mshr_pending_request_queue[pending_q_index].nb_can_get()
-                  || (new_mshr_req_added && mshr_added_index == pending_q_index)
-                  || (new_mshr_req_added2 && mshr_added_index2 == pending_q_index);
-        	  if(!has_pending_reqs ) {
-				// no more outstanding requests for this read pending slot
-				IndexWayMshrIndexType tmptag;
-				bool success = miss_cl_location_q.nb_get(tmptag);
-				assert(success);
-				IndexWayPair indtag = indway_mshrind.index_way;
-				// no more pending. this means one can evict this line.
-				sets[indtag.index].ways[indtag.way].data.has_pending_reqs = false;
-				// return credit on the pending queues
-				success = available_pending_q_slots.nb_put(pending_q_index);
-				assert(success);
-				// free mshr record
-				mshr_records[pending_q_index].reset();
-        	 }
+            MSHRIndexT pending_q_index = indway_mshrind.mshr_index;
+            bool has_pending_reqs = mshr_pending_request_queue[pending_q_index].nb_can_get()
+                      || (new_mshr_req_added && mshr_added_index == pending_q_index)
+                      || (new_mshr_req_added2 && mshr_added_index2 == pending_q_index);
+            if(!has_pending_reqs ) {
+              // no more outstanding requests for this read pending slot
+              IndexWayMshrIndexType tmptag;
+              bool success = miss_cl_location_q.nb_get(tmptag);
+              assert(success);
+              IndexWayPair indtag = indway_mshrind.index_way;
+              // no more pending. this means one can evict this line.
+              sets[indtag.index].ways[indtag.way].data.has_pending_reqs = false;
+              // return credit on the pending queues
+              success = available_pending_q_slots.nb_put(pending_q_index);
+              assert(success);
+              // free mshr record
+              mshr_records[pending_q_index].reset();
+            }
           }
           if (inp_req_valid)
-        	  ++num_inp_stalls;
+            ++num_inp_stalls;
 
           MemSingleReadReqType<T, UTAG> rd_req;
           MemSingleWriteReqType<T, UTAG> wr_req;
@@ -861,49 +861,49 @@ struct AccTypedCache : sc_module {
     cout << "Misses = " << num_of_misses <<endl;
     cout << "Evicts = " << num_of_evicts <<endl;
     cout << "Input stalled cycles = " << num_inp_stalls << "("
-    		<< num_stall_itemzed[0] << ", "
-    		<< num_stall_itemzed[1] << ", "
-    		<< num_stall_itemzed[2] << ", "
-    		<< num_stall_itemzed[3] << ", "
-    		<< num_stall_itemzed[4] << ", "
-    		<< num_stall_itemzed[5]
-			<< ")" << endl;
+        << num_stall_itemzed[0] << ", "
+        << num_stall_itemzed[1] << ", "
+        << num_stall_itemzed[2] << ", "
+        << num_stall_itemzed[3] << ", "
+        << num_stall_itemzed[4] << ", "
+        << num_stall_itemzed[5]
+                             << ")" << endl;
   }
 
   ~AccTypedCache() {
     print_stats();
   }
-//  void read_write_proc() {
-//    {
-//      acc_rd_req_in.reset_get();
-//      acc_wr_req_in.reset_get();
-//      acc_rdwr_req_fifo.reset_put();
-//    }
-//    wait();
-//    while (1) {
-//      {
-//        MemSingleReadReqType<T, UTAG> rd_req;
-//        MemSingleWriteReqType<T, UTAG> wr_req;
-//        bool read = false;
-//        if (acc_rd_req_in.nb_can_get() && acc_rdwr_req_fifo.nb_can_put()) {
-//          acc_rd_req_in.nb_get(rd_req);
-//          MemSingleReadWriteReqType<T, UTAG> rdwr_req(rd_req);
-//          acc_rdwr_req_fifo.nb_put(rdwr_req);
-//          read = true;
-//        } else
-//        if (acc_wr_req_in.nb_can_get() && acc_rdwr_req_fifo.nb_can_put()) {
-//          acc_wr_req_in.nb_get(wr_req);
-//          // check for RW contention in the same cycle
-//          if (read)
-//            assert(wr_req.addr != rd_req.addr);
-//          MemSingleReadWriteReqType<T, UTAG> rdwr_req(wr_req);
-//          acc_rdwr_req_fifo.nb_put(rdwr_req);
-//        }
-//
-//      }
-//      wait();
-//    }
-//  }
+  //  void read_write_proc() {
+  //    {
+  //      acc_rd_req_in.reset_get();
+  //      acc_wr_req_in.reset_get();
+  //      acc_rdwr_req_fifo.reset_put();
+  //    }
+  //    wait();
+  //    while (1) {
+  //      {
+  //        MemSingleReadReqType<T, UTAG> rd_req;
+  //        MemSingleWriteReqType<T, UTAG> wr_req;
+  //        bool read = false;
+  //        if (acc_rd_req_in.nb_can_get() && acc_rdwr_req_fifo.nb_can_put()) {
+  //          acc_rd_req_in.nb_get(rd_req);
+  //          MemSingleReadWriteReqType<T, UTAG> rdwr_req(rd_req);
+  //          acc_rdwr_req_fifo.nb_put(rdwr_req);
+  //          read = true;
+  //        } else
+  //        if (acc_wr_req_in.nb_can_get() && acc_rdwr_req_fifo.nb_can_put()) {
+  //          acc_wr_req_in.nb_get(wr_req);
+  //          // check for RW contention in the same cycle
+  //          if (read)
+  //            assert(wr_req.addr != rd_req.addr);
+  //          MemSingleReadWriteReqType<T, UTAG> rdwr_req(wr_req);
+  //          acc_rdwr_req_fifo.nb_put(rdwr_req);
+  //        }
+  //
+  //      }
+  //      wait();
+  //    }
+  //  }
 
   bool checkMshrRecords(typename IndexWayPair::IndexType index, typename IndexWayPair::TagType tag, MSHRIndexT &pending_q_index) {
     bool bitvec[MSHR_SIZE];
@@ -982,21 +982,21 @@ public:
   SC_HAS_PROCESS(AccInOutFFwd);
 
   AccInOutFFwd(sc_module_name name)
-           :
-      clk("clk"), rst("rst") {
-	  SC_CTHREAD(main_proc, clk.pos());
-	  async_reset_signal_is(rst, false);
+  :
+    clk("clk"), rst("rst") {
+    SC_CTHREAD(main_proc, clk.pos());
+    async_reset_signal_is(rst, false);
 
-	  acc_wr_req_in.clk_rst(clk, rst);
-	  acc_wr_req_out.clk_rst(clk, rst);
-	  acc_wr_resp_in.clk_rst(clk, rst);
-	  //acc_wr_resp_out.clk_rst(clk, rst);
-	  acc_rd_req_in.clk_rst(clk, rst);
-	  acc_rd_req_out.clk_rst(clk, rst);
-	  acc_rd_resp_in.clk_rst(clk, rst);
-	  acc_rd_resp_out.clk_rst(clk, rst);
-	  acc_req_in.clk_rst(clk, rst);
-	}
+    acc_wr_req_in.clk_rst(clk, rst);
+    acc_wr_req_out.clk_rst(clk, rst);
+    acc_wr_resp_in.clk_rst(clk, rst);
+    //acc_wr_resp_out.clk_rst(clk, rst);
+    acc_rd_req_in.clk_rst(clk, rst);
+    acc_rd_req_out.clk_rst(clk, rst);
+    acc_rd_resp_in.clk_rst(clk, rst);
+    acc_rd_resp_out.clk_rst(clk, rst);
+    acc_req_in.clk_rst(clk, rst);
+  }
 
   bool findBufferMatch(SplAddressType addr, size_t &index) {
     bool bitvec[WR_BUF_SIZE];
@@ -1064,7 +1064,7 @@ public:
             acc_rd_resp_in.nb_get(resp);
             acc_rd_resp_out.nb_put(resp);
           }
-          
+
           if (pend_read_valid && !read_after_write && acc_rd_req_out.nb_can_put()) {
             acc_rd_req_out.nb_put(pend_read);
             pend_read_valid = false;
@@ -1088,7 +1088,7 @@ public:
           }
 
           if (acc_wr_resp_in.nb_can_get() ) {
-        		  //&& acc_wr_resp_out.nb_can_put()) {
+            //&& acc_wr_resp_out.nb_can_put()) {
             MemSingleWriteRespType<LwrTag> resp;
             acc_wr_resp_in.nb_get(resp);
             wr_req_rename_buffer.free(resp.utag);
@@ -1126,12 +1126,12 @@ public:
   AccTypedCache<T, UTAG, NUM_OF_SETS, NUM_OF_WAYS, MSHR_SIZE, SAME_ADDR_BUF_SIZE> cache;
   typedef typename AccTypedCache<T, UTAG, NUM_OF_SETS, NUM_OF_WAYS, MSHR_SIZE, SAME_ADDR_BUF_SIZE>::IndexWayPair IndexWayPair;
   typedef typename AccTypedCache<T, UTAG, NUM_OF_SETS, NUM_OF_WAYS, MSHR_SIZE, SAME_ADDR_BUF_SIZE>::MSHRIndexT MSHRIndexT;
-  
+
   enum {
     STORE_BUF_SIZE = 16
   };
   typedef typename SizeT<STORE_BUF_SIZE>::Type WrBufIndexT;
-  
+
 
   AccInOutFFwd<CacheLineType, MSHRIndexT, UTAG, STORE_BUF_SIZE> acc_inout;
   AccIn<LoadUnitSingleReqParams<CacheLineType, MSHRIndexT, MSHR_SIZE> > mshr;
@@ -1155,14 +1155,14 @@ public:
 
 
   AccInOut(sc_module_name name) :
-			sc_module(name), clk("clk"), rst("rst"), acc_rd_req_in(
-					"acc_rd_req_in"), acc_wr_req_in("acc_wr_req_in"), acc_rd_resp_out(
-					"acc_rd_resp_out"), spl_wr_req_out("spl_wr_req_out"), spl_wr_resp_in(
-					"spl_wr_resp_in"), spl_rd_req_out("spl_rd_req_out"), spl_rd_resp_in(
-					"spl_rd_resp_in"), cache("cache"), acc_inout("acc_inout"), mshr(
-					"mshr"), store("store"), spl_wr_req("spl_wr_req"), spl_wr_resp(
-					"spl_wr_resp"), spl_rd_req("spl_rd_req"), spl_rd_resp(
-					"spl_rd_resp") {
+    sc_module(name), clk("clk"), rst("rst"), acc_rd_req_in(
+        "acc_rd_req_in"), acc_wr_req_in("acc_wr_req_in"), acc_rd_resp_out(
+            "acc_rd_resp_out"), spl_wr_req_out("spl_wr_req_out"), spl_wr_resp_in(
+                "spl_wr_resp_in"), spl_rd_req_out("spl_rd_req_out"), spl_rd_resp_in(
+                    "spl_rd_resp_in"), cache("cache"), acc_inout("acc_inout"), mshr(
+                        "mshr"), store("store"), spl_wr_req("spl_wr_req"), spl_wr_resp(
+                            "spl_wr_resp"), spl_rd_req("spl_rd_req"), spl_rd_resp(
+                                "spl_rd_resp") {
     cache.clk(clk);
     cache.rst(rst);
     mshr.clk(clk);
@@ -1200,7 +1200,7 @@ public:
 
     mshr.spl_req_out(spl_rd_req_out);
     mshr.spl_resp_in(spl_rd_resp_in);
-    
+
     store.spl_req_out(spl_wr_req_out);
     store.spl_resp_in(spl_wr_resp_in);
 

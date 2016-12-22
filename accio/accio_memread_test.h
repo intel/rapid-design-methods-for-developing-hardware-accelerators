@@ -18,8 +18,8 @@
 class AccMemReadTestbench : public sc_module
 {
 public:
-	sc_in_clk clk;
-	sc_in<bool> rst;
+  sc_in_clk clk;
+  sc_in<bool> rst;
 
   struct TbInType {
     std::queue<AccMemReadReqType> stream;
@@ -35,24 +35,24 @@ public:
   bool active;
 
   // functional IOs
-	ga::tlm_fifo_out<AccMemReadReqType> acc_req_out;
-	ga::tlm_fifo_in<AccMemReadRespType> acc_resp_in;
+  ga::tlm_fifo_out<AccMemReadReqType> acc_req_out;
+  ga::tlm_fifo_in<AccMemReadRespType> acc_resp_in;
   ga::tlm_fifo_in<SplMemReadReqType> spl_req_in;
   ga::tlm_fifo_out<SplMemReadRespType> spl_resp_out;
 
   ga::ga_storage_fifo<SplMemReadRespType, 10> fast_response_fifo;
   ga::ga_storage_fifo<SplMemReadRespType, 10> slow_response_fifo;
 
-	SC_HAS_PROCESS(AccMemReadTestbench);
+  SC_HAS_PROCESS(AccMemReadTestbench);
 
-	// limit number of responses
-//  template <size_t SIZE>
-//	void fill_randomly(std::array<CacheLineType, SIZE> &array) {
-//    for (int i = 0; i < SIZE; ++i) {
-//      CacheLineType cl = CacheLineType::generate_random();
-//      array[i] = cl;
-//    }
-//  }
+  // limit number of responses
+  //  template <size_t SIZE>
+  //	void fill_randomly(std::array<CacheLineType, SIZE> &array) {
+  //    for (int i = 0; i < SIZE; ++i) {
+  //      CacheLineType cl = CacheLineType::generate_random();
+  //      array[i] = cl;
+  //    }
+  //  }
 
   void acc_thread() {
     active = false;
@@ -156,8 +156,8 @@ public:
   }
 
   AccMemReadTestbench(sc_module_name modname, std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> &dram, TbInType &test_in, TbOutType &test_out) :
-      sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_resp_in(
-          "acc_resp_in"), spl_req_in("spl_req_in"), spl_resp_out("spl_resp_out")  {
+    sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_resp_in(
+        "acc_resp_in"), spl_req_in("spl_req_in"), spl_resp_out("spl_resp_out")  {
     SC_CTHREAD(acc_thread, clk.pos());
     async_reset_signal_is(rst, false);
     SC_CTHREAD(spl_thread, clk.pos());
@@ -185,18 +185,18 @@ public:
   ga::tlm_fifo<SplMemReadReqType, 2> spl_req_out_ch;
   ga::tlm_fifo<AccMemReadReqType, 2> acc_req_out_ch;
   ga::tlm_fifo<SplMemReadRespType, 2> spl_resp_out_ch;
-	SC_HAS_PROCESS(TestMemReadTop);
+  SC_HAS_PROCESS(TestMemReadTop);
 
-	std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> dram; // 128KB
-	AccMemReadTestbench::TbInType test_in;
-	AccMemReadTestbench::TbOutType test_out;
+  std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> dram; // 128KB
+  AccMemReadTestbench::TbInType test_in;
+  AccMemReadTestbench::TbOutType test_out;
 
 
   TestMemReadTop(sc_module_name modname = sc_gen_unique_name("TestMemReadTop")) :
-      sc_module(modname), clkgen("clkgen_"), acc_read_tb("tb_", dram, test_in,
-          test_out), acc_mem_in("accio_"), clk_ch("clk_ch"), rst_ch("rst_ch"), acc_resp_out_ch(
-          "acc_resp_out_ch"), spl_req_out_ch("spl_req_out_ch"), acc_req_out_ch(
-          "acc_req_out_ch"), spl_resp_out_ch("spl_resp_out_ch") {
+    sc_module(modname), clkgen("clkgen_"), acc_read_tb("tb_", dram, test_in,
+        test_out), acc_mem_in("accio_"), clk_ch("clk_ch"), rst_ch("rst_ch"), acc_resp_out_ch(
+            "acc_resp_out_ch"), spl_req_out_ch("spl_req_out_ch"), acc_req_out_ch(
+                "acc_req_out_ch"), spl_resp_out_ch("spl_resp_out_ch") {
     acc_read_tb.clk(clk_ch);
     clkgen.clk(clk_ch);
     acc_read_tb.rst(rst_ch);

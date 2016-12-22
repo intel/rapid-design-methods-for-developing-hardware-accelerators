@@ -15,8 +15,8 @@
 class AccMemWriteTestbench : public sc_module
 {
 public:
-	sc_in_clk clk;
-	sc_in<bool> rst;
+  sc_in_clk clk;
+  sc_in<bool> rst;
 
   struct TbInType {
     std::queue<AccMemWriteReqType> stream_req;
@@ -32,17 +32,17 @@ public:
   bool active;
 
   ga::tlm_fifo_out<AccMemWriteReqType> acc_req_out;
-	ga::tlm_fifo_out<AccMemWriteDataType> acc_data_out;
+  ga::tlm_fifo_out<AccMemWriteDataType> acc_data_out;
   ga::tlm_fifo_in<SplMemWriteReqType> spl_req_in;
   ga::tlm_fifo_in<SplMemWriteRespType> spl_resp_in;
 
 
-	SC_HAS_PROCESS(AccMemWriteTestbench);
+  SC_HAS_PROCESS(AccMemWriteTestbench);
 
-	// limit number of responses
-	static const size_t TEST_REQ_NUM = 100;
-	size_t req_counter;
-	size_t resp_counter;
+  // limit number of responses
+  static const size_t TEST_REQ_NUM = 100;
+  size_t req_counter;
+  size_t resp_counter;
 
 
   void acc_thread() {
@@ -109,8 +109,7 @@ public:
 
 
   AccMemWriteTestbench(sc_module_name modname, std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> &dram, TbInType &test_in, TbOutType &test_out) :
-      sc_module(modname), clk("clk"), rst("rst"),   dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_data_out(
-          "acc_data_out"), spl_req_in("spl_req_in") {
+    sc_module(modname), clk("clk"), rst("rst"),   dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_data_out("acc_data_out"), spl_req_in("spl_req_in") {
     SC_CTHREAD(acc_thread, clk.pos());
     async_reset_signal_is(rst, false);
     SC_CTHREAD(spl_thread, clk.pos());
@@ -136,7 +135,7 @@ public:
   ga::tlm_fifo<SplMemWriteReqType, 2> spl_req_out_ch;
   ga::tlm_fifo<AccMemWriteReqType, 2> acc_req_out_ch;
   ga::tlm_fifo<AccMemWriteDataType, 2> acc_data_out_ch;
-	SC_HAS_PROCESS(TestMemWriteTop);
+  SC_HAS_PROCESS(TestMemWriteTop);
 
   std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> dram; // 128KB
   AccMemWriteTestbench::TbInType test_in;
@@ -144,10 +143,11 @@ public:
 
 
   TestMemWriteTop(sc_module_name modname) :
-      sc_module(modname), clkgen("clkgen_"), acc_write_tb("tb_", dram, test_in,
-          test_out), acc_mem_out("accio_"), clk_ch("clk_ch"), rst_ch("rst_ch"), spl_req_out_ch(
-          "spl_req_out_ch"), acc_req_out_ch("acc_req_out_ch"), acc_data_out_ch(
-          "acc_data_out_ch") {
+      sc_module(modname), clkgen("clkgen"),
+      acc_write_tb("acc_write_tb", dram, test_in, test_out),
+      acc_mem_out("acc_mem_out"), clk_ch("clk_ch"), rst_ch("rst_ch"),
+      spl_resp_out_ch("spl_resp_out_ch"), spl_req_out_ch("spl_req_out_ch"),
+      acc_req_out_ch("acc_req_out_ch"), acc_data_out_ch("acc_data_out_ch") {
     acc_write_tb.clk(clk_ch);
     clkgen.clk(clk_ch);
     acc_write_tb.rst(rst_ch);

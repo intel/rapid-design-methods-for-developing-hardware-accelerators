@@ -55,12 +55,8 @@ SC_MODULE(AccArbTb) {
   SC_HAS_PROCESS(AccArbTb);
 
   AccArbTb(sc_module_name modname, std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> &dram, TbInType &test_in, TbOutType &test_out) :
-      sc_module(modname), clk("clk"), rst("rst"), rd_req1("rd_req1"), rd_req2(
-          "rd_req2"), rd_req3("rd_req3"), rd_req4("rd_req4"), spl_req1(
-          "spl_req1"), spl_req2("spl_req2"), spl_rsp1("spl_rsp1"), spl_rsp2(
-          "spl_rsp2"), rd_rsp1("rd_rsp1"), rd_rsp2("rd_rsp2"), rd_rsp3(
-          "rd_rsp3"), rd_rsp4("rd_rsp4"), test_in(test_in), test_out(test_out), active(
-          false)
+    sc_module(modname), clk("clk"), rst("rst"), rd_req1("rd_req1"), rd_req2("rd_req2"), rd_req3("rd_req3"), rd_req4("rd_req4"), spl_req1("spl_req1"), spl_req2("spl_req2"), spl_rsp1("spl_rsp1"), spl_rsp2("spl_rsp2"), rd_rsp1("rd_rsp1"), rd_rsp2("rd_rsp2"), rd_rsp3("rd_rsp3"), rd_rsp4("rd_rsp4"),
+    test_in(test_in), test_out(test_out), active(false)
   {
     SC_CTHREAD(acc_thread, clk.pos());
     async_reset_signal_is(rst, false);
@@ -212,13 +208,13 @@ public:
 
 
   AccArbTbTop(sc_module_name modname = sc_gen_unique_name("TestMemArbiterTop")) :
-      sc_module(modname), clkgen("clkgen"), acc_arb_tb("acc_arb_tb",dram,
-          test_in, test_out), arbiter("arbiter"), clk_ch("clk_ch"), rst_ch(
-          "rst_ch"), rd_arb_idle("rd_arb_idle"), rd_req1("rd_req1"), rd_req2(
-          "rd_req2"), rd_req3("rd_req3"), rd_req4("rd_req4"), spl_req1(
-          "spl_req1"), spl_req2("spl_req2"), spl_rsp1("spl_rsp1"), spl_rsp2(
-          "spl_rsp2"), rd_rsp1("rd_rsp1"), rd_rsp2("rd_rsp2"), rd_rsp3(
-          "rd_rsp3"), rd_rsp4("rd_rsp4") {
+    sc_module(modname), clkgen("clkgen"), acc_arb_tb("acc_arb_tb",dram,
+        test_in, test_out), arbiter("arbiter"), clk_ch("clk_ch"), rst_ch(
+            "rst_ch"), rd_arb_idle("rd_arb_idle"), rd_req1("rd_req1"), rd_req2(
+                "rd_req2"), rd_req3("rd_req3"), rd_req4("rd_req4"), spl_req1(
+                    "spl_req1"), spl_req2("spl_req2"), spl_rsp1("spl_rsp1"), spl_rsp2(
+                        "spl_rsp2"), rd_rsp1("rd_rsp1"), rd_rsp2("rd_rsp2"), rd_rsp3(
+                            "rd_rsp3"), rd_rsp4("rd_rsp4") {
 
     arbiter.clk(clk_ch);
     arbiter.rst(rst_ch);
@@ -309,13 +305,13 @@ public:
 
 
   AccArbSimpleTbTop(sc_module_name modname = sc_gen_unique_name("TestMemArbiterTop")) :
-      sc_module(modname), clkgen("clkgen"), acc_arb_tb("acc_arb_tb",dram,
-          test_in, test_out), arbiter("arbiter"), clk_ch("clk_ch"), rst_ch(
-          "rst_ch"), rd_arb_idle("rd_arb_idle"), rd_req1("rd_req1"), rd_req2(
-          "rd_req2"), rd_req3("rd_req3"), rd_req4("rd_req4"), spl_req1(
-          "spl_req1"), spl_req2("spl_req2"), spl_rsp1("spl_rsp1"), spl_rsp2(
-          "spl_rsp2"), rd_rsp1("rd_rsp1"), rd_rsp2("rd_rsp2"), rd_rsp3(
-          "rd_rsp3"), rd_rsp4("rd_rsp4") {
+    sc_module(modname), clkgen("clkgen"), acc_arb_tb("acc_arb_tb",dram,
+        test_in, test_out), arbiter("arbiter"), clk_ch("clk_ch"), rst_ch(
+            "rst_ch"), rd_arb_idle("rd_arb_idle"), rd_req1("rd_req1"), rd_req2(
+                "rd_req2"), rd_req3("rd_req3"), rd_req4("rd_req4"), spl_req1(
+                    "spl_req1"), spl_req2("spl_req2"), spl_rsp1("spl_rsp1"), spl_rsp2(
+                        "spl_rsp2"), rd_rsp1("rd_rsp1"), rd_rsp2("rd_rsp2"), rd_rsp3(
+                            "rd_rsp3"), rd_rsp4("rd_rsp4") {
 
     arbiter.clk(clk_ch);
     arbiter.rst(rst_ch);

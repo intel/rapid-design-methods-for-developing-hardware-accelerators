@@ -78,31 +78,31 @@ public:
         // limit the number of responses we expect to receive
         if (!test_in.stream_order.empty()) {
           //if (!read_req_made) {
-             ReqOrderEnum next_req = test_in.stream_order.front(); test_in.stream_order.pop();
-            switch (next_req) {
-            case RO_READ: {
-              MemSingleReadReqType<T, UTAG> rd_req = test_in.stream_rd_req.front(); test_in.stream_rd_req.pop();
-              //cout << "TB - RD REQ " << rd_req.utag << endl;
+          ReqOrderEnum next_req = test_in.stream_order.front(); test_in.stream_order.pop();
+          switch (next_req) {
+          case RO_READ: {
+            MemSingleReadReqType<T, UTAG> rd_req = test_in.stream_rd_req.front(); test_in.stream_rd_req.pop();
+            //cout << "TB - RD REQ " << rd_req.utag << endl;
 
-              acc_rd_req_out.put(rd_req);
-              read_req_made = true;
-              num_of_reads++;
-              read_time = sc_time_stamp().to_default_time_units();
-              break;
-            }
-            case RO_WRITE: {
-              MemSingleWriteReqType<T, UTAG> wr_req = test_in.stream_wr_req.front(); test_in.stream_wr_req.pop();
-              acc_wr_req_out.put(wr_req);
-              acc_wr_resp_in.get();
-              break;
-            }
-            default: assert(0);
-            }
-//          }
-//          if (read_resp_rcvd) {
-//            read_req_made = false;
-//            read_resp_rcvd = false;
-//          }
+            acc_rd_req_out.put(rd_req);
+            read_req_made = true;
+            num_of_reads++;
+            read_time = sc_time_stamp().to_default_time_units();
+            break;
+          }
+          case RO_WRITE: {
+            MemSingleWriteReqType<T, UTAG> wr_req = test_in.stream_wr_req.front(); test_in.stream_wr_req.pop();
+            acc_wr_req_out.put(wr_req);
+            acc_wr_resp_in.get();
+            break;
+          }
+          default: assert(0);
+          }
+          //          }
+          //          if (read_resp_rcvd) {
+          //            read_req_made = false;
+          //            read_resp_rcvd = false;
+          //          }
         } else {
           wait_cycles_after_last_input++;
           if (wait_cycles_after_last_input > 1000) {
@@ -125,15 +125,15 @@ public:
     wait();
     while (1) {
       {
-//        if (!read_resp_rcvd) {
-          MemSingleReadRespType<T, UTAG> rd_resp = acc_rd_resp_in.get();
-          //cout << "TB - RD RESP " << rd_resp.utag << endl;
-          test_out.stream_rd_resp.push(rd_resp);
-//          read_resp_rcvd = true;
-//          ave_read_time += (sc_time_stamp().to_default_time_units() - read_time);
-//          min_read_time = std::min(min_read_time, (size_t)(sc_time_stamp().to_default_time_units() - read_time));
-//          cout << "read time service time " << (double)ave_read_time/num_of_reads << " min service time = " << min_read_time << endl;;
-//        }
+        //        if (!read_resp_rcvd) {
+        MemSingleReadRespType<T, UTAG> rd_resp = acc_rd_resp_in.get();
+        //cout << "TB - RD RESP " << rd_resp.utag << endl;
+        test_out.stream_rd_resp.push(rd_resp);
+        //          read_resp_rcvd = true;
+        //          ave_read_time += (sc_time_stamp().to_default_time_units() - read_time);
+        //          min_read_time = std::min(min_read_time, (size_t)(sc_time_stamp().to_default_time_units() - read_time));
+        //          cout << "read time service time " << (double)ave_read_time/num_of_reads << " min service time = " << min_read_time << endl;;
+        //        }
       }
       wait();
     }
@@ -179,14 +179,14 @@ public:
 
 
   AccSingleIOTestbench(sc_module_name modname, std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> &dram, TbInType &test_in, TbOutType &test_out) :
-      sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(
-          test_out), active(false), acc_wr_req_out(
-					"acc_wr_req_out"), acc_wr_resp_in("acc_wr_resp_in"), acc_rd_req_out(
-          "acc_rd_req_out"), acc_rd_resp_in("acc_rd_resp_in"), spl_wr_req_in(
-					"spl_wr_req_in"), spl_wr_resp_out("spl_wr_resp_out"), spl_rd_req_in(
-					"spl_rd_req_in"), spl_rd_resp_out(
-          "spl_rd_resp_out"), read_req_made(
-					"read_req_made"), read_resp_rcvd("read_resp_rcvd") {
+    sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(
+        test_out), active(false), acc_wr_req_out(
+            "acc_wr_req_out"), acc_wr_resp_in("acc_wr_resp_in"), acc_rd_req_out(
+                "acc_rd_req_out"), acc_rd_resp_in("acc_rd_resp_in"), spl_wr_req_in(
+                    "spl_wr_req_in"), spl_wr_resp_out("spl_wr_resp_out"), spl_rd_req_in(
+                        "spl_rd_req_in"), spl_rd_resp_out(
+                            "spl_rd_resp_out"), read_req_made(
+                                "read_req_made"), read_resp_rcvd("read_resp_rcvd") {
     SC_CTHREAD(acc_thread, clk.pos());
     async_reset_signal_is(rst, false);
     SC_CTHREAD(spl_thread, clk.pos());
@@ -236,9 +236,9 @@ public:
 
 
   TestSingleIOTop(sc_module_name modname = sc_gen_unique_name("TypedTestMemWriteTop")) :
-      sc_module(modname), clkgen("clkgen"), acc_tb("acc_tb", dram,
-          test_in,
-          test_out), acc_io_unit("acc_io_unit"), clk_ch("clk_ch"), rst_ch("rst_ch") {
+    sc_module(modname), clkgen("clkgen"), acc_tb("acc_tb", dram,
+        test_in,
+        test_out), acc_io_unit("acc_io_unit"), clk_ch("clk_ch"), rst_ch("rst_ch") {
     acc_tb.clk(clk_ch);
     clkgen.clk(clk_ch);
     acc_tb.rst(rst_ch);
@@ -257,8 +257,8 @@ public:
     acc_io_unit.spl_rd_req_out(spl_rd_req);
     acc_io_unit.spl_rd_resp_in(spl_rd_resp);
 
-	acc_tb.acc_wr_resp_in(acc_wr_resp);
-	acc_tb.acc_wr_req_out(acc_wr_req);
+    acc_tb.acc_wr_resp_in(acc_wr_resp);
+    acc_tb.acc_wr_req_out(acc_wr_req);
     acc_tb.acc_rd_req_out(acc_rd_req);
     acc_tb.acc_rd_resp_in(acc_rd_resp);
     acc_tb.spl_wr_req_in(spl_wr_req);

@@ -28,7 +28,7 @@ struct AccRequest {
     utag(utag), is_write(is_write), is_evict(false), word_pos(word_pos), data(data) {}
   AccRequest(UTAG utag, bool is_write, CacheLineType::ByteIndexType word_pos) :
     utag(utag), is_write(is_write), is_evict(false), word_pos(word_pos), data(data) {
-      assert(is_write == false);
+    assert(is_write == false);
   }
 
   inline friend void sc_trace(sc_trace_file* tf, const AccRequest& d,
@@ -146,8 +146,8 @@ struct IndexWayMshrIndexTuple {
   typename SizeT<MSHR_SIZE>::Type mshr_index;
   IndexWayMshrIndexTuple() {}
   IndexWayMshrIndexTuple(CacheIndexWayPair<NUM_OF_WAYS, NUM_OF_SETS> index_way,
-                         typename SizeT<MSHR_SIZE>::Type mshr_index) :
-                           index_way(index_way), mshr_index(mshr_index) {}
+      typename SizeT<MSHR_SIZE>::Type mshr_index) :
+        index_way(index_way), mshr_index(mshr_index) {}
 
   inline friend void sc_trace(sc_trace_file* tf,
       const IndexWayMshrIndexTuple& d, const std::string& name) {
@@ -193,8 +193,8 @@ struct AccInOutSet {
       return false;
     }
     else {
-//      way_index = evictSelector;
-//      evictSelector++;
+      //      way_index = evictSelector;
+      //      evictSelector++;
       return false;
     }
   }

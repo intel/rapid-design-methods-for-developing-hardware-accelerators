@@ -36,28 +36,28 @@ public:
   //ga::tlm_fifo_in<RESPONSE> in_resp_fifo;
   //ga::tlm_fifo_out<RESPONSE> out_resp_fifo[NR_OF_REQS];
 #ifdef __SYSTEMC_AFU__
-	ga::tlm_fifo_in<REQUEST> in_req_fifo[NR_OF_REQS];
+  ga::tlm_fifo_in<REQUEST> in_req_fifo[NR_OF_REQS];
 #ifdef __SCL_FLEX_CH__
-	scl_put_initiator<REQUEST> out_req_fifo;
-	scl_get_initiator<RESPONSE> in_resp_fifo;
+  scl_put_initiator<REQUEST> out_req_fifo;
+  scl_get_initiator<RESPONSE> in_resp_fifo;
 #else
-	nb_put_initiator<REQUEST> out_req_fifo;
-	nb_get_initiator<RESPONSE> in_resp_fifo;
+  nb_put_initiator<REQUEST> out_req_fifo;
+  nb_get_initiator<RESPONSE> in_resp_fifo;
 #endif //__SCL_FLEX_CH__
-	ga::tlm_fifo_out<RESPONSE> out_resp_fifo[NR_OF_REQS];
+  ga::tlm_fifo_out<RESPONSE> out_resp_fifo[NR_OF_REQS];
 #else
-	ga::tlm_fifo_in<REQUEST> in_req_fifo[NR_OF_REQS];
-	ga::tlm_fifo_out<REQUEST> out_req_fifo;
-	ga::tlm_fifo_in<RESPONSE> in_resp_fifo;
-	ga::tlm_fifo_out<RESPONSE> out_resp_fifo[NR_OF_REQS];
+  ga::tlm_fifo_in<REQUEST> in_req_fifo[NR_OF_REQS];
+  ga::tlm_fifo_out<REQUEST> out_req_fifo;
+  ga::tlm_fifo_in<RESPONSE> in_resp_fifo;
+  ga::tlm_fifo_out<RESPONSE> out_resp_fifo[NR_OF_REQS];
 #endif //__SYSTEMC_AFU__
 
 
   SC_HAS_PROCESS (MemArbiter);
 
   MemArbiter(sc_core::sc_module_name name = sc_core::sc_gen_unique_name(
-          "ARBITER")) :
-      sc_core::sc_module(name), clk("clk"), rst("rst"), idle("idle"), out_req_fifo("out_req_fifo"), in_resp_fifo("in_resp_fifo") {
+      "ARBITER")) :
+        sc_core::sc_module(name), clk("clk"), rst("rst"), idle("idle"), out_req_fifo("out_req_fifo"), in_resp_fifo("in_resp_fifo") {
     SC_CTHREAD(mux_thread,clk.pos());
     //sensitive << clk.pos();
     async_reset_signal_is(rst, false);
@@ -165,15 +165,15 @@ public:
       arb.out_resp_fifo[i](out_resp_fifo[i]);
     }
 
-//    template <typename T>
-//    void bindServicer (T servr, MemArbiter<NR_OF_REQS, REQUEST, RESPONSE, TRAIT> arb) {
-//      ga::tlm_fifo_out<REQUEST> out_req_fifo;
-//      ga::tlm_fifo_in<RESPONSE> in_resp_fifo;
-//      servr.in_req_fifo(in_req_fifo);
-//      servr.out_resp_fifo(out_resp_fifo);
-//      arb.out_req_fifo(in_req_fifo);
-//      arb.in_resp_fifo(out_resp_fifo);
-//    }
+    //    template <typename T>
+    //    void bindServicer (T servr, MemArbiter<NR_OF_REQS, REQUEST, RESPONSE, TRAIT> arb) {
+    //      ga::tlm_fifo_out<REQUEST> out_req_fifo;
+    //      ga::tlm_fifo_in<RESPONSE> in_resp_fifo;
+    //      servr.in_req_fifo(in_req_fifo);
+    //      servr.out_resp_fifo(out_resp_fifo);
+    //      arb.out_req_fifo(in_req_fifo);
+    //      arb.in_resp_fifo(out_resp_fifo);
+    //    }
 
   };
 
@@ -220,8 +220,8 @@ public:
   SC_HAS_PROCESS (MemArbiterN);
 
   MemArbiterN(sc_core::sc_module_name name = sc_core::sc_gen_unique_name(
-          "ARBITER")) :
-      sc_core::sc_module(name), clk("clk"), rst("rst"), idle("idle") {
+      "ARBITER")) :
+        sc_core::sc_module(name), clk("clk"), rst("rst"), idle("idle") {
     SC_CTHREAD(mux_thread,clk.pos());
     //sensitive << clk.pos();
     async_reset_signal_is(rst, false);
@@ -264,29 +264,29 @@ public:
       hasReqs = false;
       bool consumer_ready = false;
       UNROLL_N_SERVICE_LOOP_MUX: for (unsigned i = 0; i < NR_OF_RSPS; i++)
-      if (out_req_fifo[i].nb_can_put()) {
-        consumer_ready = true;
-        ReqCountType chosen_bit ;
-        bool foundRequestor = bitvec_utils<ReqCountType, NR_OF_REQS>::find_leading_one(reqsVector, chosen_bit);
-        if (foundRequestor) {
-          ReqCountType next_index = (chosen_bit+orig_start_index) % NR_OF_REQS ;
+        if (out_req_fifo[i].nb_can_put()) {
+          consumer_ready = true;
+          ReqCountType chosen_bit ;
+          bool foundRequestor = bitvec_utils<ReqCountType, NR_OF_REQS>::find_leading_one(reqsVector, chosen_bit);
+          if (foundRequestor) {
+            ReqCountType next_index = (chosen_bit+orig_start_index) % NR_OF_REQS ;
 
-          assert(in_req_fifo[next_index].nb_can_get());
-          assert(out_req_fifo[i].nb_can_put());
-          REQUEST req;
-          in_req_fifo[next_index].nb_get(req);
-          //req.io_unit_id = next_index;
-          req.io_unit_id = ArbiterTagResolver<TRAIT>::template addTag<NR_OF_REQS>(req.io_unit_id, next_index);
-          DBG_OUT << sc_time_stamp() << " arbiter ("<< TRAIT << " " << basename() << " got request from unit " <<  (size_t)req.io_unit_id << " at address: " <<  req.addr << " and send it out to output " << endl;
-          out_req_fifo[i].nb_put(req);
+            assert(in_req_fifo[next_index].nb_can_get());
+            assert(out_req_fifo[i].nb_can_put());
+            REQUEST req;
+            in_req_fifo[next_index].nb_get(req);
+            //req.io_unit_id = next_index;
+            req.io_unit_id = ArbiterTagResolver<TRAIT>::template addTag<NR_OF_REQS>(req.io_unit_id, next_index);
+            DBG_OUT << sc_time_stamp() << " arbiter ("<< TRAIT << " " << basename() << " got request from unit " <<  (size_t)req.io_unit_id << " at address: " <<  req.addr << " and send it out to output " << endl;
+            out_req_fifo[i].nb_put(req);
 
-          // next time we'll start with the next requester
-          start_index = (next_index + 1) % NR_OF_REQS ;
-          // reset the bit in the reqsVector as we just serviced it
-          reqsVector[chosen_bit] = false;
+            // next time we'll start with the next requester
+            start_index = (next_index + 1) % NR_OF_REQS ;
+            // reset the bit in the reqsVector as we just serviced it
+            reqsVector[chosen_bit] = false;
+          }
+          hasReqs |= foundRequestor;
         }
-        hasReqs |= foundRequestor;
-      }
       if (!consumer_ready) {
         consumer_not_ready++;
       }
@@ -344,15 +344,15 @@ public:
       arb.out_resp_fifo[i](out_resp_fifo[i]);
     }
 
-//    template <typename T>
-//    void bindServicer (T servr, MemArbiter<NR_OF_REQS, REQUEST, RESPONSE, TRAIT> arb) {
-//      ga::tlm_fifo_out<REQUEST> out_req_fifo;
-//      ga::tlm_fifo_in<RESPONSE> in_resp_fifo;
-//      servr.in_req_fifo(in_req_fifo);
-//      servr.out_resp_fifo(out_resp_fifo);
-//      arb.out_req_fifo(in_req_fifo);
-//      arb.in_resp_fifo(out_resp_fifo);
-//    }
+    //    template <typename T>
+    //    void bindServicer (T servr, MemArbiter<NR_OF_REQS, REQUEST, RESPONSE, TRAIT> arb) {
+    //      ga::tlm_fifo_out<REQUEST> out_req_fifo;
+    //      ga::tlm_fifo_in<RESPONSE> in_resp_fifo;
+    //      servr.in_req_fifo(in_req_fifo);
+    //      servr.out_resp_fifo(out_resp_fifo);
+    //      arb.out_req_fifo(in_req_fifo);
+    //      arb.in_resp_fifo(out_resp_fifo);
+    //    }
 
   };
 
@@ -380,8 +380,8 @@ public:
   SC_HAS_PROCESS (MemArbiterNoTag);
 
   MemArbiterNoTag(sc_core::sc_module_name name = sc_core::sc_gen_unique_name(
-          "ARBITER")) :
-      sc_core::sc_module(name), clk("clk"), rst("rst"), idle("idle"), out_req_fifo("out_req_fifo"), in_resp_fifo("in_resp_fifo") {
+      "ARBITER")) :
+        sc_core::sc_module(name), clk("clk"), rst("rst"), idle("idle"), out_req_fifo("out_req_fifo"), in_resp_fifo("in_resp_fifo") {
     SC_CTHREAD(mux_thread,clk.pos());
     //sensitive << clk.pos();
     async_reset_signal_is(rst, false);
@@ -414,27 +414,27 @@ public:
     wait();
     while (1) {
 
-        ReqCountType chosen_bit ;
-        bool foundRequestor = bitvec_utils<ReqCountType, NR_OF_REQS>::find_leading_one(req_valid, chosen_bit);
-        assert(foundRequestor == (remaining != 0));
-        bool last_one = ((out_req_fifo.nb_can_put() && remaining == 1) || remaining == 0);
-        if (out_req_fifo.nb_can_put() && remaining != 0) {
-          ReqCountType next_index = chosen_bit;
-          //ReqCountType next_index = (chosen_bit+start_index) % NR_OF_REQS ;
-          assert(req_valid[next_index]);
-          req_valid[next_index] = 0;
-          out_req_fifo.nb_put(req_buf[next_index]);
-          // next time we'll start with the next requester
-          //start_index = (next_index + 1) % NR_OF_REQS ;
-          remaining--;
+      ReqCountType chosen_bit ;
+      bool foundRequestor = bitvec_utils<ReqCountType, NR_OF_REQS>::find_leading_one(req_valid, chosen_bit);
+      assert(foundRequestor == (remaining != 0));
+      bool last_one = ((out_req_fifo.nb_can_put() && remaining == 1) || remaining == 0);
+      if (out_req_fifo.nb_can_put() && remaining != 0) {
+        ReqCountType next_index = chosen_bit;
+        //ReqCountType next_index = (chosen_bit+start_index) % NR_OF_REQS ;
+        assert(req_valid[next_index]);
+        req_valid[next_index] = 0;
+        out_req_fifo.nb_put(req_buf[next_index]);
+        // next time we'll start with the next requester
+        //start_index = (next_index + 1) % NR_OF_REQS ;
+        remaining--;
+      }
+      if (last_one) {
+        remaining = 0;
+        SELECT_ENTRY_RB_UNROLL: for (unsigned i=0; i < NR_OF_REQS; ++i) {
+          req_valid[i] = in_req_fifo[i].nb_get(req_buf[i]) ;
         }
-        if (last_one) {
-          remaining = 0;
-          SELECT_ENTRY_RB_UNROLL: for (unsigned i=0; i < NR_OF_REQS; ++i) {
-            req_valid[i] = in_req_fifo[i].nb_get(req_buf[i]) ;
-          }
-          remaining = bitvec_utils<typename SizeT<NR_OF_REQS+1>::Type, NR_OF_REQS>::add (req_valid);
-        }
+        remaining = bitvec_utils<typename SizeT<NR_OF_REQS+1>::Type, NR_OF_REQS>::add (req_valid);
+      }
 
 
       if (idle) idle_counter++;
@@ -475,28 +475,28 @@ public:
     }
   }
   void demux_thread_nobackpressure() {
-      in_resp_fifo.reset_get();
-      DEMUX_THREAD_RESET_LOOP: for (unsigned int i = 0; i < NR_OF_REQS; i++) {
-        out_resp_fifo[i].reset_put();
-      }
-      unsigned int rsp_index = 0;
-      bool pend_resp_valid = false;
-      RESPONSE pend_resp;
-      IOUnitIdType io_unit_id;
-      wait();
-      while (1) {
-        {
-          if (in_resp_fifo.nb_can_get()) {
-            in_resp_fifo.nb_get(pend_resp);
-            io_unit_id = ArbiterTagResolver<TRAIT>::template extractTag<NR_OF_REQS>(pend_resp.io_unit_id);
-            out_resp_fifo[io_unit_id].nb_put(pend_resp);
-
-            DBG_OUT << sc_time_stamp() << " arbiter " << basename() << " got response for unit " << (size_t)pend_resp.io_unit_id << " and send it out to input " << endl;
-          }
-        }
-        wait();
-      }
+    in_resp_fifo.reset_get();
+    DEMUX_THREAD_RESET_LOOP: for (unsigned int i = 0; i < NR_OF_REQS; i++) {
+      out_resp_fifo[i].reset_put();
     }
+    unsigned int rsp_index = 0;
+    bool pend_resp_valid = false;
+    RESPONSE pend_resp;
+    IOUnitIdType io_unit_id;
+    wait();
+    while (1) {
+      {
+        if (in_resp_fifo.nb_can_get()) {
+          in_resp_fifo.nb_get(pend_resp);
+          io_unit_id = ArbiterTagResolver<TRAIT>::template extractTag<NR_OF_REQS>(pend_resp.io_unit_id);
+          out_resp_fifo[io_unit_id].nb_put(pend_resp);
+
+          DBG_OUT << sc_time_stamp() << " arbiter " << basename() << " got response for unit " << (size_t)pend_resp.io_unit_id << " and send it out to input " << endl;
+        }
+      }
+      wait();
+    }
+  }
   ~MemArbiterNoTag() {
     const char* name = basename();
     cout << "ArbiterNoTag " << name << " " << TRAIT << " was idle (not requestors) for " << idle_counter << " cycles" << endl;

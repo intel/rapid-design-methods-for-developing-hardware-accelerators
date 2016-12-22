@@ -241,74 +241,6 @@ struct CacheLineMarshal<512> : CacheLineMarshalBase {
 
 };
 
-//
-//template <>
-//struct CacheLineMarshal<128> : CacheLineMarshalBase {
-//  enum {
-//    MARSHAL_STEP = 128
-//  };
-//
-//  CacheLineMarshal() : CacheLineMarshalBase()
-//  {
-//  }
-//
-//  bool done() const {
-//    // simplified the condition with an added assert in the ctor that requires the data type width be integer parts that fit completely in the cacheline
-//    if ((CacheLineType::IndexType)(cur_cl_pos*MARSHAL_STEP == CacheLineType::getBitCnt()))
-//      return true;
-//    else
-//      return false;
-//  }
-//
-//  void next() {
-//    assert((CacheLineType::IndexType)(MARSHAL_STEP*cur_cl_pos + MARSHAL_STEP - 1) < CacheLineType::getBitCnt());
-//    ++cur_cl_pos;
-//  }
-//  template<typename T>
-//  void getSlice(T& data) {
-//    assert((CacheLineType::IndexType)(MARSHAL_STEP*cur_cl_pos + MARSHAL_STEP - 1) < CacheLineType::getBitCnt());
-//    CacheLineType::IndexType fieldIndex = 0;
-//    switch (cur_cl_pos) {
-//    case 0:
-//    case 1:
-//    case 2:
-//    case 3:
-//      fieldIndex = cur_cl_pos*MARSHAL_STEP;
-//      break;
-//    default:
-//      assert(0);
-//    }
-//    for (size_t i = 0; i < T::numberOfFields(); ++i) {
-//      data.putField(i, cl.getDataInRange(fieldIndex, T::fieldWidth(i)));
-//      fieldIndex += T::fieldWidth(i);
-//    }
-//  }
-//
-//  template<typename T>
-//  void putSlice(const T &d) {
-//    assert((CacheLineType::IndexType)(MARSHAL_STEP*cur_cl_pos + MARSHAL_STEP - 1) < CacheLineType::getBitCnt());
-//    CacheLineType::IndexType fieldIndex = 0;
-//    switch (cur_cl_pos) {
-//    case 0:
-//    case 1:
-//    case 2:
-//    case 3:
-//      fieldIndex = cur_cl_pos*MARSHAL_STEP;
-//      break;
-//    default:
-//      assert(0);
-//    }
-//    for (size_t i = 0; i < T::numberOfFields(); ++i) {
-//      cl.putDataInRange(fieldIndex, T::fieldWidth(i), d.getField(i));
-//      fieldIndex += T::fieldWidth(i);
-//    }
-//  }
-//
-//  size_t boundValue (size_t val) {
-//
-//  }
-//
-//};
 
 template<size_t MAX_REQ_COUNT>
 struct OutstandingRequestType {
@@ -511,9 +443,7 @@ struct AccMemTypedOut : sc_module {
   SC_HAS_PROCESS(AccMemTypedOut);
 
   AccMemTypedOut(sc_module_name name) :
-    clk("clk"), rst("rst"), acc_req_in("acc_req_in"), acc_data_in(
-        "acc_data_in"), mem_req_out("mem_req_out"), mem_data_out(
-            "mem_data_out") {
+    clk("clk"), rst("rst"), acc_req_in("acc_req_in"), acc_data_in("acc_data_in"), mem_req_out("mem_req_out"), mem_data_out("mem_data_out") {
     SC_CTHREAD(request_handler, clk.pos());
     async_reset_signal_is(rst, false);
     mem_data_out.clk_rst(clk, rst);

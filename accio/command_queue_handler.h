@@ -58,8 +58,8 @@ public:
   SC_HAS_PROCESS(CommandQueueHandler);
 
   CommandQueueHandler(sc_module_name name) :
-      clk("clk"), rst("rst"), config("config"), rd_req_out("rd_req_out"), wr_req_out(
-          "wr_req_out") {
+    clk("clk"), rst("rst"), config("config"), rd_req_out("rd_req_out"), wr_req_out(
+        "wr_req_out") {
     SC_CTHREAD(fetch_proc, clk.pos());
     async_reset_signal_is(rst, false);
     rd_req_out.clk_rst(clk, rst);

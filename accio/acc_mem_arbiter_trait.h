@@ -19,9 +19,9 @@ enum ARBITER_TRAIT {
 
 template <unsigned int N>
 struct UpperLog2 {
-    static inline int getValue() {
-      return Log2<N>::Value;
-    }
+  static inline int getValue() {
+    return Log2<N>::Value;
+  }
 
 };
 template <> inline int UpperLog2<1>::getValue() {

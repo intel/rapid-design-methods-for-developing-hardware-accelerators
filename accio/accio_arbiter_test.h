@@ -122,13 +122,13 @@ public:
   SC_HAS_PROCESS(AccTb);
 
   AccTb(sc_module_name modname, std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> &dram, TbInType &test_in, TbOutType &test_out) :
-    sc_module(modname), clk("clk"), rst("rst"),   dram(dram), test_in(test_in), test_out(test_out), active(false)
-  , acc_rd_req_out1("acc_rd_req_out1"), acc_rd_req_out2(
-          "acc_rd_req_out2"), acc_rd_resp_in1("acc_rd_resp_in1"), acc_rd_resp_in2(
-          "acc_rd_resp_in2"), acc_wr_req_out1("acc_wr_req_out1"), acc_wr_data_out1(
-          "acc_wr_data_out1"), spl_rd_req_in("spl_rd_req_in"), spl_rd_resp_out(
-          "spl_rd_resp_out"), spl_wr_req_in("spl_wr_req_in"), spl_wr_resp_out(
-          "spl_wr_resp_out") {
+    sc_module(modname), clk("clk"), rst("rst"),   dram(dram), test_in(test_in), test_out(test_out), active(false),
+      acc_rd_req_out1("acc_rd_req_out1"),
+      acc_rd_req_out2("acc_rd_req_out2"), acc_rd_resp_in1("acc_rd_resp_in1"),
+      acc_rd_resp_in2("acc_rd_resp_in2"), acc_wr_req_out1("acc_wr_req_out1"),
+      acc_wr_data_out1("acc_wr_data_out1"), spl_rd_req_in("spl_rd_req_in"),
+      spl_rd_resp_out("spl_rd_resp_out"), spl_wr_req_in("spl_wr_req_in"),
+      spl_wr_resp_out("spl_wr_resp_out") {
     SC_CTHREAD(accelerator_request, clk.pos());
     async_reset_signal_is(rst, false);
     SC_CTHREAD(accelerator_cmd, clk.pos());
@@ -170,30 +170,30 @@ public:
           test_in.rd_req2.pop();
         }
         if (!test_in.wr_req1.empty() && acc_wr_req_out1.nb_can_put()) {
-            MemTypedWriteReqType<AccDataType> wr_req = test_in.wr_req1.front();
-            acc_wr_req_out1.nb_put(wr_req);
-            test_in.wr_req1.pop();
-            DBG_OUT << sc_time_stamp() << " accio_arbiter_tb:acc_thread send wr request with size " << (unsigned int)wr_req.size << " and address "<< wr_req.addr << endl;
+          MemTypedWriteReqType<AccDataType> wr_req = test_in.wr_req1.front();
+          acc_wr_req_out1.nb_put(wr_req);
+          test_in.wr_req1.pop();
+          DBG_OUT << sc_time_stamp() << " accio_arbiter_tb:acc_thread send wr request with size " << (unsigned int)wr_req.size << " and address "<< wr_req.addr << endl;
 
-            for (unsigned i = 0; i < wr_req.size; ++i) {
-              assert(!test_in.wr_data1.empty());
-              MemTypedWriteDataType<AccDataType> data = test_in.wr_data1.front();
-              test_in.wr_data1.pop();
-              acc_wr_data_out1.put(data);
-              wait();
-              DBG_OUT << sc_time_stamp() << " accio_arbiter_tb:acc_thread send wr request with data " << data.data << endl;
-            }
+          for (unsigned i = 0; i < wr_req.size; ++i) {
+            assert(!test_in.wr_data1.empty());
+            MemTypedWriteDataType<AccDataType> data = test_in.wr_data1.front();
+            test_in.wr_data1.pop();
+            acc_wr_data_out1.put(data);
+            wait();
+            DBG_OUT << sc_time_stamp() << " accio_arbiter_tb:acc_thread send wr request with data " << data.data << endl;
           }
         }
+      }
 
-        if (active && test_in.wr_req1.empty() && test_in.rd_req1.empty() && test_in.rd_req2.empty())
-        {
-          wait_cycles_after_last_input++;
-          if (wait_cycles_after_last_input > 100) {
-            cout << "DONE <- " << " accio_arbiter" << endl;
-            active = false;
-            sc_pause();
-          }
+      if (active && test_in.wr_req1.empty() && test_in.rd_req1.empty() && test_in.rd_req2.empty())
+      {
+        wait_cycles_after_last_input++;
+        if (wait_cycles_after_last_input > 100) {
+          cout << "DONE <- " << " accio_arbiter" << endl;
+          active = false;
+          sc_pause();
+        }
 
       }
       wait();
@@ -264,7 +264,7 @@ public:
   AccTb acc_read_tb;
 #ifdef CTOS_MODEL
   mem_ntw_ctos_wrapper mem_ntw;
-    //("HevcPakHlsCABACBs_syn", CTOS_TARGET_SUFFIX(CTOS_MODEL),"",false);
+  //("HevcPakHlsCABACBs_syn", CTOS_TARGET_SUFFIX(CTOS_MODEL),"",false);
 #else
   SplMemNetwork<2,1> mem_ntw;
 #endif
@@ -305,15 +305,15 @@ public:
 
 
   AccTbTop(sc_module_name modname = sc_gen_unique_name("TestMemArbiterTop")) :
-      sc_module(modname), clkgen("clkgen"), acc_read_tb("acc_read_tb", dram,
-          test_in, test_out),
+    sc_module(modname), clkgen("clkgen"), acc_read_tb("acc_read_tb", dram,
+        test_in, test_out),
 
 #ifdef CTOS_MODEL //this is required for stand-alone test using CtoS generated files
-          mem_ntw("mem_ntw", CTOS_TARGET_SUFFIX(CTOS_MODEL),NULL,false)
+        mem_ntw("mem_ntw", CTOS_TARGET_SUFFIX(CTOS_MODEL),NULL,false)
 #else
-          mem_ntw("mem_ntw"),
+  mem_ntw("mem_ntw"),
 #endif
-    acc_in1("acc_in1"), acc_in2("acc_in2"), acc_out1("acc_out1"), clk_ch("clk_ch"), rst_ch("rst_ch") {
+  acc_in1("acc_in1"), acc_in2("acc_in2"), acc_out1("acc_out1"), clk_ch("clk_ch"), rst_ch("rst_ch") {
     acc_read_tb.clk(clk_ch);
     clkgen.clk(clk_ch);
     acc_read_tb.rst(rst_ch);
@@ -366,7 +366,7 @@ public:
     acc_read_tb.spl_rd_resp_out(spl_rd_resp_out_ch);
     acc_read_tb.spl_wr_req_in(spl_wr_req_out_ch);
     acc_read_tb.spl_wr_resp_out(spl_wr_resp_out_ch);
-}
+  }
 
   void reset() {
     clkgen.reset_state = true;

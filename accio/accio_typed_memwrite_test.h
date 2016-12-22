@@ -110,7 +110,7 @@ public:
 
 
   TypedMemWriteTestbench(sc_module_name modname, std::array<CacheLineType, tb_params::DRAM_SIZE_IN_CLS> &dram, TbInType &test_in, TbOutType &test_out) :
-      sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_data_out("acc_data_out"), spl_req_in("spl_req_in") {
+    sc_module(modname), clk("clk"), rst("rst"), dram(dram), test_in(test_in), test_out(test_out), active(false), acc_req_out("acc_req_out"), acc_data_out("acc_data_out"), spl_req_in("spl_req_in") {
     SC_CTHREAD(acc_thread, clk.pos());
     async_reset_signal_is(rst, false);
     SC_CTHREAD(spl_thread, clk.pos());
@@ -151,10 +151,10 @@ public:
 
 
   TypedTestMemWriteTop(sc_module_name modname = sc_gen_unique_name("TypedTestMemWriteTop")) :
-      sc_module(modname), clkgen("clkgen"), acc_write_tb("acc_write_tb", dram,
-          test_in,
-          test_out), acc_cl_out("acc_cl_out"), acc_mem_typed_in(
-          "acc_mem_typed_in"), clk_ch("clk_ch"), rst_ch("rst_ch") {
+    sc_module(modname), clkgen("clkgen"), acc_write_tb("acc_write_tb", dram,
+        test_in,
+        test_out), acc_cl_out("acc_cl_out"), acc_mem_typed_in(
+            "acc_mem_typed_in"), clk_ch("clk_ch"), rst_ch("rst_ch") {
     acc_write_tb.clk(clk_ch);
     clkgen.clk(clk_ch);
     acc_write_tb.rst(rst_ch);
