@@ -9,8 +9,6 @@ One challenge in using such systems is to effectively utilize the resources of t
 We use SystemC to express the parallelism available in the AFU, and rely on commerical High-Level Synthesis (HLS) tools to map this hardware description to Verilog (needed by the FPGA Synthesis, Place and Route tools.) We provide code generation flows to enable new SystemC users to become proficient quickly. Standardized memory interfaces (optimized for streaming and also random access patterns) are also provided, and well as schemes for creating multiple parallel AFUs that interface to the same (single) memory system.
 
 ```python
-#!/usr/bin/env python3
-
 from cog_acctempl import *
 
 dut = DUT("vectoradd")
@@ -28,7 +26,6 @@ dut.module.add_cthreads( [CThread("fetcher",writes_to_done=True),
                           CThread("inb_addr_gen"),
                           CThread("out_addr_gen")])
 
-dut.get_cthread( "fetcher").writes_to_done = True
 dut.get_cthread( "fetcher").add_ports( [RdRespPort("ina"),
                                         RdRespPort("inb"),
                                         WrDataPort("out")])
@@ -36,9 +33,6 @@ dut.get_cthread( "fetcher").add_ports( [RdRespPort("ina"),
 dut.get_cthread( "ina_addr_gen").add_ports( [RdReqPort("ina")])
 dut.get_cthread( "inb_addr_gen").add_ports( [RdReqPort("inb")])
 dut.get_cthread( "out_addr_gen").add_ports( [WrReqPort("out")])
-
-dut.semantic()
-
 ```
 After describing design memory interfaces and SystemC module and process structure in a Python-based DSL as above, you need to write code like this to complete the functionality of a vector addition accelerator.
 ```cpp

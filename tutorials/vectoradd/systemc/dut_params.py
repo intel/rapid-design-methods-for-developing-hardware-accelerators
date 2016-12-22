@@ -17,7 +17,6 @@ dut.module.add_cthreads( [CThread("fetcher",writes_to_done=True),
                           CThread("inb_addr_gen"),
                           CThread("out_addr_gen")])
 
-dut.get_cthread( "fetcher").writes_to_done = True
 dut.get_cthread( "fetcher").add_ports( [RdRespPort("ina"),
                                         RdRespPort("inb"),
                                         WrDataPort("out")])
