@@ -399,7 +399,7 @@ struct MemTypedWriteDataType {
   MemTypedWriteDataType(const MemTypedWriteDataType& rhs) {
     copy(rhs);
   }
-  MemTypedWriteDataType(T d) :
+  MemTypedWriteDataType(const T &d) :
     data(d)
   {}
 
@@ -506,10 +506,10 @@ struct MemSingleWriteReqType {
 
   MemSingleWriteReqType() {}
 
-  MemSingleWriteReqType(AddressType addr, UTAG utag, T data) :
+  MemSingleWriteReqType(AddressType addr, UTAG utag, const T &data) :
     addr(addr), data(data), utag(utag) {}
 
-  MemSingleWriteReqType(AddressType addr, T data) :
+  MemSingleWriteReqType(AddressType addr, const T &data) :
     addr(addr), data(data) {}
 
   inline friend void sc_trace(sc_trace_file* tf, const MemSingleWriteReqType& d,

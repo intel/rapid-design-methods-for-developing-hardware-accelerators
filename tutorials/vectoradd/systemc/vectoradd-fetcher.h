@@ -39,21 +39,20 @@ void fetcher() {
   wait();
   while (1) {
     if ( start) {
+      // check if it was the the last one (we process 16 elements at a time)
       if ( ip != (config.read().get_n() >> 4)) {
-        MemTypedReadRespType<Blk> wrapped_cla = inaRespIn.get();
-        MemTypedReadRespType<Blk> wrapped_clb = inbRespIn.get();
+        // reading input from main memory using memory read ports
+        Blk cla = inaRespIn.get().data;
+        Blk clb = inbRespIn.get().data;
+        Blk clo; 
+        
+        // vector add is implemented in the overloaded operator+ for Blk
+        clo = cla + clb;
 
-        MemTypedWriteDataType<Blk> wrapped_clo; 
-
-      UNROLL:
-        for( unsigned int j=0; j<16; ++j) {
-          wrapped_clo.data.words[j] = wrapped_cla.data.words[j] + wrapped_clb.data.words[j];
-        }
+        // writing back to memory via a memory write port
+        outDataOut.put( clo);
 
         ++ip;
- 
-        outDataOut.put( wrapped_clo);
-
       } else {
         done = true;
       }
