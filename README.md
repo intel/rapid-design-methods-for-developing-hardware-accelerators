@@ -76,9 +76,8 @@ In all, more than 700 lines of SystemC intrastructure code in addition to the en
 
 
 ## Quickstart
-Download SystemC and Googletest, compile and install.
-
-Set environment variables `SC_DIR`, `GTEST_DIR`, and `HLD_ROOT`.
+Download SystemC and Googletest, compile and install. Set the environment variables `SC_DIR`, `GTEST_DIR`, and `HLD_ROOT`.
+[See the wiki setup page.](https://github.com/intel/rapid-design-methods-for-developing-hardware-accelerators/wiki/Env-Setup)
 
 `cd $HLD_ROOT/tutorials/memcpy/systemc; make`
 
