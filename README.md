@@ -47,7 +47,7 @@ void fetcher() { // (generated)
     if ( start) { // (generated)
       // check if it was the the last one (we process 16 elements at a time)
       if ( ip != (config.read().get_n() >> 4)) {
-        // read two Blk object, vector add (from class Blk), and write
+        // read two Blk objects, vector add (from class Blk), and write
         outDataOut.put( inaRespIn.get().data + inbRespIn.get().data);
         ++ip;
       } else {
