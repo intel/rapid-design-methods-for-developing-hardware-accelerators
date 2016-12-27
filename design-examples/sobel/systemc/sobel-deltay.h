@@ -20,12 +20,12 @@
      c = dut.get_cthread(thread_nm)
      cog.outl("void %s() {" % (c.nm,))
      for p in c.ports:
-       cog.outl("  %s;" % p.reset)
+       cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
 void deltay() {
-  mid0.reset_get();
-  mid1.reset_put();
-//[[[end]]] (checksum: 9119683738504161caa723b5f4a4a9a4)
+  mid0.reset_get(); // type: BlkMid
+  mid1.reset_put(); // type: BlkMid
+//[[[end]]] (checksum: 05b98a018b857f70e8c910da07d806a4)
 
   UInt16 ip = 0;
   UInt16 jc = 0;
@@ -116,6 +116,7 @@ void deltay() {
           }
         }
       }
+
     }
     wait();
   }

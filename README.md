@@ -8,70 +8,56 @@ One challenge in using such systems is to effectively utilize the resources of t
 
 We use SystemC to express the parallelism available in the AFU, and rely on commerical High-Level Synthesis (HLS) tools to map this hardware description to Verilog (needed by the FPGA Synthesis, Place and Route tools.) We provide code generation flows to enable new SystemC users to become proficient quickly. Standardized memory interfaces (optimized for streaming and also random access patterns) are also provided, and well as schemes for creating multiple parallel AFUs that interface to the same (single) memory system.
 
+Describing design memory interfaces and SystemC module and process structure in a Python-based DSL like this,
 ```python
 from cog_acctempl import *
 
 dut = DUT("vectoradd")
 
+dut.add_ut( UserType("Blk",[ArrayField(UnsignedIntField("words"),16)]))
+
 dut.add_rds( [TypedRead("Blk","ina","__inp_Slots__","1 << 30","1")])
 dut.add_rds( [TypedRead("Blk","inb","__inp_Slots__","1 << 30","1")])
 dut.add_wrs( [TypedWrite("Blk","out")])
 
-dut.add_ut( UserType("Blk",[ArrayField(UnsignedIntField("words"),16)]))
-
 dut.add_extra_config_fields( [BitReducedField(UnsignedIntField("n"),32)])
 
 dut.module.add_cthreads( [CThread("fetcher",writes_to_done=True),
-                          CThread("ina_addr_gen"),
-                          CThread("inb_addr_gen"),
-                          CThread("out_addr_gen")])
+                          CThread("ina_addr_gen",ports=[RdReqPort("ina")]),
+                          CThread("inb_addr_gen",ports=[RdReqPort("inb")]),
+                          CThread("out_addr_gen",ports=[WrReqPort("out")])])
 
 dut.get_cthread( "fetcher").add_ports( [RdRespPort("ina"),
                                         RdRespPort("inb"),
                                         WrDataPort("out")])
-
-dut.get_cthread( "ina_addr_gen").add_ports( [RdReqPort("ina")])
-dut.get_cthread( "inb_addr_gen").add_ports( [RdReqPort("inb")])
-dut.get_cthread( "out_addr_gen").add_ports( [WrReqPort("out")])
 ```
-After describing design memory interfaces and SystemC module and process structure in a Python-based DSL as above, you need to write code like this to complete the functionality of a vector addition accelerator.
+you need to write code like this to complete the functionality of a vector addition accelerator.
 ```cpp
-void fetcher() { //generated
-  inaRespIn.reset_get(); //generated
-  inbRespIn.reset_get(); //generated
-  outDataOut.reset_put(); //generated
+void fetcher() { // (generated)
+  inaRespIn.reset_get(); // type: MemTypedReadRespType<Blk> (generated)
+  inbRespIn.reset_get(); // type: MemTypedReadRespType<Blk> (generated)
+  outDataOut.reset_put(); // type: MemTypedWriteDataType<Blk> (generated)
 
   unsigned int ip = 0;
 
-  done = false; //generated
+  done = false; // (generated)
 
-  wait(); //generated
-  while (1) { //generated
-    if ( start) { //generated
+  wait(); // (generated)
+  while (1) { // (generated)
+    if ( start) { // (generated)
       // check if it was the the last one (we process 16 elements at a time)
       if ( ip != (config.read().get_n() >> 4)) {
-        // reading input from main memory using memory read ports
-        Blk cla = inaRespIn.get().data;
-        Blk clb = inbRespIn.get().data;
-        Blk clo; 
-        
-        // vector add is implemented in the overloaded operator+ for Blk
-        clo = cla + clb;
-
-        // writing back to memory via a memory write port
-        outDataOut.put( clo);
-
-        ++ip; 
+        // read two Blk object, vector add (from class Blk), and write
+        outDataOut.put( inaRespIn.get().data + inbRespIn.get().data);
+        ++ip;
       } else {
         done = true;
       }
-    } //generated
-    wait(); //generated
-  }
-}
-
+    } // (generated)
+    wait(); // (generated)
+  } // (generated)
+} // (generated)
 ```
-
 In all, more than 700 lines of SystemC intrastructure code in addition to the entire memory susbsystem is generated from less than 90 lines of the Python DSL spec and kernel code.
 
 

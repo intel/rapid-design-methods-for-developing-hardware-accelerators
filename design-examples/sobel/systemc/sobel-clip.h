@@ -20,12 +20,12 @@
      c = dut.get_cthread(thread_nm)
      cog.outl("void %s() {" % (c.nm,))
      for p in c.ports:
-       cog.outl("  %s;" % p.reset)
+       cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
 void clip() {
-  outDataOut.reset_put();
-  mid1.reset_get();
-//[[[end]]] (checksum: 2375bd253e521d4b9d3cc6ce498b9fe4)
+  outDataOut.reset_put(); // type: MemTypedWriteDataType<BlkOut>
+  mid1.reset_get(); // type: BlkMid
+//[[[end]]] (checksum: f1cb3dd49098083d7ffa559a941cf152)
 
   Int16 ip = 0;
   Int16 jc = 0;
@@ -74,6 +74,7 @@ void clip() {
           }
         }
       }
+
     }
     wait();
   }

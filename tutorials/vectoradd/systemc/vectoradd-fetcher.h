@@ -20,13 +20,13 @@
      c = dut.get_cthread(thread_nm)
      cog.outl("void %s() {" % (c.nm,))
      for p in c.ports:
-       cog.outl("  %s;" % p.reset)
+       cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
 void fetcher() {
-  inaRespIn.reset_get();
-  inbRespIn.reset_get();
-  outDataOut.reset_put();
-//[[[end]]] (checksum: 8beb7a998b73434e4e4406ac6913b565)
+  inaRespIn.reset_get(); // type: MemTypedReadRespType<Blk>
+  inbRespIn.reset_get(); // type: MemTypedReadRespType<Blk>
+  outDataOut.reset_put(); // type: MemTypedWriteDataType<Blk>
+//[[[end]]] (checksum: 0b347b508e37ffb652772e26c276bb2c)
 
   unsigned int ip = 0;
 
@@ -41,17 +41,8 @@ void fetcher() {
     if ( start) {
       // check if it was the the last one (we process 16 elements at a time)
       if ( ip != (config.read().get_n() >> 4)) {
-        // reading input from main memory using memory read ports
-        Blk cla = inaRespIn.get().data;
-        Blk clb = inbRespIn.get().data;
-        Blk clo; 
-        
-        // vector add is implemented in the overloaded operator+ for Blk
-        clo = cla + clb;
-
-        // writing back to memory via a memory write port
-        outDataOut.put( clo);
-
+        // read two Blk object, vector add (from class Blk), and write
+        outDataOut.put( inaRespIn.get().data + inbRespIn.get().data);
         ++ip;
       } else {
         done = true;

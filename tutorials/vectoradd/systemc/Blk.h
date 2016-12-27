@@ -143,12 +143,12 @@ public:
 
 Blk operator+(const Blk &b1, const Blk &b2)
 {
-    Blk result;
-    UNROLL_BLK_ADD:
-    for (unsigned i = 0; i < 16; ++i) {
-      result.words[i] = b1.words[i] + b2.words[i];
-    }
-	return result;
+  Blk result;
+ UNROLL_BLK_ADD:
+  for (unsigned i = 0; i < 16; ++i) {
+    result.words[i] = b1.words[i] + b2.words[i];
+  }
+  return result;
 }
 
 #endif

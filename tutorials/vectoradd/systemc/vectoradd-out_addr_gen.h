@@ -20,11 +20,11 @@
      c = dut.get_cthread(thread_nm)
      cog.outl("void %s() {" % (c.nm,))
      for p in c.ports:
-       cog.outl("  %s;" % p.reset)
+       cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
 void out_addr_gen() {
-  outReqOut.reset_put();
-//[[[end]]] (checksum: bc50dbc73db202f1ef97c1ba2f64e7fe)
+  outReqOut.reset_put(); // type: MemTypedWriteReqType<Blk>
+//[[[end]]] (checksum: e448f81dbb66ab73cd4f5b1ad9ec4761)
 
   bool already_sent = false;
 

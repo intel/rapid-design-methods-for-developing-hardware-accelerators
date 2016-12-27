@@ -20,12 +20,12 @@
      c = dut.get_cthread(thread_nm)
      cog.outl("void %s() {" % (c.nm,))
      for p in c.ports:
-       cog.outl("  %s;" % p.reset)
+       cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
 void deltax() {
-  inpRespIn.reset_get();
-  mid0.reset_put();
-//[[[end]]] (checksum: ba03ad9d2785f745991721442effe01a)
+  inpRespIn.reset_get(); // type: MemTypedReadRespType<BlkInp>
+  mid0.reset_put(); // type: BlkMid
+//[[[end]]] (checksum: 5213e88798d40c4770430812caf0123f)
 
   const unsigned int bj = 2;
   const unsigned int words_per_blk = 64;
@@ -38,8 +38,6 @@ void deltax() {
   UInt16 jc = 0;
   bool do_final = false;
 
-  // Declare and initialize local variables
-
   /*[[[cog
        if c.writes_to_done:
          cog.outl("done = false;")
@@ -48,6 +46,7 @@ void deltax() {
   wait();
   while (1) {
     if ( start) {
+
       UInt16 ni = config.read().get_num_of_rows();
       UInt16 bpr = config.read().get_row_size_in_blks();
 

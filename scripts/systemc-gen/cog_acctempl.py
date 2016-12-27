@@ -292,6 +292,8 @@ class RdReqPort(Port):
     @property
     def reset( self):
         return self.channel + "ReqOut.reset_put()"
+    def type( self, dut):
+        return dut.find_rd( self.channel).reqTy()
     def __repr__( self):
         return "RdReqPort(" + self.channel + ")"
 
@@ -301,6 +303,8 @@ class RdRespPort(Port):
     @property
     def reset( self):
         return self.channel + "RespIn.reset_get()"
+    def type( self, dut):
+        return dut.find_rd( self.channel).respTy()
     def __repr__( self):
         return "RdRespPort(" + self.channel + ")"
 
@@ -311,6 +315,8 @@ class WrReqPort(Port):
     @property
     def reset( self):
         return self.channel + "ReqOut.reset_put()"
+    def type( self, dut):
+        return dut.find_wr( self.channel).reqTy()
     def __repr__( self):
         return "WrReqPort(" + self.channel + ")"
 
@@ -320,6 +326,8 @@ class WrDataPort(Port):
     @property
     def reset( self):
         return self.channel + "DataOut.reset_put()"
+    def type( self, dut):
+        return dut.find_wr( self.channel).dataTy()
     def __repr__( self):
         return "WrDataPort(" + self.channel + ")"
 
@@ -329,6 +337,8 @@ class EnqueuePort(Port):
     @property
     def reset( self):
         return self.channel + ".reset_put()"
+    def type( self, dut):
+        return dut.find_fifo( self.channel).ty
     def __repr__( self):
         return "EnqueuePort(" + self.channel + ")"
 
@@ -338,6 +348,8 @@ class DequeuePort(Port):
     @property
     def reset( self):
         return self.channel + ".reset_get()"
+    def type( self, dut):
+        return dut.find_fifo( self.channel).ty
     def __repr__( self):
         return "DequeuePort(" + self.channel + ")"
 
@@ -560,6 +572,12 @@ class DUT:
     def add_extra_config_field( self, v): self.extra_config_fields.append( v)
     def add_extra_config_fields( self, l): self.extra_config_fields.extend( l)
         
+    def find_rd( self, nm):
+        return next( (v for v in self.inps if v.nm == nm))
+    def find_wr( self, nm):
+        return next( (v for v in self.outs if v.nm == nm))
+    def find_fifo( self, nm):
+        return next( (f for f in self.module.storage_fifos if f.nm == nm))
 
     def dump_dot( self, fn):
         with open( fn, "w") as fp:
