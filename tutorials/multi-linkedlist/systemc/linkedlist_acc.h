@@ -35,13 +35,13 @@ public:
        for p in dut.outs:
           cog.outl("AccOut<%sStoreParams> %s_mem_out;" % (p.nm,p.nm))
     ]]]*/
-  typedef LoadUnitSingleReqParams< Node, State, 128> lstLoadParams;
+  typedef LoadUnitSingleReqParams< Node, State, __lst_Slots__> lstLoadParams;
   typedef LoadUnitParams< HeadPtr, __inp_Slots__, 1 << 30, 1> inpLoadParams;
   typedef StoreUnitParams< HeadPtr> outStoreParams;
   AccIn<lstLoadParams> lst_mem_in;
   AccIn<inpLoadParams> inp_mem_in;
   AccOut<outStoreParams> out_mem_out;
-  //[[[end]]] (checksum: acb7ea10062f6f8835ee95d727bb4500)
+  //[[[end]]] (checksum: 8df0c181d4ce2288968388f724c564b9)
 
   /*[[[cog
        cog.outl("MemArbiter<%d, SplMemWriteReqType, SplMemWriteRespType> wr_arbiter;" % (len(dut.outs),))
