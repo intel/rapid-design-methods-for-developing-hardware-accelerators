@@ -21,14 +21,14 @@
      c = dut.get_cthread(thread_nm)
      cog.outl("void %s() {" % (c.nm,))
      for p in c.ports:
-       cog.outl("  %s;" % p.reset)
+       cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
 void fetcher() {
-  inpRespIn.reset_get();
-  outDataOut.reset_put();
-  lstReqOut.reset_put();
-  lstRespIn.reset_get();
-//[[[end]]] (checksum: e8e65c26332602c2b85772b04206f0d5)
+  inpRespIn.reset_get(); // type: MemTypedReadRespType<HeadPtr>
+  outDataOut.reset_put(); // type: MemTypedWriteDataType<HeadPtr>
+  lstReqOut.reset_put(); // type: MemSingleReadReqType<Node,State>
+  lstRespIn.reset_get(); // type: MemSingleReadRespType<Node,State>
+//[[[end]]] (checksum: 57039e64f1fe7b7d5e5e78089f95aceb)
 
   unsigned long long ip = 0;
   unsigned int slack = __lst_Slots__;

@@ -213,7 +213,8 @@ public:
                if m.portOf( WrDataPort(p.nm)):
                  cog.outl("{0}_inst.{1}({1});".format( m.nm, p.dataNmK()))
             for f in dut.tlm_fifos:
-               cog.outl("{0}_inst.{1}({1});".format( m.nm, f.nm))
+               if m.portOf( EnqueuePort(f.nm)) or m.portOf( DequeuePort(f.nm)):
+                 cog.outl("{0}_inst.{1}({1});".format( m.nm, f.nm))
       ]]]*/
     //[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
 
