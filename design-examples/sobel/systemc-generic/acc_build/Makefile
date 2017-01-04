@@ -4,12 +4,12 @@ HLD_ROOT = ../../../..
 SOURCES=tb.cpp
 CFLAGS = -O3
 
-ifdef __inp_Slots__
-CFLAGS += -D__inp_Slots__=$(__inp_Slots__)
+ifdef WORDS_PER_BLK
+CFLAGS += -DWORDS_PER_BLK=$(WORDS_PER_BLK)
 endif
 
-ifdef __lst_Slots__
-CFLAGS += -D__lst_Slots__=$(__lst_Slots__)
+ifdef __inp_Slots__
+CFLAGS += -D__inp_Slots__=$(__inp_Slots__)
 endif
 
 ifdef NUM_AUS
