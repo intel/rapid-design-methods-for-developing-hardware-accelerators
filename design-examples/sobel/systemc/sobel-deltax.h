@@ -28,11 +28,11 @@ void deltax() {
 //[[[end]]] (checksum: 5213e88798d40c4770430812caf0123f)
 
   const unsigned int bj = 2;
-  const unsigned int words_per_blk = 64;
+  const unsigned int words_per_blk = BlkInp::words_per_blk;
   const short kr[1][2*bj+1] = { {1,2,0,-2,-1} };
 
   BlkInp lastcl;
-  unsigned char left[bj];
+  BlkInp::ElementType left[bj];
 
   UInt16 ip = 0;
   UInt16 jc = 0;
@@ -50,89 +50,88 @@ void deltax() {
       UInt16 ni = config.read().get_num_of_rows();
       UInt16 bpr = config.read().get_row_size_in_blks();
 
- 
-    /* this is an annoying thing to add for flow control */
-      if( (do_final || inpRespIn.nb_can_get()) &&
-          ((ip ==0 && jc == 0) || mid0.nb_can_put())) {
+      BlkInp cl;
+      if (!do_final) {
+        cl = inpRespIn.get().data;
+      }
 
-        BlkInp cl;
-        if (!do_final) {
-          MemTypedReadRespType<BlkInp> mem_resp;
-          inpRespIn.nb_get(mem_resp);
-          cl = mem_resp.data;
-        }
+      // combinational
+      BlkInp::ElementType right[bj];
 
-        // combinational
-        unsigned char right[bj];
+    UNROLL_INITIAL_RIGHT:
+      for( unsigned int k=0; k<bj; ++k) {
+        right[k] = 0;
+      }
+      if ( do_final) {
+      } else if ( ip == 0 && jc == 0) {
+      } else if ( ip > 0 && jc == 0) {
+      } else {
+      UNROLL_RIGHT_C:
         for( unsigned int k=0; k<bj; ++k) {
-          right[k] = 0;
+          right[k] = cl.data[k];
         }
-        if ( do_final) {
-        } else if ( ip == 0 && jc == 0) {
-        } else if ( ip > 0 && jc == 0) {
-        } else {
-          for( unsigned int k=0; k<bj; ++k) {
-            right[k] = cl.data[k];
-          }
+      }
+
+      if ( ip == 0 && jc == 0) {
+      } else {
+        BlkInp::ElementType buf[bj+words_per_blk+bj];
+
+      UNROLL_BUF_A:
+        for ( unsigned int k=0; k<bj; ++k) {
+          buf[k] = left[k];
+        }
+      UNROLL_BUF_B:
+        for ( unsigned int k=0; k<words_per_blk; ++k) {
+          buf[bj+k] = lastcl.data[k];
+        }
+      UNROLL_BUF_C:
+        for ( unsigned int k=0; k<bj; ++k) {
+          buf[bj+words_per_blk+k] = right[k];
         }
 
-        if ( ip == 0 && jc == 0) {
-        } else {
-          unsigned char buf[bj+words_per_blk+bj];
+        BlkMid newlastcl(0);
 
-          for ( unsigned int k=0; k<bj; ++k) {
-            buf[k] = left[k];
-          }
-          for ( unsigned int k=0; k<words_per_blk; ++k) {
-            buf[bj+k] = lastcl.data[k];
-          }
-
-          for ( unsigned int k=0; k<bj; ++k) {
-            buf[bj+words_per_blk+k] = right[k];
-          }
-
-          BlkMid newlastcl;
-
+      UNROLL_SUM:
+        for( unsigned int jj=1; jj<bj+1; ++jj) {
+        UNROLL_NEWLASTCL:
           for( unsigned int k=0; k<words_per_blk; ++k) {
-            newlastcl.data[k] = 0;
-          }
-          for( unsigned int jj=1; jj<bj+1; ++jj) {
-            for( unsigned int k=0; k<words_per_blk; ++k) {
-              newlastcl.data[k] += (short) buf[bj-jj+k] * kr[0][bj-jj];
-              newlastcl.data[k] += (short) buf[bj+jj+k] * kr[0][bj+jj];
-            }
-          }
-          mid0.nb_put( newlastcl);      
-        }
-
-        if ( ip == 0 && jc == 0) {
-          for( unsigned int k=0; k<bj; ++k) {
-            left[k] = 0;
-          }
-        } else if ( ip > 0 && jc == 0) {
-          for( unsigned int k=0; k<bj; ++k) {
-            left[k] = 0;
-          }
-        } else {
-          for( unsigned int k=0; k<bj; ++k) {
-            left[k] = lastcl.data[words_per_blk-bj+k];
+            newlastcl.data[k] += (BlkMid::ElementType) buf[bj-jj+k] * kr[0][bj-jj];
+            newlastcl.data[k] += (BlkMid::ElementType) buf[bj+jj+k] * kr[0][bj+jj];
           }
         }
+        mid0.put( newlastcl);      
+      }
 
-        lastcl = cl;
+      if ( ip == 0 && jc == 0) {
+      UNROLL_LEFT_A:
+        for( unsigned int k=0; k<bj; ++k) {
+          left[k] = 0;
+        }
+      } else if ( ip > 0 && jc == 0) {
+      UNROLL_LEFT_B:
+        for( unsigned int k=0; k<bj; ++k) {
+          left[k] = 0;
+        }
+      } else {
+      UNROLL_LEFT_C:
+        for( unsigned int k=0; k<bj; ++k) {
+          left[k] = lastcl.data[words_per_blk-bj+k];
+        }
+      }
 
-        if ( do_final) {
-          ip = 0;
+      lastcl = cl;
+
+      if ( do_final) {
+        ip = 0;
+        jc = 0;
+        do_final = 0;
+      } else {
+        ++jc;
+        if ( jc >= bpr) {
           jc = 0;
-          do_final = 0;
-        } else {
-          ++jc;
-          if ( jc >= bpr) {
-            jc = 0;
-            ++ip;
-            if ( ip == ni) {
-              do_final = 1;
-            }
+          ++ip;
+          if ( ip == ni) {
+            do_final = 1;
           }
         }
       }

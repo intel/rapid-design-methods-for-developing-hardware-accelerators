@@ -31,8 +31,7 @@ void deltay() {
   UInt16 jc = 0;
   UInt16 jc_last;
 
-  const unsigned int MAXBPR = 40;
-  const unsigned int words_per_blk = 64;
+  const unsigned int MAXBPR = 40 * 64 / BlkMid::words_per_blk;
 
   BlkMid d0[MAXBPR];
   BlkMid d1[MAXBPR];
@@ -65,55 +64,38 @@ void deltay() {
         jc_last = bpr-1;
       }
 
-    /* this is an annoying thing to add for flow control */
-      if ( ((ip != 0 && ip>=ni) || mid0.nb_can_get()) && (ip<bi || mid1.nb_can_put())) {
-
-        if ( ip == 0 || ip < ni) {
-          mid0.nb_get(cl);
-        }
-        if (ip >= ni) {
-          mid1.nb_put(d0[jc]);
-        } else if (ip >= bi) {
-          BlkMid ocl;
-          for( unsigned int k=0; k<words_per_blk; ++k) {
-            ocl.data[k] = d0[jc].data[k] + cl.data[k] * kl[4][0];
-          }
-          mid1.nb_put( ocl);
-        }
       
-        /* ii=-1 */
-        d0[jc_last] = d0_buf;
-        for ( unsigned int k=0; k<words_per_blk; ++k) {
-          d0_buf.data[k] = ((ip<ni) ? cl.data[k] * kl[3][0] : 0)
-            + ((ip> 0) ? d1[jc].data[k]        : 0);
-        }
-        /* ii=0 */
-        d1[jc_last] =  d1_buf;
-        for ( unsigned int k=0; k<words_per_blk; ++k) {
-          d1_buf.data[k] = ((ip<ni) ? cl.data[k] * kl[2][0] : 0)
-            + ((ip> 0) ? d2[jc].data[k]        : 0);
-        }
-        /* ii=1 */
-        d2[jc_last] =  d2_buf;
-        for ( unsigned int k=0; k<words_per_blk; ++k) {
-          d2_buf.data[k] = ((ip<ni) ? cl.data[k] * kl[1][0] : 0)
-            + ((ip> 0) ? d3[jc].data[k]        : 0);
-        }
+      if ( ip == 0 || ip < ni) {
+        cl = mid0.get();
+      }
+      if (ip >= ni) {
+        mid1.put( d0[jc]);
+      } else if (ip >= bi) {
+        mid1.put( d0[jc] + cl*kl[4][0]);
+      }
+      
+      BlkMid z = BlkMid( 0);
 
-        d3[jc_last] = d3_buf;
-        for ( unsigned int k=0; k<words_per_blk; ++k) {
-          d3_buf.data[k] = (ip<ni) ? cl.data[k] * kl[0][0] : 0;
-        }
+      d0[jc_last] = d0_buf;
+      d0_buf = ((ip<ni) ? cl*kl[3][0] : z) + ((ip> 0) ? d1[jc] : z);
 
-        jc_last = jc;
+      d1[jc_last] = d1_buf;
+      d1_buf = ((ip<ni) ? cl*kl[2][0] : z) + ((ip> 0) ? d2[jc] : z);
 
-        ++jc;
-        if ( jc == bpr) {
-          ++ip;
-          jc = 0;
-          if ( ip == ni+bi) {
-            ip = 0;
-          }
+      d2[jc_last] = d2_buf;
+      d2_buf = ((ip<ni) ? cl*kl[1][0] : z) + ((ip> 0) ? d3[jc] : z);
+
+      d3[jc_last] = d3_buf;
+      d3_buf = ((ip<ni) ? cl*kl[0][0] : z);
+
+      jc_last = jc;
+
+      ++jc;
+      if ( jc == bpr) {
+        ++ip;
+        jc = 0;
+        if ( ip == ni+bi) {
+          ip = 0;
         }
       }
 

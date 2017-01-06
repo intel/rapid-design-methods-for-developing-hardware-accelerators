@@ -55,10 +55,12 @@ public:
     return result;
   }
 
-  Blk() {
-  UNROLL_ZERO:
+  Blk() {} // the default constructor should not initialize the array
+
+  Blk( const T& elem) {
+  UNROLL_INITIALIZE_BLK:
     for( unsigned int i=0; i<N; ++i) {
-      data[i] = 0;
+      data[i] = elem;
     }
   }
 

@@ -42,36 +42,33 @@ void clip() {
 
       Int16 ni = config.read().get_num_of_rows();
       Int16 bpr = config.read().get_row_size_in_blks();
-      const unsigned int words_per_blk = 64;
+      const unsigned int words_per_blk = BlkMid::words_per_blk;
+      const BlkOut::ElementType min_rep = -128;
+      const BlkOut::ElementType max_rep =  127;
 
-      if ( mid1.nb_can_get()) {
-        
-        BlkMid icl;
-        mid1.nb_get(icl);
+      BlkMid icl = mid1.get();
 
-        BlkOut ocl;
-        for( unsigned int k=0; k<words_per_blk; ++k) {
-          char r;
-          if ( icl.data[k] < -128) {
-            r = -128;
-          } else if ( icl.data[k] > 127) {
-            r = 127;
-          } else {
-            r = icl.data[k];
-          }
-          ocl.data[k] = r;
+      BlkOut ocl;
+      for( unsigned int k=0; k<words_per_blk; ++k) {
+        BlkOut::ElementType r;
+        if        ( icl.data[k] < min_rep) {
+          r = min_rep;
+        } else if ( icl.data[k] > max_rep) {
+          r = max_rep;
+        } else {
+          r = icl.data[k];
         }
+        ocl.data[k] = r;
+      }
+      outDataOut.put( ocl);
 
-        outDataOut.put(MemTypedWriteDataType<BlkOut>(ocl));
-
-        ++jc;
-        if ( jc >= bpr) {
-          jc = 0;
-          ++ip;
-          if ( ip == ni) {
-            done = true;
-            ip = 0;
-          }
+      ++jc;
+      if ( jc >= bpr) {
+        jc = 0;
+        ++ip;
+        if ( ip == ni) {
+          done = true;
+          ip = 0;
         }
       }
 

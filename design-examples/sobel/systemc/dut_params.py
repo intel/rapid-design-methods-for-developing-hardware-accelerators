@@ -4,15 +4,17 @@ from cog_acctempl import *
 
 dut = DUT("sobel")
 
-dut.add_rd( TypedRead( "BlkInp", "inp", "__inp_Slots__",  "1<<24", "1"))
-
-dut.add_wr( TypedWrite("BlkOut","out"))
+dut.add_ut( UserType("Blk",[ArrayField(UnsignedCharField("data"),64)]))
 
 dut.add_ut( UserType("BlkInp",[ArrayField(UnsignedCharField("data"),64)]))
 
 dut.add_ut( UserType("BlkOut",[ArrayField(SignedCharField("data"),64)]))
 
 dut.add_ut( UserType("BlkMid",[ArrayField(SignedShortField("data"),64)]))
+
+dut.add_rd( TypedRead( "BlkInp", "inp", "__inp_Slots__",  "1<<24", "1"))
+
+dut.add_wr( TypedWrite("BlkOut","out"))
 
 dut.add_extra_config_fields( [UnsignedIntField("nInp"),
                               UnsignedIntField("num_of_rows"),

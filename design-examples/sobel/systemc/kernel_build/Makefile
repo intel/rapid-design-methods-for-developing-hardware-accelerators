@@ -2,7 +2,11 @@
 HLD_ROOT = ../../../..
 
 SOURCES=tb.cpp
-CFLAGS =
+CFLAGS = -O3
+
+ifdef WORDS_PER_BLK
+CFLAGS += -DWORDS_PER_BLK=$(WORDS_PER_BLK)
+endif
 
 USER_DEFS ?= -DKERNEL_TEST
 TARGET=kernel_test

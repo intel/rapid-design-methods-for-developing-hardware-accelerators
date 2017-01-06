@@ -25,10 +25,11 @@ using std::string ;
      for k in dut.usertypes.keys():
        cog.outl("#include \"%s.h\"" % k)
   ]]]*/
+#include "Blk.h"
 #include "BlkInp.h"
 #include "BlkOut.h"
 #include "BlkMid.h"
-//[[[end]]] (checksum: 3f5d7ed5e2c79b4c530ed53fa358f5a7)
+//[[[end]]] (checksum: 27f96a7aea340393cd00d479ad12a79f)
 
 typedef unsigned long long AddrType;
 
