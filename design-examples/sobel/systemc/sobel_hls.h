@@ -17,6 +17,8 @@
 #include <type_traits>
 #endif
 
+#include <limits>
+
 #include "systemc.h"
 
 #include "types.h"

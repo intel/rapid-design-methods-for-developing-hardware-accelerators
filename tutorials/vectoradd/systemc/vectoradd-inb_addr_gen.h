@@ -38,7 +38,7 @@ void inb_addr_gen() {
     if ( start) {
 
       if ( !already_sent) {
-        inbReqOut.put( MemTypedReadReqType<Blk>( config.read().getInbAddr( 0), config.read().get_n() >> 4));
+        inbReqOut.put( MemTypedReadReqType<Blk>( config.read().getInbAddr( 0), config.read().get_n() / Blk::ArrayLength));
         already_sent = true;
       }
 

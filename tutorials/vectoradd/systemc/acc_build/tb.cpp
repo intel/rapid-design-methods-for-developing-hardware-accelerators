@@ -24,13 +24,15 @@ TEST(AccelTest, SimpleTest) {
   AcclApp theApp;
 #endif
 
-  unsigned int n = 16*128*1024;
+  const unsigned int N = Blk::ArrayLength;
 
-  assert( n % 16 == 0);
+  unsigned int n = 1U << 20;
 
-  unsigned int n_blks = n/16;
+  assert( n % N == 0);
 
-  unsigned long long sz = 3ULL*n_blks*64;
+  unsigned int n_blks = n/N;
+
+  unsigned long long sz = 3ULL*n*sizeof(unsigned int);
 
   if ( theApp.alloc( sz)) {
     unsigned char *WORKSPACE = theApp.m_JointVirt;
@@ -51,16 +53,16 @@ TEST(AccelTest, SimpleTest) {
 
     {
       for( unsigned int ip=0; ip<n_blks; ++ip) {
-        for ( unsigned int j=0; j<16; ++j) {
-          ina_ptr[ip].words[j] = 16*ip+j;
-          inb_ptr[ip].words[j] = n - (16*ip+j);
+        for ( unsigned int j=0; j<N; ++j) {
+          ina_ptr[ip].words[j] = N*ip+j;
+          inb_ptr[ip].words[j] = n - (N*ip+j);
         }
       }
     }
 
     {
       for( unsigned int ip=0; ip<n_blks; ++ip) {
-        for ( unsigned int j=0; j<16; ++j) {
+        for ( unsigned int j=0; j<N; ++j) {
           out_ptr[ip].words[j] = 0xdeadbeefU;
         }
       }
@@ -73,10 +75,11 @@ TEST(AccelTest, SimpleTest) {
     // check
     unsigned int correct = 0;
     for (unsigned int ip=0; ip<n_blks; ++ip) {
-      for (unsigned int j=0; j<16; ++j) {
-        unsigned long long cand = out_ptr[ip].words[j];
-        unsigned long long ref  = n;
-        if ( cand == 0xdeadbeefULL) {
+      for (unsigned int j=0; j<N; ++j) {
+        Blk::ElementType cand = out_ptr[ip].words[j];
+        Blk::ElementType ref  = n;
+
+        if ( cand == 0xdeadbeefU) {
           std::cout << "Uninitialized result at " << ip << "," << j << std::endl;
         }
 
@@ -88,9 +91,9 @@ TEST(AccelTest, SimpleTest) {
       }
     }
     std::cout << "Results checked. " << correct
-              << " of " << 16*n_blks << " correct." << std::endl;
+              << " of " << N*n_blks << " correct." << std::endl;
 
-    EXPECT_EQ( correct, 16*n_blks);
+    EXPECT_EQ( correct, N*n_blks);
     theApp.free();
   } else {
     EXPECT_TRUE( 0);

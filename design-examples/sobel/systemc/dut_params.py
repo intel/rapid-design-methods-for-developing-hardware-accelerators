@@ -4,16 +4,12 @@ from cog_acctempl import *
 
 dut = DUT("sobel")
 
-dut.add_ut( UserType("Blk",[ArrayField(UnsignedCharField("data"),64)]))
 
 dut.add_ut( UserType("BlkInp",[ArrayField(UnsignedCharField("data"),64)]))
-
 dut.add_ut( UserType("BlkOut",[ArrayField(SignedCharField("data"),64)]))
-
 dut.add_ut( UserType("BlkMid",[ArrayField(SignedShortField("data"),64)]))
 
 dut.add_rd( TypedRead( "BlkInp", "inp", "__inp_Slots__",  "1<<24", "1"))
-
 dut.add_wr( TypedWrite("BlkOut","out"))
 
 dut.add_extra_config_fields( [UnsignedIntField("nInp"),
@@ -45,7 +41,7 @@ dut.get_cthread( "out_addr_gen").add_port( WrReqPort("out"))
 dut.get_cthread( "clip").add_port( WrDataPort("out"))
 dut.get_cthread( "clip").add_port( DequeuePort( "mid1"))
 
-dut.semantic()
+#dut.semantic()
 
 if __name__ == "__main__":
     dut.dump_dot( dut.nm + ".dot")

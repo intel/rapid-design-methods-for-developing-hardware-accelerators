@@ -38,7 +38,7 @@ void out_addr_gen() {
     if ( start) {
 
       if ( !already_sent) {
-        outReqOut.put( MemTypedWriteReqType<Blk>( config.read().getOutAddr( 0), config.read().get_n() >> 4));
+        outReqOut.put( MemTypedWriteReqType<Blk>( config.read().getOutAddr( 0), config.read().get_n() / Blk::ArrayLength));
         already_sent = true;
       }
 

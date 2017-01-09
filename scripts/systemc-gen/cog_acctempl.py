@@ -408,6 +408,7 @@ class Module:
 
 class DUT:
     def __init__( self, nm):
+        self.have_run_semantic = False
         self.module = Module( nm)
         self.inps = []
         self.outs = []
@@ -436,6 +437,7 @@ class DUT:
 
     @property
     def storage_fifos( self):
+        self.semantic()
         for f in self.module.storage_fifos:
           th0 = self.put_tbl[f.nm]
           th1 = self.get_tbl[f.nm]
@@ -446,6 +448,7 @@ class DUT:
 
     @property
     def tlm_fifos( self):
+        self.semantic()
         for f in self.module.storage_fifos:
           th0 = self.put_tbl[f.nm]
           th1 = self.get_tbl[f.nm]
@@ -495,6 +498,9 @@ class DUT:
             self.add_storage_fifo( v)
 
     def semantic(self):
+        if self.have_run_semantic: return
+        self.have_run_semantic = True
+
         config_bitwidth = 64*(len(self.inps)+len(self.outs))
         for field in self.extra_config_fields:
             config_bitwidth += field.bitwidth

@@ -37,6 +37,13 @@ public:
   //[[[end]]]
 
   /*[[[cog
+       if len(ut.fields) == 1 and type(ut.fields[0]) is ArrayField:
+         cog.outl( "enum { ArrayLength = %d };" % ut.fields[0].count)
+         cog.outl( "typedef %s ElementType;" % ut.fields[0].ty.ty)
+    ]]]*/
+  //[[[end]]]
+
+  /*[[[cog
        cog.outl("enum { BitCnt = %d };" % ut.bitwidth)
     ]]]*/
   //[[[end]]]

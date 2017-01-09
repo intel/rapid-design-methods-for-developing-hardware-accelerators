@@ -150,7 +150,7 @@ public:
 
   ~MemArbiter() {
     const char* name = basename();
-    cout << "Arbiter " << name << " " << TRAIT << " was idle (not requestors) for " << idle_counter << " cycles, consumer was not ready for "<< consumer_not_ready << " cycles" << endl;
+    cout << "Arbiter " << name << " " << TRAIT << " was idle (no requestors) for " << idle_counter << " cycles, consumer was not ready for "<< consumer_not_ready << " cycles" << endl;
   }
   struct ArbiterRequestorChannel {
     ga::tlm_fifo<REQUEST> in_req_fifo[NR_OF_REQS];
@@ -329,7 +329,7 @@ public:
 
   ~MemArbiterN() {
     const char* name = basename();
-    cout << "ArbiterN " << name << " " << TRAIT << " was idle (not requestors) for " << idle_counter-consumer_not_ready << " cycles, consumer was not ready for "<< consumer_not_ready << " cycles" << endl;
+    cout << "ArbiterN " << name << " " << TRAIT << " was idle (no requestors) for " << idle_counter-consumer_not_ready << " cycles, consumer was not ready for "<< consumer_not_ready << " cycles" << endl;
   }
   struct ArbiterRequestorChannel {
     ga::tlm_fifo<REQUEST> in_req_fifo[NR_OF_REQS];
@@ -499,7 +499,7 @@ public:
   }
   ~MemArbiterNoTag() {
     const char* name = basename();
-    cout << "ArbiterNoTag " << name << " " << TRAIT << " was idle (not requestors) for " << idle_counter << " cycles" << endl;
+    cout << "ArbiterNoTag " << name << " " << TRAIT << " was idle (no requestors) for " << idle_counter << " cycles" << endl;
   }
 
 private:

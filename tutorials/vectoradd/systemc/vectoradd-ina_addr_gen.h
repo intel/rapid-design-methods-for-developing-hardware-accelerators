@@ -38,7 +38,7 @@ void ina_addr_gen() {
     if ( start) {
 
       if ( !already_sent) {
-        inaReqOut.put( MemTypedReadReqType<Blk>( config.read().getInaAddr( 0), config.read().get_n() >> 4));
+        inaReqOut.put( MemTypedReadReqType<Blk>( config.read().getInaAddr( 0), config.read().get_n() / Blk::ArrayLength));
         already_sent = true;
       }
 

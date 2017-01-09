@@ -13,9 +13,8 @@ class Blk {
 public:
   T data[N];
 
+  enum { ArrayLength = N };
   typedef T ElementType;
-
-  enum { words_per_blk = N };
 
   enum { BitCnt = 8*sizeof(T)*N };
 

@@ -42,6 +42,15 @@ public:
   //[[[end]]] (checksum: ee46422273f1bea4e4ab29ce91fd1501)
 
   /*[[[cog
+       if len(ut.fields) == 1 and type(ut.fields[0]) is ArrayField:
+         cog.outl( "enum { ArrayLength = %d };" % ut.fields[0].count)
+         cog.outl( "typedef %s ElementType;" % ut.fields[0].ty.ty)
+    ]]]*/
+  enum { ArrayLength = 16 };
+  typedef unsigned int ElementType;
+  //[[[end]]] (checksum: bfbf9661f16a44fa6a1b449095473dcd)
+
+  /*[[[cog
        cog.outl("enum { BitCnt = %d };" % ut.bitwidth)
     ]]]*/
   enum { BitCnt = 512 };
@@ -138,17 +147,16 @@ public:
     }
     return result;
   }
-  
-};
 
-Blk operator+(const Blk &b1, const Blk &b2)
-{
-  Blk result;
- UNROLL_BLK_ADD:
-  for (unsigned i = 0; i < 16; ++i) {
-    result.words[i] = b1.words[i] + b2.words[i];
+  inline friend Blk operator+(const Blk &b1, const Blk &b2) {
+    Blk result;
+  UNROLL_BLK_ADD:
+    for (unsigned i = 0; i < Blk::ArrayLength; ++i) {
+      result.words[i] = b1.words[i] + b2.words[i];
+    }
+    return result;
   }
-  return result;
-}
+
+};
 
 #endif

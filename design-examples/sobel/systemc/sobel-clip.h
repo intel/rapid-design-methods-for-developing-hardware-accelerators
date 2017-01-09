@@ -22,6 +22,7 @@
      for p in c.ports:
        cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
+
 void clip() {
   outDataOut.reset_put(); // type: MemTypedWriteDataType<BlkOut>
   mid1.reset_get(); // type: BlkMid
@@ -42,9 +43,9 @@ void clip() {
 
       Int16 ni = config.read().get_num_of_rows();
       Int16 bpr = config.read().get_row_size_in_blks();
-      const unsigned int words_per_blk = BlkMid::words_per_blk;
-      const BlkOut::ElementType min_rep = -128;
-      const BlkOut::ElementType max_rep =  127;
+      const unsigned int words_per_blk = BlkMid::ArrayLength;
+      const BlkOut::ElementType min_rep = std::numeric_limits<BlkOut::ElementType>::min();
+      const BlkOut::ElementType max_rep = std::numeric_limits<BlkOut::ElementType>::max();
 
       BlkMid icl = mid1.get();
 

@@ -28,7 +28,7 @@ void deltax() {
 //[[[end]]] (checksum: 5213e88798d40c4770430812caf0123f)
 
   const unsigned int bj = 2;
-  const unsigned int words_per_blk = BlkInp::words_per_blk;
+  const unsigned int words_per_blk = BlkInp::ArrayLength;
   const short kr[1][2*bj+1] = { {1,2,0,-2,-1} };
 
   BlkInp lastcl;

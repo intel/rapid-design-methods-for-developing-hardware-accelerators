@@ -40,7 +40,7 @@ void fetcher() {
   while (1) {
     if ( start) {
       // check if it was the the last one (we process 16 elements at a time)
-      if ( ip != (config.read().get_n() >> 4)) {
+      if ( ip != (config.read().get_n() / Blk::ArrayLength)) {
         // read two Blk objects, vector add (from class Blk), and write
         outDataOut.put( inaRespIn.get().data + inbRespIn.get().data);
         ++ip;

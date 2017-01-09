@@ -70,7 +70,7 @@ public:
               } else {
                 acc_conf.set_n( chunk);
               }
-              assert( acc_conf.get_n() % 16 == 0);
+              assert( acc_conf.get_n() % Blk::ArrayLength == 0);
               acc_conf.set_aIna( acc_conf.get_aIna() + i*chunk*sizeof(unsigned int));
               acc_conf.set_aInb( acc_conf.get_aInb() + i*chunk*sizeof(unsigned int));
               acc_conf.set_aOut( acc_conf.get_aOut() + i*chunk*sizeof(unsigned int));

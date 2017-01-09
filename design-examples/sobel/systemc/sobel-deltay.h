@@ -31,7 +31,7 @@ void deltay() {
   UInt16 jc = 0;
   UInt16 jc_last;
 
-  const unsigned int MAXBPR = 40 * 64 / BlkMid::words_per_blk;
+  const unsigned int MAXBPR = 40 * 64 / BlkMid::ArrayLength;
 
   BlkMid d0[MAXBPR];
   BlkMid d1[MAXBPR];
