@@ -11,18 +11,22 @@
        thread_nm = lst[1]
      cog.outl( "//thread_nm=" + thread_nm)
   ]]]*/
-//thread_nm=occurrence_wr_loop
-//[[[end]]] (checksum: 3b5a5f297e842b1693e64263dc9c36d0)
+//thread_nm=precomp_addr_gen
+//[[[end]]] (checksum: 3dad680ec0d262f0cbec2563f9b39cb0)
+
+// Declare helper methods and class variables
+
 /*[[[cog
      c = dut.get_cthread(thread_nm)
      cog.outl("void %s() {" % (c.nm,))
      for p in c.ports:
-       cog.outl("  %s;" % p.reset)
+       cog.outl("  %s; // type: %s" % (p.reset,p.type(dut)))
   ]]]*/
-void occurrence_wr_loop() {
-  clReqOut.reset_put();
-  irowQ.reset_get();
-//[[[end]]] (checksum: e5024222a0c8669c5b36c6bac0399aa0)
+void precomp_addr_gen() {
+  preReqOut.reset_put(); // type: MemTypedReadReqType<BWResult>
+//[[[end]]] (checksum: 5cffd07d6c6fee828201df8a46586d29)
+
+  bool already_sent = false;
 
   /*[[[cog
        if c.writes_to_done:
@@ -31,21 +35,13 @@ void occurrence_wr_loop() {
   //[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
   wait();
   while (1) {
-    BWState inp = irowQ.get();
-
-    unsigned int crow;
-
-    if ( inp.state == 0)
-      crow = inp.res.l >> 7;
-    else
-      crow = inp.res.u >> 7;
-
-    if ( crow == config.read().m()) {
-      --crow;
+    if ( start) {
+      if ( !already_sent) {
+	UInt16 precomp_size = 1U<<(2*config.read().get_precomp_len());
+	preReqOut.put(MemTypedReadReqType<BWResult>( config.read().getPreAddr( 0), precomp_size)); 
+        already_sent = true;
+      }
     }
-
-    clReqOut.put( MemSingleReadReqType<BWCacheLine,BWState>( config.read().getClAddr( crow), inp));
-
     wait();
   }
 }

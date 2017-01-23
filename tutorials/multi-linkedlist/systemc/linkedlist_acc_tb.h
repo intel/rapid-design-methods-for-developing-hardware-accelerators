@@ -20,6 +20,6 @@
   //[[[end]]] (checksum: af1ec8d4f8f1eb38968b7addc793626b)
 #include "accl_tb.h"
   
-typedef acc_top < dut_t, 100/*Mhz*/, 1000/*mem latency in ns*/, RD_CHANNELS, WR_CHANNELS> AcclApp;
+typedef acc_top < dut_t, 100/*Mhz*/, 1000/*mem latency in ns*/, RD_CHANNELS, WR_CHANNELS, 100/*mem latency spread in ns*/> AcclApp;
 
 #endif

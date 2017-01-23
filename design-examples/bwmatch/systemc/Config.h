@@ -3,6 +3,7 @@
      import cog
      from cog_acctempl import *
      from dut_params import *
+     print(dut.ports_without_an_address, dut.ports_with_an_address)
   ]]]*/
 //[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
 
@@ -33,12 +34,11 @@ using std::string ;
 //[[[end]]] (checksum: d18b31adffc6344855be2ed990ae7fd9)
 
 typedef unsigned long long AddrType;
-typedef unsigned int OffsetType;
 
 struct Config {
 private:
   /*[[[cog
-       for p in dut.inps + dut.outs:
+       for p in dut.ports_with_an_address:
          cog.outl("AddrType a%s : 64;" % p.nm.capitalize())
     ]]]*/
   AddrType aPat : 64;
@@ -49,25 +49,25 @@ private:
   /*[[[cog
        for field in dut.extra_config_fields:
          if type(field) is BitReducedField: 
-            cog.outl("%s %s : %d;" % (field.ty.ty,field.ty.nm,field.ty.bitwidth))
+            cog.outl("%s %s : %d;" % (field.ty.ty,field.ty.nm,field.bitwidth))
          elif type(field) is ArrayField:
             cog.outl("%s %s[%d];" % (field.ty.ty,field.ty.nm,field.ty.count))
          else:
             cog.outl("%s %s;" % (field.ty,field.nm))
     ]]]*/
-  unsigned long long nPat : 64;
-  unsigned long long max_recirculating : 64;
-  unsigned long long precomp_len : 64;
+  unsigned long long nPat : 48;
+  unsigned long long max_recirculating : 12;
+  unsigned long long precomp_len : 4;
   unsigned int end_pos : 32;
   unsigned int u0 : 32;
   unsigned int u1 : 32;
   unsigned int u2 : 32;
   unsigned int u3 : 32;
-  //[[[end]]] (checksum: d1238e5f7885565d65e1e8506180b409)  
+  //[[[end]]] (checksum: 55ac7510f9b82fb750e0555b8ec7c9ee)  
 
 public:
   /*[[[cog
-       for p in dut.inps + dut.outs:
+       for p in dut.ports_with_an_address:
          cog.outl("AddrType get_a%s() const {" % p.nm.capitalize())
          cog.outl("  return a%s & 0x0000ffffffffffc0ULL;" % p.nm.capitalize())
          cog.outl("}")
@@ -124,7 +124,7 @@ public:
   void set_aVD( const AddrType& val) {
   }
   /*[[[cog
-       for p in dut.inps + dut.outs:
+       for p in dut.ports_with_an_address:
          cog.outl("void set_a%s( const AddrType& val) {" % p.nm.capitalize())
          cog.outl("  assert( !(val & ~0x0000ffffffffffc0ULL));")
          cog.outl("  a%s = val;" % p.nm.capitalize())
@@ -185,7 +185,7 @@ public:
   //[[[end]]] (checksum: 14380b438ddf5851fbc5436f00d9b17e)  
 
   /*[[[cog
-       for p in dut.inps + dut.outs:
+       for p in dut.ports_with_an_address:
          cog.outl("AddrType get%sAddr( size_t idx) const {" % p.nm.capitalize())
          cog.outl("  return 0x0000ffffffffffffULL & (get_a%s() + (%s::getBitCnt()/8)*idx);" % (p.nm.capitalize(),p.ty))
          cog.outl("}")
@@ -205,7 +205,7 @@ public:
   //[[[end]]] (checksum: 6890fe3f0baa8c74c3d58242bb02dd9e)  
 
   /*[[[cog
-       for p in dut.inps + dut.outs:
+       for p in dut.ports_with_an_address:
          cog.outl("%s* get%sPtr() const {" % (p.ty,p.nm.capitalize()))
          cog.outl("  return reinterpret_cast<%s*>( get_a%s());" % (p.ty,p.nm.capitalize()))
          cog.outl("}")
@@ -225,7 +225,7 @@ public:
   //[[[end]]] (checksum: e8fda727faaed5bf344bbebce6cf5efb)  
 
   /*[[[cog
-       for p in dut.inps + dut.outs:
+       for p in dut.ports_with_an_address:
          cog.outl("size_t addr2Idx%s( AddrType addr) const {" % p.nm.capitalize())
          cog.outl("  return (addr - get_a%s()) / ((%s::getBitCnt()/8));" % (p.nm.capitalize(),p.ty))  
          cog.outl("}")
@@ -281,7 +281,7 @@ public:
 
   Config() {
     /*[[[cog
-         for p in dut.inps + dut.outs:
+         for p in dut.ports_with_an_address:
            cog.outl("a%s = 0;" % p.nm.capitalize())
       ]]]*/
     aPat = 0;
@@ -305,7 +305,7 @@ public:
   }
   void copy(Config &from) {
     /*[[[cog
-         for p in dut.inps + dut.outs:
+         for p in dut.ports_with_an_address:
            cog.outl("a%s = from.a%s;" % (p.nm.capitalize(),p.nm.capitalize()))
       ]]]*/
     aPat = from.aPat;
@@ -336,7 +336,7 @@ public:
 
   inline friend std::ostream& operator<<(std::ostream& os, const Config& d) {
     /*[[[cog
-         for p in dut.inps + dut.outs:
+         for p in dut.ports_with_an_address:
            cog.outl("os << \"a%s: \" << d.a%s << std::endl;" % (p.nm.capitalize(),p.nm.capitalize()))
       ]]]*/
     os << "aPat: " << d.aPat << std::endl;
@@ -363,7 +363,7 @@ public:
   inline bool operator==(const Config& rhs) const {
     bool result = true;
     /*[[[cog
-         for p in dut.inps + dut.outs:
+         for p in dut.ports_with_an_address:
            cog.outl("result = result && (a%s == rhs.a%s);" % (p.nm.capitalize(),p.nm.capitalize()))
       ]]]*/
     result = result && (aPat == rhs.aPat);

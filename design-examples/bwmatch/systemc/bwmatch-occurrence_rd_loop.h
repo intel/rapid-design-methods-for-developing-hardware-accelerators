@@ -92,54 +92,51 @@ void occurrence_rd_loop() {
   //[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
   wait();
   while (1) {
-    if ( start && clRespIn.nb_can_get() && partialResultQ.nb_can_put()) {
 
-#if defined __SYNTHESIS__ && !defined __CTOS_BUILD_ONLY__
-        wait();
-#endif
+    MemSingleReadRespType<BWCacheLine,BWState> d;
+    d = clRespIn.get();
 
-        MemSingleReadRespType<BWCacheLine,BWState> d;
-        clRespIn.nb_get( d);
+    BWState inp = d.utag;
 
-        BWState inp = d.utag;
+    UInt2 r = inp.pat.pat & 0x3;
+    UInt32 irow;
 
-        UInt2 r = inp.pat.pat & 0x3;
-        UInt32 irow;
+    if ( inp.state == 0)
+      irow = inp.res.l;
+    else
+      irow = inp.res.u;
 
-        if ( inp.state == 0)
-          irow = inp.res.l;
-        else
-          irow = inp.res.u;
+    unsigned int crow = irow >> 7;
+    unsigned int off  = crow << 7;
+    unsigned int cnt  = irow - off;
 
-        unsigned int crow = irow >> 7;
-        unsigned int off  = crow << 7;
-        unsigned int cnt  = irow - off;
-
-        if (crow == config.read().m()) {
-          off -= 128;
-          assert( cnt == 0);
-          cnt = 128;
-        }
-
-        UInt32 orow = config.read().first( r, 0) + d.data.ranks[r] + count_if_eq( d.data, off, cnt, r, config.read());
-
-#if defined __SYNTHESIS__ && !defined __CTOS_BUILD_ONLY__
-        wait();
-        wait();
-#endif
-
-        BWState out = inp;
-        if ( inp.state == 0) {
-          out.res.l = orow;
-          out.state = 1;
-        } else {
-          out.res.u = orow;
-          out.state = 0;
-          --out.pat.length;
-          out.pat.pat >>= 2;
-        }
-        partialResultQ.nb_put( out);
+    if (crow == config.read().m()) {
+      off -= 128;
+      assert( cnt == 0);
+      cnt = 128;
     }
+
+    UInt32 orow = config.read().first( r, 0) + d.data.ranks[r] + count_if_eq( d.data, off, cnt, r, config.read());
+
+#if 1 && defined __SYNTHESIS__ && !defined __CTOS_BUILD_ONLY__
+    wait();
+    wait();
+    wait();
+#endif
+
+    BWState out = inp;
+    if ( inp.state == 0) {
+      out.res.l = orow;
+      out.state = 1;
+    } else {
+      out.res.u = orow;
+      out.state = 0;
+      --out.pat.length;
+      out.pat.pat >>= 2;
+    }
+
+    partialResultQ.put( out);
+
     wait();
   }
 }

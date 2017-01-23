@@ -102,7 +102,8 @@ public:
            if m.portOf( WrDataPort(p.nm)):
              cog.outl(", %s(\"%s\")" % (p.dataNmK(),p.dataNmK()))
          for f in dut.tlm_fifos:
-           cog.outl(", %s(\"%s\")" % (f.nm, f.nm))
+           if m.portOf( DequeuePort(f.nm)) or m.portOf( EnqueuePort(f.nm)):
+             cog.outl(", %s(\"%s\")" % (f.nm, f.nm))
       ]]]*/
     , clReqOut("clReqOut")
     , clRespIn("clRespIn")
@@ -138,10 +139,15 @@ public:
              cog.outl("%s.clk_rst(clk, rst);" % (p.reqNmK(),))
            if m.portOf( WrDataPort(p.nm)):
              cog.outl("%s.clk_rst(clk, rst);" % (p.dataNmK(),))
+         for f in dut.tlm_fifos:
+           if m.portOf( DequeuePort(f.nm)) or m.portOf( EnqueuePort(f.nm)):
+             cog.outl("%s.clk_rst(clk, rst);" % (f.nm,))
       ]]]*/
     clReqOut.clk_rst(clk, rst);
     clRespIn.clk_rst(clk, rst);
-    //[[[end]]] (checksum: ad5d3095bb6bbde85e7b9cc8f215ce44)
+    patQ.clk_rst(clk, rst);
+    finalResultQ.clk_rst(clk, rst);
+    //[[[end]]] (checksum: bd4f2dec0ad462cdcd1c8ac26f6105fd)
 
 #ifndef USE_HLS
   /*[[[cog

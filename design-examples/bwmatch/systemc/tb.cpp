@@ -1,5 +1,7 @@
 // See LICENSE for license details.
 
+#include <string.h>
+
 #include "gtest/gtest.h"
 #include "hld_alloc.h"
 
@@ -7,7 +9,12 @@
 #include "AcclApp.h"
 typedef unsigned long long UInt64;
 #include "Config.h"
-#define __BWCacheLineLoadParamsSlots__ 128
+#ifndef __BWCacheLineLoadParamsSlots__
+#define __BWCacheLineLoadParamsSlots__ 96
+#endif
+#ifndef NUM_AUS
+#define NUM_AUS 1
+#endif
 #else
 #if defined(KERNEL_TEST)
 #include "bwmatch_hls_tb.h"
@@ -41,7 +48,8 @@ off_t file_size_in_bytes( const char *fn)
   
   off_t result = lseek( fd, 0, SEEK_END);
 
-  assert( close( fd) == 0);
+  int rc = close( fd);
+  assert( rc == 0);
 
   return result;
 }
@@ -58,7 +66,10 @@ TEST(AccelTest, SimpleTest) {
 
   unsigned long long sz = 2*1024ULL*1024ULL*1024ULL;
 
-  ni = (ni >> 5) << 5;
+  // make sure ni is a multiple of 32
+  // ni = (ni >> 5) << 5;
+  // really make sure ni is a multiple of 8*NUM_AUS
+  ni = (ni / (8*NUM_AUS)) * 8 * NUM_AUS;
 
   std::cout << "ni = " << ni << std::endl;
 
@@ -93,12 +104,21 @@ TEST(AccelTest, SimpleTest) {
 #if 1
     ConfigOld configold;
 
+    std::cout << "config fn: " << cfg_fn << std::endl;
     {
       FILE *ifp = fopen( cfg_fn, "rb");
       assert( ifp);
-      assert( 1 == fread( &configold, sizeof(ConfigOld), 1, ifp));
-      fclose(ifp);
+      size_t records = fread( &configold, sizeof(ConfigOld), 1, ifp);
+      assert( records == 1);
+      int rc = fclose(ifp);
+      assert( rc==0);
     }
+
+    std::cout << "configold: " << configold << std::endl;
+
+    std::cout << "sizeof(ConfigOld): " << sizeof(ConfigOld) << std::endl;
+
+    std::cout << "u3: " << configold.get_u3() << std::endl;
 
     config.set_end_pos( configold.get_end_pos());
     config.set_u0( configold.get_u0());
@@ -106,19 +126,28 @@ TEST(AccelTest, SimpleTest) {
     config.set_u2( configold.get_u2());
     config.set_u3( configold.get_u3());
 
+    std::cout << "m: " << config.m() << " n: " << config.n() << std::endl;
+
     {
       FILE *ofp = fopen( (std::string(cfg_fn) + std::string("-new2")).c_str(), "wb");
       assert( ofp);
-      assert( 1 == fwrite( &config, sizeof(Config), 1, ofp));
-      fclose(ofp);
+      size_t records = fwrite( &config, sizeof(Config), 1, ofp);
+      assert( 1 == records);
+      int rc = fclose(ofp);
+      assert( rc == 0);
     }
+
+    std::cout << "sizeof(Config): " << sizeof(Config) << std::endl;
+
 #endif
 
     {
       FILE *ifp = fopen( (std::string(cfg_fn) + std::string("-new2")).c_str(), "rb");
       assert( ifp);
-      assert( 1 == fread( &config, sizeof(Config), 1, ifp));
-      fclose(ifp);
+      size_t records = fread( &config, sizeof(Config), 1, ifp);
+      assert( 1 == records);
+      int rc = fclose(ifp);
+      assert( rc == 0);
     }
 
     config.set_precomp_len( precomp_len);
@@ -162,6 +191,7 @@ TEST(AccelTest, SimpleTest) {
     config.set_aRes( (AddrType) res_ptr);
     config.set_nPat( ni);
     config.set_max_recirculating( __BWCacheLineLoadParamsSlots__);
+    //config.set_max_recirculating( 48);
 
     std::cout << "aPre: " << config.get_aPre() << std::endl;
     std::cout << "aPat: " << config.get_aPat() << std::endl;
@@ -185,29 +215,35 @@ TEST(AccelTest, SimpleTest) {
     std::cout << std::dec;
 
     {
-      FILE *fp = fopen( cl_fn, "rb");
+      FILE *ifp = fopen( cl_fn, "rb");
       for (unsigned int i=0; i<config.m(); ++i) {
-          assert( 1 == fread( &cl_ptr[i], sizeof(BWCacheLine), 1, fp));
+        size_t records = fread( &cl_ptr[i], sizeof(BWCacheLine), 1, ifp);
+        assert( 1 == records);
       }
-      fclose(fp);
+      int rc = fclose(ifp);
+      assert( rc==0);
     }
 
     {
       FILE *ifp = fopen( pat_fn, "rb");
       assert( ifp);
       for (unsigned int ip=0; ip<ni; ++ip) {
-          assert( 1 == fread( &pat_ptr[ip], sizeof(BWPattern), 1, ifp));
+        size_t records = fread( &pat_ptr[ip], sizeof(BWPattern), 1, ifp);
+        assert( 1 == records);
       }
-      fclose(ifp);
+      int rc = fclose(ifp);
+      assert( rc==0);
     }
 
     {
       FILE *ifp = fopen( res_fn, "rb");
       assert( ifp);
       for (unsigned int ip=0; ip<ni; ++ip) {
-          assert( 1 == fread( &ref_res[ip], sizeof(BWResult), 1, ifp));
+        size_t records = fread( &ref_res[ip], sizeof(BWResult), 1, ifp);
+        assert( 1 == records);
       }
-      fclose(ifp);
+      int rc = fclose(ifp);
+      assert( rc==0);
     }
 
 #ifndef DISABLE_PRECOMP_LEN
@@ -216,7 +252,8 @@ TEST(AccelTest, SimpleTest) {
       unsigned int p = 1U<<(2*config.get_precomp_len());
       assert( ifp);
       for (unsigned int ip=0; ip<p; ++ip) {
-          assert( 1 == fread( &pre_ptr[ip], sizeof(BWResult), 1, ifp));
+        size_t records = fread( &pre_ptr[ip], sizeof(BWResult), 1, ifp);
+        assert( 1 == records);
       }
       fclose(ifp);
     }
@@ -234,7 +271,6 @@ TEST(AccelTest, SimpleTest) {
 
     theApp.compute( &config, sizeof( config));
     theApp.join();
-
 
     // check
     unsigned int correct = 0;

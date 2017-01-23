@@ -36,6 +36,8 @@ dut.add_extra_config_fields( [BitReducedField(UnsignedLongLongField("nPat"),48),
                               BitReducedField(UnsignedIntField("u2"),32),
                               BitReducedField(UnsignedIntField("u3"),32)])
 
+dut.add_ports_without_an_address( [])
+
 dut.add_storage_fifo( StorageFIFO( "BWState", 4, "patQ"))
 dut.add_storage_fifo( StorageFIFO( "BWState", 4, "irowQ"))
 dut.add_storage_fifo( StorageFIFO( "BWState", 4, "partialResultQ"))
@@ -47,6 +49,8 @@ dut.add_module( Module("bwmatch_retire"))
 dut.add_module( Module("bwmatch_compute"))
 dut.get_module("bwmatch_retire").add_cthread( CThread("res_reorder"))
 dut.get_module("bwmatch_retire").add_cthread( CThread("pat_gadget"))
+dut.get_module("bwmatch_retire").add_cthread( CThread("precomp_addr_gen"))
+dut.get_module("bwmatch_retire").add_cthread( CThread("precomp_fill"))
 dut.get_module("bwmatch_retire").add_cthread( CThread("pat_gadget2"))
 dut.get_module("bwmatch_retire").add_cthread( CThread("pat_addr_gen"))
 dut.get_module("bwmatch_compute").add_cthread( CThread("pat_fetcher",writes_to_done=True))
@@ -60,9 +64,9 @@ dut.get_cthread( "pat_fetcher").add_port( EnqueuePort("finalResultQ"))
 
 dut.get_cthread( "pat_gadget").add_port( EnqueuePort("reserveQ"))
 
+dut.get_cthread( "precomp_addr_gen").add_port( RdReqPort("pre"))
+dut.get_cthread( "precomp_fill").add_port( RdRespPort("pre"))
 dut.get_cthread( "pat_gadget2").add_port( RdRespPort("pat"))
-dut.get_cthread( "pat_gadget2").add_port( RdReqPort("pre"))
-dut.get_cthread( "pat_gadget2").add_port( RdRespPort("pre"))
 dut.get_cthread( "pat_gadget2").add_port( DequeuePort("reserveAckQ"))
 dut.get_cthread( "pat_gadget2").add_port( EnqueuePort("patQ"))
 

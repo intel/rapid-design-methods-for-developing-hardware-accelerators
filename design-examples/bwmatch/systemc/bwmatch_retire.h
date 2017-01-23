@@ -75,6 +75,17 @@ public:
   ga::ga_storage_fifo<BWEmpty, 4> reserveAckQ;
   //[[[end]]] (checksum: 5534893910d77e28f539bc1e4e8e9a82)
 
+  //User defined shared variables
+  sc_signal<bool> phase;
+
+  // If you increase this check that loop variables are large enough
+#ifndef MAX_PRECOMP_LEN 
+#define MAX_PRECOMP_LEN 7
+#endif  
+
+  BWResult precomp_res[1<<(2*MAX_PRECOMP_LEN)];
+
+
   /*[[[cog
        cog.outl("SC_HAS_PROCESS(%s);" % m.nm)
        cog.outl("%s(sc_module_name modname) :" % m.nm)
@@ -105,7 +116,8 @@ public:
            if m.portOf( WrDataPort(p.nm)):
              cog.outl(", %s(\"%s\")" % (p.dataNmK(),p.dataNmK()))
          for f in dut.tlm_fifos:
-           cog.outl(", %s(\"%s\")" % (f.nm, f.nm))
+           if m.portOf( DequeuePort(f.nm)) or m.portOf( EnqueuePort(f.nm)):
+             cog.outl(", %s(\"%s\")" % (f.nm, f.nm))
       ]]]*/
     , patReqOut("patReqOut")
     , patRespIn("patRespIn")
@@ -129,13 +141,19 @@ public:
     SC_CTHREAD(pat_gadget, clk.pos());
     async_reset_signal_is(rst, false);
 
+    SC_CTHREAD(precomp_addr_gen, clk.pos());
+    async_reset_signal_is(rst, false);
+
+    SC_CTHREAD(precomp_fill, clk.pos());
+    async_reset_signal_is(rst, false);
+
     SC_CTHREAD(pat_gadget2, clk.pos());
     async_reset_signal_is(rst, false);
 
     SC_CTHREAD(pat_addr_gen, clk.pos());
     async_reset_signal_is(rst, false);
 
-    //[[[end]]] (checksum: 0edbf931486ed17cc1dddd4384575c80)
+    //[[[end]]] (checksum: f5dbfe35b601577916b4f9de3fdb9cf5)
     // TLM input output port reset: need to remove some and add tlm_fifo ports
     /*[[[cog
          for p in dut.inps:
@@ -148,6 +166,9 @@ public:
              cog.outl("%s.clk_rst(clk, rst);" % (p.reqNmK(),))
            if m.portOf( WrDataPort(p.nm)):
              cog.outl("%s.clk_rst(clk, rst);" % (p.dataNmK(),))
+         for f in dut.tlm_fifos:
+           if m.portOf( DequeuePort(f.nm)) or m.portOf( EnqueuePort(f.nm)):
+             cog.outl("%s.clk_rst(clk, rst);" % (f.nm,))
       ]]]*/
     patReqOut.clk_rst(clk, rst);
     patRespIn.clk_rst(clk, rst);
@@ -155,7 +176,9 @@ public:
     preRespIn.clk_rst(clk, rst);
     resReqOut.clk_rst(clk, rst);
     resDataOut.clk_rst(clk, rst);
-    //[[[end]]] (checksum: 2b401c60a965305b414892099b8cf981)
+    patQ.clk_rst(clk, rst);
+    finalResultQ.clk_rst(clk, rst);
+    //[[[end]]] (checksum: 4dcba0847bea45d0e15855584bbb9769)
 
 #ifndef USE_HLS
   /*[[[cog
@@ -176,8 +199,10 @@ public:
   ]]]*/
 #include "bwmatch-res_reorder.h"
 #include "bwmatch-pat_gadget.h"
+#include "bwmatch-precomp_addr_gen.h"
+#include "bwmatch-precomp_fill.h"
 #include "bwmatch-pat_gadget2.h"
 #include "bwmatch-pat_addr_gen.h"
-//[[[end]]] (checksum: 2b6dcfd65070e6389a274be0b56a8b82)
+//[[[end]]] (checksum: f27a1537398768073adf688b5c262181)
 
 };

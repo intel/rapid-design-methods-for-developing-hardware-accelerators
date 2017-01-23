@@ -13,13 +13,6 @@
   ]]]*/
 //thread_nm=pat_gadget2
 //[[[end]]] (checksum: 8bfe0ead155bee9fc69d14a2d98c323b)
-  // max len is 7 by default
-
-#ifndef MAX_PRECOMP_LEN 
-#define MAX_PRECOMP_LEN 7
-#endif  
-
-  BWResult precomp_res[1<<(2*MAX_PRECOMP_LEN)];
 
   BWState ff( BWIdx idx_in, BWPattern pat_in, const Config& config) {
     BWState tup;
@@ -65,16 +58,12 @@
   ]]]*/
 void pat_gadget2() {
   patRespIn.reset_get();
-  preReqOut.reset_put();
-  preRespIn.reset_get();
   reserveAckQ.reset_get();
   patQ.reset_put();
-//[[[end]]] (checksum: 069f5ca9be07fdf7564f7b9fe6d071a4)
-
-    UInt16 precomp_i = 0;
+//[[[end]]] (checksum: 955fbe6b517a5dd59f71d0e91f40b47b)
 
     unsigned int ip = 0;
-    UInt2 phase = 0;
+
 
   /*[[[cog
        if c.writes_to_done:
@@ -83,31 +72,9 @@ void pat_gadget2() {
   //[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
   wait();
   while (1) {
-    if ( start) {
-
-      if ( start && phase == 0) {
-	unsigned int precomp_size = 1U<<(2*config.read().get_precomp_len());
-#if defined __SYNTHESIS__ && !defined __CTOS_BUILD_ONLY__
-          wait();
-#endif
-	preReqOut.put(MemTypedReadReqType<BWResult>( config.read().getPreAddr( 0), precomp_size)); 
-	phase = 1;
-      } else if ( start && phase == 1) {
-	unsigned int precomp_size_m1 = (1U<<(2*config.read().get_precomp_len()))-1U;
-#if defined __SYNTHESIS__ && !defined __CTOS_BUILD_ONLY__
-          wait();
-#endif
-        MemTypedReadRespType<BWResult> wrapped_resp;
-        preRespIn.get(wrapped_resp);
-        precomp_res[precomp_i] = wrapped_resp.data;
-        if ( precomp_i == precomp_size_m1) {
-          phase = 2;
-        } else {
-          ++precomp_i;
-        }
-
-      // Make sure the precomp data is available for ff(...)
-      } else if ( phase == 2 && ip < config.read().get_nPat()) {
+    //    std::cout << "pat_gadget2: phase,ip: " << phase.read() << "," << ip << std::endl;
+    if ( phase.read() == 1) {
+      if ( ip < config.read().get_nPat()) {
 	if ( patRespIn.nb_can_get() && reserveAckQ.nb_can_get()) {
 	  MemTypedReadRespType<BWPattern> wrapped_pat;
 	  patRespIn.nb_get(wrapped_pat);
@@ -117,14 +84,16 @@ void pat_gadget2() {
 	  BWState tup = ff( ip, wrapped_pat.data, config.read());
 
 #if defined __SYNTHESIS__ && !defined __CTOS_BUILD_ONLY__
-          wait();
+        wait();
 #endif
+
 	  patQ.put( tup);
 
 	  ++ip;
 	}
       }
     }
+
     wait();
   }
 }

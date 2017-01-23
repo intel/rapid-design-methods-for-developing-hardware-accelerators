@@ -9,6 +9,12 @@ class TypedRead:
             buf_size_in_burst_reqs = buf_size_in_cl
         self.buf_size_in_burst_reqs = buf_size_in_burst_reqs
 
+    def reqBitwidth( self, dut):
+        return 64 + 32 
+
+    def respBitwidth( self, dut):
+        return dut.usertypes[self.ty].bitwidth
+
     def loadUnitType( self):
         return "LoadUnitParams< %s, %s, %s, %s>" % (self.ty,self.buf_size_in_cl,self.max_burst_count,self.buf_size_in_burst_reqs)
 
@@ -43,6 +49,12 @@ class SingleRead:
         self.nm = nm
         self.buf_size = buf_size
 
+    def reqBitwidth( self, dut):
+        return 64 + dut.usertypes[self.tag_ty].bitwidth
+
+    def respBitwidth( self, dut):
+        return dut.usertypes[self.ty].bitwidth + dut.usertypes[self.tag_ty].bitwidth
+
     def loadUnitType( self):
         return "LoadUnitSingleReqParams< %s, %s, %s>" % (self.ty,self.tag_ty,self.buf_size)
 
@@ -74,6 +86,12 @@ class TypedWrite:
     def __init__( self, ty, nm):
         self.ty = ty
         self.nm = nm
+
+    def reqBitwidth( self, dut):
+        return 64 + 32
+
+    def dataBitwidth( self, dut):
+        return dut.usertypes[self.ty].bitwidth
 
     def storeUnitType( self):
         return "StoreUnitParams< %s>" % (self.ty,)
@@ -414,6 +432,11 @@ class DUT:
         self.outs = []
         self.usertypes = OrderedDict()
         self.extra_config_fields = []
+        self.ports_without_an_address = []
+
+    @property
+    def ports_with_an_address( self):
+        return [ x for x in self.inps + self.outs if x.nm not in self.ports_without_an_address]
 
     @property
     def nm( self):
@@ -462,6 +485,9 @@ class DUT:
             return ""
         return "hier_"
 
+    def add_ports_without_an_address( self, v):
+        self.ports_without_an_address.extend( v)
+
     def add_module( self, v):
         self.module.add_module( v)
         return self
@@ -497,16 +523,18 @@ class DUT:
         for v in vs:
             self.add_storage_fifo( v)
 
+    @property
+    def config_bitwidth( self):
+        bw = 64*len(self.ports_with_an_address)
+        for field in self.extra_config_fields:
+            bw += field.bitwidth
+        return bw
+
     def semantic(self):
         if self.have_run_semantic: return
         self.have_run_semantic = True
 
-        config_bitwidth = 64*(len(self.inps)+len(self.outs))
-        for field in self.extra_config_fields:
-            config_bitwidth += field.bitwidth
-#        print( "// Config contains %d bits" % config_bitwidth)
-#        print( "// Config contains %d bytes" % (config_bitwidth/8))
-        assert( config_bitwidth <= 9*64)
+        assert( self.config_bitwidth <= 9*64)
 
         # Find two ports for each storage fifo
         # And req,resp for each rd

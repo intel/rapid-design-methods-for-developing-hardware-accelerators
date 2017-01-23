@@ -27,7 +27,7 @@ typedef unsigned long long UInt64;
 
 TEST(AccelTest, SimpleTest) {
 
-  unsigned long long m = 8*256;
+  unsigned long long m = 4*64;
 
   unsigned long long n = 1ULL << 16;
 

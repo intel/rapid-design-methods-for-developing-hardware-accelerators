@@ -1,0 +1,9 @@
+
+setenv XEON_FPGA_ROOT /nfs/site/disks/scl.work.59/ppt/smburns/quick-assist/SR-5.0.3-Release
+
+setenv CCI_MPF_SW_ROOT `realpath $XEON_FPGA_ROOT/atd_fpga_app-qa_bblocks/BBB_cci_mpf/sw`
+
+setenv LD_LIBRARY_PATH `realpath $CCI_MPF_SW_ROOT`:`realpath $HLD_ROOT/fpga_sw/5.0.3/AcclAppVtp`
+
+make prefix=`realpath $XEON_FPGA_ROOT/Base/SW/install`
+

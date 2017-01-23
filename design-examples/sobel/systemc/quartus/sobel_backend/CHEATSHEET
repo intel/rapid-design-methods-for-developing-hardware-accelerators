@@ -1,0 +1,1 @@
+cog.py -c -Dmodule_nm=sobel_backend -I. -I../.. -I$HLD_ROOT/scripts/systemc-gen -o sobel_backend.v $HLD_ROOT/scripts/systemc-gen/quartus-module-testbench-cog.v

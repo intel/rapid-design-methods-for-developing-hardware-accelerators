@@ -32,7 +32,7 @@
 #endif
 
 #ifndef __BWCacheLineLoadParamsSlots__
-#define __BWCacheLineLoadParamsSlots__ 128
+#define __BWCacheLineLoadParamsSlots__ 96
 #endif
 
 #ifndef __BWResultLoadParamsSlots__
@@ -264,7 +264,7 @@ public:
 #endif
 
 #ifndef WR_CHANNELS
-#define WR_CHANNELS NUM_AUS
+#define WR_CHANNELS 1
 #endif
 
 #if NUM_AUS == 1

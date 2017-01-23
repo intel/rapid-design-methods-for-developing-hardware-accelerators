@@ -1,0 +1,1 @@
+cog.py -c -Dmodule_nm=bwmatch_retire -I. -I../.. -I$HLD_ROOT/scripts/systemc-gen -o bwmatch_retire.v $HLD_ROOT/scripts/systemc-gen/quartus-module-testbench-cog.v

@@ -6,6 +6,7 @@ TARGET=bwmatch_fpga
 CFLAGS =
 LDFLAGS =
 
+
 USER_DEFS ?= -DFPGA_ACC -D__AAL_USER__
 
 ifeq ($(prefix), )
@@ -20,4 +21,10 @@ LDFLAGS += -L$(prefix)/lib -Wl,-rpath-link -Wl,$(prefix)/lib -Wl,-rpath -Wl,$(pr
             
 
 CFLAGS+=${USER_DEFS} -I../../systemc -I${HLD_ROOT}/fpga_sw/5.0.3/AcclAppVtp/
+
+ifdef NUM_AUS
+CFLAGS += -DNUM_AUS=$(NUM_AUS)
+endif
+
 include ${HLD_ROOT}/common/Makefile.inc
+

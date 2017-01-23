@@ -62,8 +62,10 @@ public:
 
               unsigned long long chunk = acc_conf.get_nPat() / N;
               if ( N == 3) {
-                unsigned long long q = (acc_conf.get_nPat()>>2) + (acc_conf.get_nPat()>>4);
+                unsigned long long lines = acc_conf.get_nPat() >> 3;
+                unsigned long long q = (lines>>2) + (lines>>4);
                 chunk = q + (q>>4) + (q>>8);
+                chunk <<= 3;
               }
               if ( i == N-1) {
                 acc_conf.set_nPat( acc_conf.get_nPat()-chunk*(N-1));
