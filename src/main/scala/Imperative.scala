@@ -38,7 +38,13 @@ class ImperativeModule( io_tuples : List[(String,UInt)], ast : AST) extends Modu
       val bb = evalBExpression( sT, b)
       val tST = evalCommand( sT, t)
       val eST = evalCommand( sT, e)
-      eST
+// using "!=" because I'm comparing whether the Chisel objects (not their values) are different
+      val changedKeys = sT.keys.filter{ k => tST(k) != eST(k)}
+      changedKeys.foldLeft(sT){ case (s,k) =>
+        val w = Wire( init=eST(k))
+        when( bb) { w := tST(k) }
+        s.updated( k, w)
+      }
     }
   }
 
