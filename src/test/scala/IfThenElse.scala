@@ -40,6 +40,12 @@ class ITE_else extends ImperativeModule(
 class ITE_then_Tester {
   val s = chisel3.Driver.emit( () => new ITE_then)
   val tester = new InterpretiveTester( s)
+
+  tester.poke( s"reset", 1)
+  tester.step()
+  tester.poke( s"reset", 0)
+  tester.step()
+
   def run( a : Int, b : Int) = {
     val result = (a + b + a) & ((1 << ITE.width)-1)
     tester.poke( s"io_a", a)
@@ -52,6 +58,12 @@ class ITE_then_Tester {
 class ITE_else_Tester {
   val s = chisel3.Driver.emit( () => new ITE_else)
   val tester = new InterpretiveTester( s)
+
+  tester.poke( s"reset", 1)
+  tester.step()
+  tester.poke( s"reset", 0)
+  tester.step()
+
   def run( a : Int, b : Int) = {
     val result = (a + b + b) & ((1 << ITE.width)-1)
     tester.poke( s"io_a", a)

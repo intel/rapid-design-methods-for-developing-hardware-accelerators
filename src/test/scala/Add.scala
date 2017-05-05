@@ -27,6 +27,12 @@ class Add extends ImperativeModule(
 class AddTester {
   val s = chisel3.Driver.emit( () => new Add)
   val tester = new InterpretiveTester( s)
+
+  tester.poke( s"reset", 1)
+  tester.step()
+  tester.poke( s"reset", 0)
+  tester.step()
+
   def run( a : Int, b : Int) = {
     val result = (a + b + a + b) & ((1 << G.width)-1)
     tester.poke( s"io_a", a)
@@ -39,6 +45,7 @@ class AddTester {
 object AddTest extends Properties("Add") {
   val t = new AddTester
   val gen = Gen.choose(0,(1 << G.width)-1)
+
   property("Add") = forAll( gen, gen) {
     case (a:Int,b:Int) => t.run( a, b)
   }
