@@ -20,7 +20,8 @@ class Add extends ImperativeModule(
     SequentialComposition(
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
             Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "o"))),
-            Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o")))))))
+            Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o"))),
+            Wait)))) 
 
 
 class AddTester {
@@ -30,6 +31,7 @@ class AddTester {
     val result = (a + b + a + b) & ((1 << G.width)-1)
     tester.poke( s"io_a", a)
     tester.poke( s"io_b", b)
+    tester.step()
     tester.peek( s"io_o") ?= result
   }
 }

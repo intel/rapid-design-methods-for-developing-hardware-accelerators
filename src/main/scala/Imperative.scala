@@ -9,7 +9,7 @@ class CustomUIntBundle(elts: (String, UInt)*) extends Record {
   override def cloneType = (new CustomUIntBundle(elements.toList: _*)).asInstanceOf[this.type]
 }
 
-class ImperativeModule( io_tuples : List[(String,UInt)], ast : AST) extends Module {
+class ImperativeModule( io_tuples : List[(String,UInt)], ast : Command) extends Module {
 
   val io = IO(new CustomUIntBundle( io_tuples: _*))
   val inps = io.elements.filter{ case (k,v) => v.dir == core.Direction.Input}
@@ -19,25 +19,35 @@ class ImperativeModule( io_tuples : List[(String,UInt)], ast : AST) extends Modu
 
   def wireCopy( st : SymTbl) = st
 
-  def evalExpression( sT : SymTbl, ast : Expression) : UInt = ast match {
+  def eval( sT : SymTbl, ast : Expression) : UInt = ast match {
     case Variable( s) => sT( s)
-    case AddExpression( l, r) => evalExpression( sT, l) + evalExpression( sT, r)
+    case AddExpression( l, r) => eval( sT, l) + eval( sT, r)
   }
 
-  def evalBExpression( sT : SymTbl, ast : BExpression) : Bool = ast match {
+  def eval( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
-    case AndBExpression( l, r) => evalBExpression( sT, l) && evalBExpression( sT, r)
-    case NotBExpression( e) => !evalBExpression( sT, e)
+    case AndBExpression( l, r) => eval( sT, l) && eval( sT, r)
+    case NotBExpression( e) => !eval( sT, e)
   }
 
-  def evalCommand( sT : SymTbl, ast : AST) : SymTbl = ast match {
-    case While( ConstantTrue, b) => evalCommand( sT, b)
-    case SequentialComposition( seq) => seq.foldLeft(sT){ evalCommand}
-    case Assignment( Variable( s), r) => sT.updated( s, evalExpression( sT, r))
+  def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
+    case While( ConstantTrue, SequentialComposition( lst)) => {
+      val wait = lst.last
+// Only accepting one format: while (true) { ...; wait }
+      assert( wait == Wait)
+      val new_sT = eval( sT, SequentialComposition( lst.init))
+// using "!=" because I'm comparing whether the Chisel objects (not their values) are different
+      val changedKeys = sT.keys.filter{ k => sT(k) != new_sT(k)}
+      println( changedKeys)
+      changedKeys.foldLeft(new_sT) { case (s,k) =>
+        val r = RegNext( new_sT(k))
+        s.updated( k, r)
+      }
+    }
+    case SequentialComposition( seq) => seq.foldLeft(sT){ eval}
+    case Assignment( Variable( s), r) => sT.updated( s, eval( sT, r))
     case IfThenElse( b, t, e) => {
-      val bb = evalBExpression( sT, b)
-      val tST = evalCommand( sT, t)
-      val eST = evalCommand( sT, e)
+      val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
       val changedKeys = sT.keys.filter{ k => tST(k) != eST(k)}
       changedKeys.foldLeft(sT){ case (s,k) =>
@@ -51,7 +61,7 @@ class ImperativeModule( io_tuples : List[(String,UInt)], ast : AST) extends Modu
   val sT : SymTbl = ListMap()
   val sTInps = inps.foldLeft( sT    ){ case (s,(k,v)) => s.updated( k, io(k))}
   val sTOuts = outs.foldLeft( sTInps){ case (s,(k,v)) => s.updated( k, io(k).cloneType)}
-  val sTLast = evalCommand( sTOuts, ast)
+  val sTLast = eval( sTOuts, ast)
   outs.foreach{ case (k,v) => io(k) := sTLast(k) }
 
 }

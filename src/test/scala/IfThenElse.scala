@@ -21,7 +21,8 @@ class ITE_then extends ImperativeModule(
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
             IfThenElse( ConstantTrue, 
                         Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "o"))),
-                        Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o"))))))))
+                        Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o")))),
+            Wait))))
 
 class ITE_else extends ImperativeModule( 
   List( ("a", Input(UInt(ITE.width.W))),
@@ -33,8 +34,8 @@ class ITE_else extends ImperativeModule(
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
             IfThenElse( NotBExpression( ConstantTrue), 
                         Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "o"))),
-                        Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o"))))))))
-
+                        Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o")))),
+            Wait))))
 
 class ITE_then_Tester {
   val s = chisel3.Driver.emit( () => new ITE_then)
@@ -43,6 +44,7 @@ class ITE_then_Tester {
     val result = (a + b + a) & ((1 << ITE.width)-1)
     tester.poke( s"io_a", a)
     tester.poke( s"io_b", b)
+    tester.step()
     tester.peek( s"io_o") ?= result
   }
 }
@@ -54,6 +56,7 @@ class ITE_else_Tester {
     val result = (a + b + b) & ((1 << ITE.width)-1)
     tester.poke( s"io_a", a)
     tester.poke( s"io_b", b)
+    tester.step()
     tester.peek( s"io_o") ?= result
   }
 }
