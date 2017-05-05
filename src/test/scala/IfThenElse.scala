@@ -14,8 +14,9 @@ object ITE {
 class ITE_then extends ImperativeModule( 
   List( ("a", Input(UInt(ITE.width.W))),
         ("b", Input(UInt(ITE.width.W))),
-        ("o", Output(UInt(ITE.width.W))))
-, While(
+        ("o", Output(UInt(ITE.width.W)))),
+  List(),
+  While(
     ConstantTrue,
     SequentialComposition(
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
@@ -27,8 +28,9 @@ class ITE_then extends ImperativeModule(
 class ITE_else extends ImperativeModule( 
   List( ("a", Input(UInt(ITE.width.W))),
         ("b", Input(UInt(ITE.width.W))),
-        ("o", Output(UInt(ITE.width.W))))
-, While(
+        ("o", Output(UInt(ITE.width.W)))),
+  List(),
+  While(
     ConstantTrue,
     SequentialComposition(
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),

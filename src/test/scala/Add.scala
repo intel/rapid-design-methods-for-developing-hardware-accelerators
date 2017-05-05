@@ -14,8 +14,9 @@ object G {
 class Add extends ImperativeModule( 
   List( ("a", Input(UInt(G.width.W))),
         ("b", Input(UInt(G.width.W))),
-        ("o", Output(UInt(G.width.W))))
-, While(
+        ("o", Output(UInt(G.width.W)))),
+  List(),
+  While(
     ConstantTrue,
     SequentialComposition(
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),

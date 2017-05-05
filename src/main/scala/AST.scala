@@ -22,5 +22,6 @@ case class NotBExpression( e : BExpression) extends BExpression
 case object Wait extends Command
 case class NBCanGet( p : Port) extends BExpression
 case class NBCanPut( p : Port) extends BExpression
-case class NBGet( p : Port) extends Expression
+case class NBGetData( p : Port) extends Expression
+case class NBGet( p : Port) extends Command
 case class NBPut( p : Port, e : Expression) extends Command
