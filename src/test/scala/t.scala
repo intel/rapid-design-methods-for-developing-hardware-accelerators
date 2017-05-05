@@ -63,34 +63,34 @@ class Add extends Module {
   val inps = io.elements.filter{ case (k,v) => v.dir == core.Direction.Input}
   val outs = io.elements.filter{ case (k,v) => v.dir == core.Direction.Output}
 
-  type SymbolTable = ListMap[String,UInt]
+  type SymTbl = ListMap[String,UInt]
 
-  def wireCopy( st : SymbolTable) = st
+  def wireCopy( st : SymTbl) = st
 
-  def evalExpression( ast : Expression, sT : SymbolTable) : UInt = ast match {
+  def evalExpression( ast : Expression, sT : SymTbl) : UInt = ast match {
     case Variable( s) => sT( s)
     case AddExpression( l, r) => evalExpression( l, sT) + evalExpression( r, sT)
   }
 
-  def evalBExpression( ast : BExpression, sT : SymbolTable) : Bool = ast match {
+  def evalBExpression( ast : BExpression, sT : SymTbl) : Bool = ast match {
     case ConstantTrue() => true.B
     case AndBExpression( l, r) => evalBExpression( l, sT) && evalBExpression( r, sT)
     case NotBExpression( e) => !evalBExpression( e, sT)
   }
 
-  def evalCommand( ast : AST, sT : SymbolTable) : SymbolTable = ast match {
+  def evalCommand( ast : AST, sT : SymTbl) : SymTbl = ast match {
     case While( ConstantTrue(), b) => evalCommand( b, sT)
     case SequentialComposition( seq) => seq.foldLeft(sT){ case (s,a) => evalCommand(a,s) }
     case Assignment( Variable( s), r) => sT.updated( s, evalExpression( r, sT))
     case IfThenElse( b, t, e) => {
       val bb = evalBExpression( b, sT)
-      val tSymbolTable = wireCopy( sT)
-      val eSymbolTable = wireCopy( sT)
-      tSymbolTable
+      val tSymTbl = wireCopy( sT)
+      val eSymTbl = wireCopy( sT)
+      tSymTbl
     }
   }
 
-  val sT : SymbolTable = ListMap()
+  val sT : SymTbl = ListMap()
   val sTInps = inps.foldLeft( sT    ){ case (s,(k,v)) => s.updated( k, io(k))}
   val sTOuts = outs.foldLeft( sTInps){ case (s,(k,v)) => s.updated( k, io(k).cloneType)}
   val sTLast = evalCommand( G.ast, sTOuts)
