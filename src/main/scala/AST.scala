@@ -16,6 +16,7 @@ case class While( cond : BExpression, body : Command) extends Command
 case class IfThenElse( cond : BExpression, bodyT : Command, bodyF : Command) extends Command
 case class SequentialComposition( seq : Seq[Command]) extends Command
 case class AddExpression( l : Expression, r : Expression) extends Expression
+case class MulExpression( l : Expression, r : Expression) extends Expression
 case class AndBExpression( l : BExpression, r : BExpression) extends BExpression
 case class NotBExpression( e : BExpression) extends BExpression
 case object Wait extends Command

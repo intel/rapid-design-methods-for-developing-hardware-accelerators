@@ -40,7 +40,7 @@ class ImperativeModule( io_tuples : List[(String,UInt)], ast : Command) extends 
       val changedKeys = sT.keys.filter{ k => sT(k) != new_sT(k)}
       println( changedKeys)
       changedKeys.foldLeft(new_sT) { case (s,k) =>
-        val r = RegNext( new_sT(k))
+        val r = RegNext( new_sT(k), init=0.U)
         s.updated( k, r)
       }
     }
