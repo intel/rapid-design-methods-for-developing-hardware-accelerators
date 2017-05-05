@@ -38,7 +38,7 @@ class ImperativeModule( io_tuples : List[(String,UInt)], ast : AST) extends Modu
       val bb = evalBExpression( sT, b)
       val tST = evalCommand( sT, t)
       val eST = evalCommand( sT, e)
-      tST
+      eST
     }
   }
 
