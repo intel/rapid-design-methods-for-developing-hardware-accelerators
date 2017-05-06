@@ -25,7 +25,7 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
 
   def eval( sT : SymTbl, ast : Expression) : UInt = ast match {
     case Variable( s) => sT( s)
-    case NBGetData( Port( p)) => sT.pget( p).bits
+    case NBGetData( Port( p)) => sT.pget( p)._3
     case AddExpression( l, r) => eval( sT, l) + eval( sT, r)
     case MulExpression( l, r) => eval( sT, l) * eval( sT, r)
     case ConstantInteger( i) => i.U
@@ -33,22 +33,20 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
 
   def eval( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
+    case EqBExpression( l, r) => eval( sT, l) === eval( sT, r)
     case AndBExpression( l, r) => eval( sT, l) && eval( sT, r)
     case NotBExpression( e) => !eval( sT, e)
-    case NBCanGet( Port( p)) => sT.pget( p).valid
-    case NBCanPut( Port( p)) => sT.pget( p).ready
+    case NBCanGet( Port( p)) => sT.pget( p)._2
+    case NBCanPut( Port( p)) => sT.pget( p)._1
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
     case While( ConstantTrue, SequentialComposition( lst)) => {
       // set up
-      sT.pget("P").ready := false.B
-      sT.pget("Q").valid := false.B
-
       assert( lst.last == Wait) // Only accepting one format: while (true) { ...; wait }
       val new_sT = eval( sT, SequentialComposition( lst.init))
       val changedKeys = sT.keys.filter{ k => sT(k) != new_sT(k)}
-      println( changedKeys)
+      println( s"Registers: ${changedKeys}")
       changedKeys.foldLeft(new_sT) { case (s,k) =>
         sT(k) := new_sT(k) // Next state update
         s.updated( k, sT(k)) // Use the register output (not input)
@@ -57,39 +55,52 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
     case SequentialComposition( seq) => seq.foldLeft(sT){ eval}
     case Assignment( Variable( s), r) => sT.updated( s, eval( sT, r))
     case NBGet( Port( p)) => {
-      val pp = Wire( sT.pget( p).cloneType)
-      pp <> st.pget( p)
-      pp.ready := true.B
-      sT.pupdate( p, pp)
+      val (r,v,d) = sT.pget( p)
+      sT.pupdated( p, true.B, v, d)
     }
     case NBPut( Port( p), e) => {
-      val pp = Wire( sT.pget( p).cloneType)
-      pp <> st.pget( p)
-      pp.valid := true.B
-      pp.bits := eval( sT, e)
-      sT.pupdate( p, pp)
+      val (r,v,d) = sT.pget( p)
+      sT.pupdated( p, r, true.B, eval( sT, e))
     }
     case IfThenElse( b, t, e) => {
       val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
       val changedKeys = sT.keys.filter{ k => tST(k) != eST(k)}
-      changedKeys.foldLeft(sT){ case (s,k) =>
+      val new_sT = changedKeys.foldLeft(sT){ case (s,k) =>
         val w = Wire( init=eST(k))
         when( bb) { w := tST(k) }
         s.updated( k, w)
       }
+      sT.pkeys.foldLeft(new_sT){ (s,p) => {
+        val (r,v,d) = (Wire(Bool()),Wire(Bool()),Wire(UInt()))
+        val (er,ev,ed) = eST.pget( p)
+        val (tr,tv,td) = tST.pget( p)
+        println( s"${p} tr,tv,td: ${tr} ${tv} ${td}")
+        println( s"${p} er,ev,ed: ${er} ${ev} ${ed}")
+        println( s"${p} r ,v ,d : ${r} ${v} ${d}")
+        printf( s"${p} tr,tv,td: %d %d %d\n", tr, tv, td)
+        printf( s"${p} er,ev,ed: %d %d %d\n", er, ev, ed)
+        printf( s"${p} bb; r,v,d: %d %d %d %d\n", bb, r, v, d)
+        when( bb) {
+          r := tr
+          v := tv
+          d := td
+        } .otherwise {
+          r := er
+          v := ev
+          d := ed
+        }
+        s.pupdated( p, r, v, d)
+      }}
     }
   }
 
-  def RegDecoupled[T <: Data]( r : DecoupledIO[T]) = {
-    val l = Wire(Flipped(Decoupled( r.bits.cloneType)))
-    l.ready := r.ready
-    r.valid := RegNext( next=l.valid, init=false.B)
-    r.bits := RegNext( next=l.bits)
-    l
-  }
+  val pp = io("P")
+  val (pr,pv,pd) = (pp.ready,pp.valid,pp.bits)
+  val qq = io("Q")
+  val (qr,qv,qd) = (qq.ready,qq.valid,qq.bits)
 
-  val sT = (new SymTbl).pupdated( "P", io("P")).pupdated( "Q", io("Q"))
+  val sT = (new SymTbl).pupdated( "P", false.B, pv, pd).pupdated( "Q", qr, false.B, Wire(qd.cloneType))
 /*
   val inps = io.elements.filter{ case (k,v) => v.dir == core.Direction.Input}
   val outs = io.elements.filter{ case (k,v) => v.dir == core.Direction.Output}
@@ -99,10 +110,25 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
     case (s,(k,v)) => s.updated( k, RegInit( io(k).cloneType, init=0.U))
   }
  */
-  val sTOuts = sT
+// Only for Channel
+//  val sTOuts = sT
+// Only for Squash
+  val sTOuts = sT.updated( "f", RegInit( UInt(1.W), init=0.U)).updated( "v", Reg( qd.cloneType))
+
   val sTLast = eval( sTOuts, ast)
 
-  stLast.pget( "Q") <> RegDecoupled( io("Q"))
+  {
+    val (r,v,d) = sTLast.pget( "P")
+    println( s"P r: ${r}")
+    io("P").ready := r
+  }
+  {
+    val (r,v,d) = sTLast.pget( "Q")
+    println( s"Q v: ${v} d: ${d}")
+    io("Q").valid := RegNext( next=v, init=false.B)
+    io("Q").bits := RegNext( next=d)
+  }
+
 //  outs.foreach{ case (k,v) => io(k) := sTLast(k) }
 
 }
