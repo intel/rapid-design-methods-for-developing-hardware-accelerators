@@ -2,6 +2,8 @@ package test
 
 import compiler.{Location, Compiler, ParserError}
 
+import imperative._
+
 import parser._
 import org.scalatest.{FlatSpec, Matchers}
 

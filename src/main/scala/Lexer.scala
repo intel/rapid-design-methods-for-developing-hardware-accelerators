@@ -19,14 +19,18 @@ object Lexer extends RegexParsers {
     phrase(rep1(true_t | while_t | wait_t
       | nbgetdata | nbcanget | nbcanput | nbget | nbput
       | if_t | else_t
-      | and_t | not_t | lbrace | rbrace | lparen | rparen | comma
-      | identifier)) ^^ { rawTokens =>
+      | and_t | not_t | lbrace | rbrace | lparen | rparen | comma | eq_t | assign
+      | identifier | integer)) ^^ { rawTokens =>
       rawTokens
     }
   }
 
   def identifier: Parser[IDENTIFIER] = positioned {
     "[a-zA-Z_][a-zA-Z0-9_]*".r ^^ { str => IDENTIFIER(str) }
+  }
+
+  def integer: Parser[INTEGER] = positioned {
+    "0|[1-9][0-9]*".r ^^ { str => INTEGER(BigInt(str)) }
   }
 
   def true_t        = positioned { "true"          ^^ (_ => TRUE()) }
@@ -46,5 +50,7 @@ object Lexer extends RegexParsers {
   def lparen        = positioned { "("             ^^ (_ => LPAREN()) }
   def rparen        = positioned { ")"             ^^ (_ => RPAREN()) }
   def comma         = positioned { ","             ^^ (_ => COMMA()) }
+  def eq_t          = positioned { "=="            ^^ (_ => EQ()) }
+  def assign        = positioned { "="             ^^ (_ => ASSIGN()) }
 
 }

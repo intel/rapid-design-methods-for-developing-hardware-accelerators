@@ -1,5 +1,7 @@
 package parser
 
+import imperative._
+
 import compiler.{Location, ParserError}
 import lexer._
 
@@ -50,8 +52,11 @@ object Parser extends Parsers {
       case _ ~ _ ~ IDENTIFIER(s) ~ _ ~ e ~ _ => NBPut( Port(s), e)
     }
     val w = WAIT() ^^ { _ => Wait }
+    val a = identifier ~ ASSIGN() ~ expr ^^ {
+      case IDENTIFIER( v) ~ _ ~ e => Assignment( Variable( v), e)
+    }
 
-    whl | ite | it | sc | g | p | w
+    whl | ite | it | sc | g | p | w | a
   }
 
   def bexpr: Parser[BExpression] = positioned {
@@ -75,57 +80,31 @@ object Parser extends Parsers {
     val g = LPAREN() ~ bexpr ~ RPAREN() ^^ { 
       case _ ~ e ~ _ => e
     }
-    t | cg | cp | n | g
+    val e = expr ~ EQ() ~ expr ^^ { 
+      case l ~ _ ~ r => EqBExpression( l, r)
+    }
+    t | cg | cp | n | g | e
   }
 
   def expr: Parser[Expression] = positioned {
     val v = identifier ^^ { 
       case IDENTIFIER(v) => Variable(v)
     }
+    val i = integer ^^ { 
+      case INTEGER(v) => ConstantInteger( v.toInt)
+    }
     val gd = NBGETDATA() ~ LPAREN() ~ identifier ~ RPAREN() ^^ { 
       case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBGetData( Port( s))
     }
-    v | gd
+    v | i | gd
   }
-
-/*
-  def block: Parser[AST] = positioned {
-    rep1(statement) ^^ { case stmtList => stmtList reduceRight AndThen }
-  }
-
-  def statement: Parser[AST] = positioned {
-    val exit = EXIT() ^^ (_ => Exit)
-    val readInput = READINPUT() ~ rep(identifier ~ COMMA()) ~ identifier ^^ {
-      case read ~ inputs ~ IDENTIFIER(lastInput) => ReadInput(inputs.map(_._1.str) ++ List(lastInput))
-    }
-    val callService = CALLSERVICE() ~ literal ^^ {
-      case call ~ LITERAL(serviceName) => CallService(serviceName)
-    }
-    val switch = SWITCH() ~ COLON() ~ INDENT() ~ rep1(ifThen) ~ opt(otherwiseThen) ~ DEDENT() ^^ {
-      case _ ~ _ ~ _ ~ ifs ~ otherwise ~ _ => Choice(ifs ++ otherwise)
-    }
-    exit | readInput | callService | switch
-  }
-
-  def ifThen: Parser[IfThen] = positioned {
-    (condition ~ ARROW() ~ INDENT() ~ block ~ DEDENT()) ^^ {
-      case cond ~ _ ~ _ ~ block ~ _ => IfThen(cond, block)
-    }
-  }
-
-  def otherwiseThen: Parser[OtherwiseThen] = positioned {
-    (OTHERWISE() ~ ARROW() ~ INDENT() ~ block ~ DEDENT()) ^^ {
-      case _ ~ _ ~ _ ~ block ~ _ => OtherwiseThen(block)
-    }
-  }
-
-  def condition: Parser[Equals] = positioned {
-    (identifier ~ EQUALS() ~ literal) ^^ { case IDENTIFIER(id) ~ eq ~ LITERAL(lit) => Equals(id, lit) }
-  }
- */
 
   private def identifier: Parser[IDENTIFIER] = positioned {
     accept("identifier", { case id @ IDENTIFIER(name) => id })
+  }
+
+  private def integer: Parser[INTEGER] = positioned {
+    accept("integer", { case id @ INTEGER( bi) => id })
   }
 
 }

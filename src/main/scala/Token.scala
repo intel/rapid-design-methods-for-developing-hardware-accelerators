@@ -5,6 +5,7 @@ import scala.util.parsing.input.Positional
 sealed trait Token extends Positional
 
 case class IDENTIFIER(str: String) extends Token
+case class INTEGER(i: BigInt) extends Token
 case class WHILE() extends Token
 case class TRUE() extends Token
 case class LBRACE() extends Token
@@ -22,3 +23,5 @@ case class NBPUT() extends Token
 case class NBGETDATA() extends Token
 case class COMMA() extends Token
 case class WAIT() extends Token
+case class ASSIGN() extends Token
+case class EQ() extends Token

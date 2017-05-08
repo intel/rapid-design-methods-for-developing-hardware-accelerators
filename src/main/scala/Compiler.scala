@@ -1,7 +1,8 @@
 package compiler
 
 import lexer.Lexer
-import parser.{Parser, Command}
+import parser.Parser
+import imperative.Command
 
 object Compiler {
   def apply(code: String): Either[CompilationError, Command] = {

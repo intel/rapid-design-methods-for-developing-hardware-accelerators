@@ -6,47 +6,40 @@ import chisel3._
 import chisel3.util._
 import chisel3.iotesters._
 
+import compiler._
+
 object Squash {
   val width = 64
 }
-
-/*
- f = 0
- v
- while ( true) {
-    if ( f == 1 && NBCanPut( Q)) {
-       NBPut( Q, v)
-       f := 0
-    }
-    if ( f == 0 && NBCanGet( P)) {
-       NBGet( P)
-       v := NBGetData( P)
-       f := 1
-    }
- }
- */
 
 class Squash extends ImperativeModule( 
   List(),
   List( ("P", Flipped(DecoupledIO(UInt(Squash.width.W)))),
         ("Q",         DecoupledIO(UInt(Squash.width.W)))),
-  While(
-    ConstantTrue,
-    SequentialComposition(
-      List( IfThenElse( AndBExpression( EqBExpression( Variable( "f"), ConstantInteger( 1)),
-                                        NBCanPut( Port( "Q"))),
-                        SequentialComposition( List(
-                          NBPut( Port( "Q"), Variable( "v")),
-                          Assignment( Variable( "f"), ConstantInteger( 0)))),
-                        SequentialComposition( List())),
-            IfThenElse( AndBExpression( EqBExpression( Variable( "f"), ConstantInteger( 0)),
-                                        NBCanGet( Port( "P"))),
-                        SequentialComposition( List(
-                          NBGet( Port( "P")),
-                          Assignment( Variable( "v"), NBGetData( Port( "P"))),
-                          Assignment( Variable( "f"), ConstantInteger( 1)))),
-                        SequentialComposition( List())),
-            Wait))))
+  {
+    val code = 
+    """
+      |while ( true) {
+      |  if ( f == 1 && NBCanPut( Q)) {
+      |     NBPut( Q, v)
+      |     f = 0
+      |  }
+      |  if ( f == 0 && NBCanGet( P)) {
+      |     NBGet( P)
+      |     v = NBGetData( P)
+      |     f = 1
+      |  }
+      |  wait
+      |}
+    """.stripMargin.trim
+    Compiler(code) match {
+      case Right(ast) => ast
+      case Left(ex) => {
+        println( ex)
+        SequentialComposition( List())
+      }
+    }
+  })
 
 class SquashTester(c:Squash) extends PeekPokeTester(c) {
   poke( c.io("Q").ready, 1)

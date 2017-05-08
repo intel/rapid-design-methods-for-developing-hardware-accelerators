@@ -2,6 +2,8 @@ package imperative
 
 import org.scalatest.{ Matchers, FlatSpec}
 
+import compiler._
+
 import chisel3._
 import chisel3.util._
 import chisel3.iotesters._
@@ -14,15 +16,25 @@ class Channel extends ImperativeModule(
   List(),
   List( ("P", Flipped(DecoupledIO(UInt(Channel.width.W)))),
         ("Q",         DecoupledIO(UInt(Channel.width.W)))),
-  While(
-    ConstantTrue,
-    SequentialComposition(
-      List( IfThenElse( AndBExpression( NBCanGet( Port( "P")), NBCanPut( Port( "Q"))),
-                        SequentialComposition( List(
-                          NBGet( Port( "P")),
-                          NBPut( Port( "Q"), NBGetData( Port( "P"))))),
-                        SequentialComposition( List())),
-            Wait))))
+  {
+    val code = 
+    """
+      |while ( true) {
+      |  if ( NBCanGet( P) && NBCanPut( Q)) {
+      |     NBGet( P)
+      |     NBPut( Q, NBGetData( P))
+      |  }
+      |  wait
+      |}
+    """.stripMargin.trim
+    Compiler(code) match {
+      case Right(ast) => ast
+      case Left(ex) => {
+        println( ex)
+        SequentialComposition( List())
+      }
+    }
+  })
 
 class ChannelTester(c:Channel) extends PeekPokeTester(c) {
   poke( c.io("Q").ready, 1)
