@@ -21,6 +21,8 @@ val defaultVersions = Map(
 libraryDependencies ++= (Seq("chisel3","chisel-iotesters").map {
   dep: String => "edu.berkeley.cs" %% dep % sys.props.getOrElse(dep + "Version", defaultVersions(dep)) })
 
+libraryDependencies ++= Seq( "org.scala-lang.modules"  %% "scala-parser-combinators" % "1.0.4")
+
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots"),
   Resolver.sonatypeRepo("releases")

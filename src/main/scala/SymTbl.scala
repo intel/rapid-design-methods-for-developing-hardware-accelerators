@@ -10,10 +10,19 @@ class SymTbl(
 ) {
 
   def updated( s : String, v : UInt) : SymTbl = {
-    new SymTbl( pm, List(listOfLM.head.updated( s, v)))
+    if ( !contains( s)) {
+      println( s"updated: ${s} not in SymTbl. Table not updated")
+      this
+    } else {
+      new SymTbl( pm, List(listOfLM.head.updated( s, v)))
+    }
   }
+  def contains( s : String) = listOfLM.foldLeft( false){ case (b,lm) => b || lm.contains(s)}
+
   def keys = listOfLM.head.keys
   def apply( k : String) = listOfLM.head(k)
+
+  def insert( s : String, v : UInt) = new SymTbl( pm, listOfLM.head.updated( s, v) :: listOfLM.tail)
   def push = new SymTbl( pm, ListMap[String,UInt]() :: listOfLM) 
   def pop = new SymTbl( pm, listOfLM.tail) 
 
