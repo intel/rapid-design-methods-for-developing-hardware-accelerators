@@ -66,7 +66,8 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
       val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
       val changedKeys = sT.keys.filter{ k => tST(k) != eST(k)}
-      val new_sT = changedKeys.foldLeft(sT){ case (s,k) =>
+// (sT /: changedKeys) is the same as changedKeys.foldLeft(sT) 
+      val new_sT = (sT /: changedKeys) { case (s,k) =>
         val w = Wire( init=eST(k))
         when( bb) { w := tST(k) }
         s.updated( k, w)
@@ -113,7 +114,7 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
 // Only for Channel
 //  val sTOuts = sT
 // Only for Squash
-  val sTOuts = sT.updated( "f", RegInit( UInt(1.W), init=0.U)).updated( "v", Reg( qd.cloneType))
+  val sTOuts = sT.insert( "f", RegInit( UInt(1.W), init=0.U)).insert( "v", Reg( qd.cloneType))
 
   val sTLast = eval( sTOuts, ast)
 
