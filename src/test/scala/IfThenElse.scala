@@ -18,7 +18,7 @@ class ITE_then extends ImperativeModule(
   List(),
   While(
     ConstantTrue,
-    SequentialComposition(
+    Blk(List(),
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
             IfThenElse( ConstantTrue, 
                         Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "o"))),
@@ -32,7 +32,7 @@ class ITE_else extends ImperativeModule(
   List(),
   While(
     ConstantTrue,
-    SequentialComposition(
+    Blk(List(),
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
             IfThenElse( NotBExpression( ConstantTrue), 
                         Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "o"))),

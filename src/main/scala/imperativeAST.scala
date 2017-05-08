@@ -11,10 +11,12 @@ case class Variable( nm : String) extends Expression
 case class ConstantInteger( c : Int) extends Expression
 case object ConstantTrue extends BExpression
 
+case class Type( width : Int) extends Positional
+case class Decl( v : Variable, t : Type) extends Positional
 case class Assignment( lhs : Variable, rhs : Expression) extends Command
 case class While( cond : BExpression, body : Command) extends Command
 case class IfThenElse( cond : BExpression, bodyT : Command, bodyF : Command) extends Command
-case class SequentialComposition( seq : Seq[Command]) extends Command
+case class Blk( decls : Seq[Decl], seq : Seq[Command]) extends Command
 case class AddExpression( l : Expression, r : Expression) extends Expression
 case class MulExpression( l : Expression, r : Expression) extends Expression
 case class EqBExpression( l : Expression, r : Expression) extends BExpression

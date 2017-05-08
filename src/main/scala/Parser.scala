@@ -40,10 +40,10 @@ object Parser extends Parsers {
       case _ ~ _ ~ i ~ _ ~ t ~ _ ~ e => IfThenElse(i,t,e)
     }
     val it = IF() ~ LPAREN() ~ bexpr ~ RPAREN() ~ cmd ^^ {
-      case _ ~ _ ~ i ~ _ ~ t => IfThenElse(i,t,SequentialComposition( List()))
+      case _ ~ _ ~ i ~ _ ~ t => IfThenElse(i,t,Blk( List(), List()))
     }
-    val sc = LBRACE() ~ rep(cmd) ~ RBRACE() ^^ { 
-      case _ ~ s ~ _ => SequentialComposition( s.toList)
+    val sc = LBRACE() ~ rep(decl) ~ rep(cmd) ~ RBRACE() ^^ { 
+      case _ ~ d ~ s ~ _ => Blk( d.toList, s.toList)
     }
     val g = NBGET() ~ LPAREN() ~ identifier ~ RPAREN() ^^ { 
       case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBGet( Port(s))
@@ -97,6 +97,17 @@ object Parser extends Parsers {
       case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBGetData( Port( s))
     }
     v | i | gd
+  }
+
+  def decl: Parser[Decl] = positioned {
+    val d = VAR() ~ identifier ~ COLON() ~ UINT() ~ LPAREN() ~ integer ~ RPAREN() ^^ { 
+      case _ ~ IDENTIFIER(v) ~ _ ~ _ ~ _ ~ INTEGER(w) ~ _ => Decl( Variable(v), Type(w.toInt))
+      case q => {
+        println( s"Bad match: ${q}")
+        Decl( Variable("<xxx>"), Type(1))
+      }
+    }
+    d
   }
 
   private def identifier: Parser[IDENTIFIER] = positioned {

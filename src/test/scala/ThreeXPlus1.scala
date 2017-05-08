@@ -14,7 +14,7 @@ class ThreeXPlus1 extends ImperativeModule(
   List(),
   While(
     ConstantTrue,
-    SequentialComposition(
+    Blk(List(),
       List( Assignment( Variable( "o"), MulExpression( Variable( "o"), ConstantInteger( 3))),
             Assignment( Variable( "o"), AddExpression( Variable( "o"), ConstantInteger( 1))),
             Wait))))

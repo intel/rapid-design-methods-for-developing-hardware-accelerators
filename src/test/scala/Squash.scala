@@ -19,24 +19,28 @@ class Squash extends ImperativeModule(
   {
     val code = 
     """
-      |while ( true) {
-      |  if ( f == 1 && NBCanPut( Q)) {
-      |     NBPut( Q, v)
-      |     f = 0
+      |{
+      |  var f : UInt(1)
+      |  var v : UInt(64)
+      |  while ( true) {
+      |    if ( f == 1 && NBCanPut( Q)) {
+      |      NBPut( Q, v)
+      |      f = 0
+      |    }
+      |    if ( f == 0 && NBCanGet( P)) {
+      |      NBGet( P)
+      |      v = NBGetData( P)
+      |      f = 1
+      |    }
+      |    wait
       |  }
-      |  if ( f == 0 && NBCanGet( P)) {
-      |     NBGet( P)
-      |     v = NBGetData( P)
-      |     f = 1
-      |  }
-      |  wait
       |}
     """.stripMargin.trim
     Compiler(code) match {
       case Right(ast) => ast
       case Left(ex) => {
         println( ex)
-        SequentialComposition( List())
+        Blk( List(), List())
       }
     }
   })

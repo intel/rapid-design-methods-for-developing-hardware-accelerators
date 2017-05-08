@@ -18,7 +18,7 @@ class Add extends ImperativeModule(
   List(),
   While(
     ConstantTrue,
-    SequentialComposition(
+    Blk( List(),
       List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
             Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "o"))),
             Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o"))),

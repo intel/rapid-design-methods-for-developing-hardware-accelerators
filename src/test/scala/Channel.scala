@@ -12,6 +12,7 @@ object Channel {
   val width = 64
 }
 
+/*
 class Channel extends ImperativeModule( 
   List(),
   List( ("P", Flipped(DecoupledIO(UInt(Channel.width.W)))),
@@ -19,22 +20,53 @@ class Channel extends ImperativeModule(
   {
     val code = 
     """
-      |while ( true) {
-      |  if ( NBCanGet( P) && NBCanPut( Q)) {
-      |     NBGet( P)
-      |     NBPut( Q, NBGetData( P))
+      |process Channel ( P : Inp(UInt(64)), Q : Out(UInt(64)))
+      |{
+      |  while ( true) {
+      |    if ( NBCanGet( P) && NBCanPut( Q)) {
+      |      NBGet( P)
+      |      NBPut( Q, NBGetData( P))
+      |    }
+      |    wait
       |  }
-      |  wait
       |}
     """.stripMargin.trim
     Compiler(code) match {
       case Right(ast) => ast
       case Left(ex) => {
         println( ex)
-        SequentialComposition( List())
+        Blk( List(), List())
       }
     }
   })
+ */
+
+class Channel extends ImperativeModule( 
+  List(),
+  List( ("P", Flipped(DecoupledIO(UInt(Channel.width.W)))),
+        ("Q",         DecoupledIO(UInt(Channel.width.W)))),
+  {
+    val code = 
+    """
+      |{
+      |  while ( true) {
+      |    if ( NBCanGet( P) && NBCanPut( Q)) {
+      |      NBGet( P)
+      |      NBPut( Q, NBGetData( P))
+      |    }
+      |    wait
+      |  }
+      |}
+    """.stripMargin.trim
+    Compiler(code) match {
+      case Right(ast) => ast
+      case Left(ex) => {
+        println( ex)
+        Blk( List(), List())
+      }
+    }
+  })
+
 
 class ChannelTester(c:Channel) extends PeekPokeTester(c) {
   poke( c.io("Q").ready, 1)

@@ -32,7 +32,7 @@ class CompilerSpec extends FlatSpec with Matchers {
       |}
     """.stripMargin.trim
 
-  val successfulAST = While(ConstantTrue,SequentialComposition(List(IfThenElse(AndBExpression(NBCanGet(Port("P")),NBCanPut(Port("Q"))),SequentialComposition(List(NBGet(Port("P")), NBPut(Port("Q"),NBGetData(Port("P"))))),SequentialComposition(List())), Wait)))
+  val successfulAST = While(ConstantTrue,Blk(List(),List(IfThenElse(AndBExpression(NBCanGet(Port("P")),NBCanPut(Port("Q"))),Blk(List(),List(NBGet(Port("P")), NBPut(Port("Q"),NBGetData(Port("P"))))),Blk(List(),List())), Wait)))
 
   "Compiler" should "successfully parse a valid program" in {
     Compiler(validCode) shouldBe Right(successfulAST)

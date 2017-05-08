@@ -22,6 +22,9 @@ case class NBGET() extends Token
 case class NBPUT() extends Token
 case class NBGETDATA() extends Token
 case class COMMA() extends Token
+case class VAR() extends Token
+case class UINT() extends Token
 case class WAIT() extends Token
 case class ASSIGN() extends Token
 case class EQ() extends Token
+case class COLON() extends Token
