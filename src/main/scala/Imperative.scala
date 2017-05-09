@@ -77,30 +77,23 @@ class ImperativeModule( ast : Process) extends Module {
     case IfThenElse( b, t, e) => {
       val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
 
-// using "!=" because I'm comparing whether the Chisel objects (not their values) are different
-      def ch[T <: Data]( p : T, t : T, e : T) = p != t || p != e
-
       def mx[T <: Data]( p : T, t : T, e : T) : T = {
-        if ( ch( p, t, e)) {
+// using "!=" because I'm comparing whether the Chisel objects (not their values) are different
+        if ( p != t || p != e) {
           val w = Wire( init=e)
           when( bb) { w := t}
           w
         } else p
       }
 
-      val changedKeys = sT.keys.filter{ k => ch( sT(k), tST(k), eST(k))}
-// (sT /: changedKeys) is the same as changedKeys.foldLeft(sT) 
-      val new_sT = (sT /: changedKeys) { case (s,k) =>
-        val w = Wire( init=eST(k))
-        when( bb) { w := tST(k) }
-        s.updated( k, w)
+      val new_sT = (sT /: sT.keys) { case (s,k) =>
+        s.updated( k, mx( sT(k), tST(k), eST(k)))
       }
 
       sT.pkeys.foldLeft(new_sT){ (s,p) => {
         val (pr,pv,pd) = sT.pget( p) // previous
         val (tr,tv,td) = tST.pget( p)
         val (er,ev,ed) = eST.pget( p)
-
         s.pupdated( p, mx( pr, tr, er), mx( pv, tv, ev), mx( pd, td, ed))
       }}
     }
