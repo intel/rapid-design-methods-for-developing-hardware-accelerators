@@ -8,10 +8,6 @@ import chisel3.iotesters._
 
 import compiler._
 
-object Squash {
-  val width = 64
-}
-
 class Squash extends ImperativeModule( 
   Compiler.run(
     """

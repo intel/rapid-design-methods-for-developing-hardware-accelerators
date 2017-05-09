@@ -8,10 +8,6 @@ import chisel3.iotesters._
 
 import compiler._
 
-object G {
-  val width = 8
-}
-
 class Add extends ImperativeModule( 
     Compiler.run(
     """
@@ -20,16 +16,16 @@ class Add extends ImperativeModule(
       |                  O : out UInt(8))
       |{
       |  while ( true) {
-      |    if ( NBCanGet( A) && NBCanGet( B) && NBCanPut( O)) {
+      |    if ( A? && B? && O!) {
       |      var a : UInt(8)
       |      var b : UInt(8)
       |      var o : UInt(8)
-      |      NBGet( A, a)
-      |      NBGet( B, b)
+      |      A?a
+      |      B?b
       |      o = a + b
       |      o = a + o
       |      o = b + o
-      |      NBPut( O, o)
+      |      O!o
       |    }
       |    wait
       |  }
