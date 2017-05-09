@@ -17,7 +17,6 @@ object Lexer extends RegexParsers {
 
   def tokens: Parser[List[Token]] = {
     phrase(rep1(true_t | while_t | wait_t | var_t | uint_t
-      | nbcanget | nbcanput | nbget | nbput
       | if_t | else_t | process_t | inp_t | out_t
       | and_t | lbrace | rbrace | lparen | rparen | comma
       | eq_t | assign | colon_t | add_t | mul_t
@@ -43,10 +42,6 @@ object Lexer extends RegexParsers {
   def true_t        = positioned { "true"          ^^ (_ => TRUE()) }
   def while_t       = positioned { "while"         ^^ (_ => WHILE()) }
   def wait_t        = positioned { "wait"          ^^ (_ => WAIT()) }
-  def nbcanget      = positioned { "NBCanGet"      ^^ (_ => NBCANGET()) }
-  def nbcanput      = positioned { "NBCanPut"      ^^ (_ => NBCANPUT()) }
-  def nbget         = positioned { "NBGet"         ^^ (_ => NBGET()) }
-  def nbput         = positioned { "NBPut"         ^^ (_ => NBPUT()) }
   def if_t          = positioned { "if"            ^^ (_ => IF()) }
   def else_t        = positioned { "else"          ^^ (_ => ELSE()) }
   def and_t         = positioned { "&&"            ^^ (_ => AND()) }

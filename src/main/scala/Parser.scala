@@ -19,19 +19,19 @@ object Parser extends Parsers {
   }
 
 
-  def apply(tokens: Seq[Token]): Either[ParserError, Program] = {
+  def apply(tokens: Seq[Token]): Either[ParserError, Process] = {
     val reader = new TokenReader(tokens)
-    program(reader) match {
+    process(reader) match {
       case NoSuccess(msg, next) => Left(ParserError(Location(next.pos.line, next.pos.column), msg))
       case Success(result, next) => Right(result)
     }
   }
 
 
-  def program: Parser[Program] = positioned {
+  def process: Parser[Process] = positioned {
     val p = PROCESS() ~ identifier ~ LPAREN() ~ portDeclList ~ RPAREN() ~ cmd ^^ {
       case _ ~ IDENTIFIER(progName) ~ _ ~ lst ~ _ ~ cmd =>
-        Program( lst, cmd)
+        Process( lst, cmd)
     }
     phrase(p)
   }
@@ -71,24 +71,18 @@ object Parser extends Parsers {
     val sc = LBRACE() ~ rep(decl) ~ rep(cmd) ~ RBRACE() ^^ { 
       case _ ~ d ~ s ~ _ => Blk( d.toList, s.toList)
     }
-    val g = NBGET() ~ LPAREN() ~ identifier ~ COMMA() ~ identifier ~ RPAREN() ^^ { 
-      case _ ~ _ ~ IDENTIFIER(p) ~ _ ~ IDENTIFIER(v) ~ _ => NBGet( Port(p), Variable(v))
-    }
-    val p = NBPUT() ~ LPAREN() ~ identifier ~ COMMA() ~ expr ~ RPAREN() ^^ { 
-      case _ ~ _ ~ IDENTIFIER(s) ~ _ ~ e ~ _ => NBPut( Port(s), e)
-    }
     val w = WAIT() ^^ { _ => Wait }
-    val g0 = identifier ~ QUERY() ~ identifier ^^ { 
+    val g = identifier ~ QUERY() ~ identifier ^^ { 
       case IDENTIFIER(p) ~ _ ~ IDENTIFIER(v) => NBGet( Port(p), Variable(v))
     }
-    val p0 = identifier ~ BANG() ~ expr ^^ { 
+    val p = identifier ~ BANG() ~ expr ^^ { 
       case IDENTIFIER(s) ~ _ ~ e => NBPut( Port(s), e)
     }
     val a = identifier ~ ASSIGN() ~ expr ^^ {
       case IDENTIFIER( v) ~ _ ~ e => Assignment( Variable( v), e)
     }
 
-    whl | ite | it | sc | g | p | w | g0 | p0 | a
+    whl | ite | it | sc | w | g | p | a
   }
 
   def bexpr: Parser[BExpression] = positioned {
@@ -100,16 +94,10 @@ object Parser extends Parsers {
 
   def bterm: Parser[BExpression] = positioned {
     val t = TRUE() ^^ { _ => ConstantTrue }
-    val cg = NBCANGET() ~ LPAREN() ~ identifier ~ RPAREN() ^^ {
-      case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBCanGet( Port( s))
-    }
-    val cp = NBCANPUT() ~ LPAREN() ~ identifier ~ RPAREN() ^^ {
-      case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBCanPut( Port( s))
-    }
-    val cg0 = identifier ~ QUERY() ^^ {
+    val cg = identifier ~ QUERY() ^^ {
       case IDENTIFIER(s) ~ _ => NBCanGet( Port( s))
     }
-    val cp0 = identifier ~ BANG() ^^ {
+    val cp = identifier ~ BANG() ^^ {
       case IDENTIFIER(s) ~ _ => NBCanPut( Port( s))
     }
     val n = BANG() ~ bexpr ^^ { 
@@ -121,12 +109,12 @@ object Parser extends Parsers {
     val e = expr ~ EQ() ~ expr ^^ { 
       case l ~ _ ~ r => EqBExpression( l, r)
     }
-    t | cg | cp | cg0 | cp0 | n | g | e
+    t | cg | cp | n | g | e
   }
 
   def expr: Parser[Expression] = positioned {
-    val m = term ~ MUL() ~ expr ^^ { 
-      case t ~ _ ~ e => MulExpression( t, e)
+    val m = term ~ ADD() ~ expr ^^ { 
+      case t ~ _ ~ e => AddExpression( t, e)
     }
     val t = term ^^ { 
       case t => t
@@ -135,8 +123,8 @@ object Parser extends Parsers {
   }
 
   def term: Parser[Expression] = positioned {
-    val a = prim ~ ADD() ~ term ^^ { 
-      case p ~ _ ~ t => AddExpression( p, t)
+    val a = prim ~ MUL() ~ term ^^ { 
+      case p ~ _ ~ t => MulExpression( p, t)
     }
     val p = prim ^^ { 
       case p => p

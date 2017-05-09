@@ -4,21 +4,15 @@ import chisel3._
 import chisel3.util._
 import collection.immutable.ListMap
 
-class CustomUIntBundle(elts: (String, UInt)*) extends Record {
-  val elements = ListMap(elts map { case (field, elt) => field -> elt.chiselCloneType }: _*)
-  def apply(elt: String): UInt = elements(elt)
-  override def cloneType = (new CustomUIntBundle(elements.toList: _*)).asInstanceOf[this.type]
-}
-
 class CustomDecoupledUIntBundle(elts: (String, DecoupledIO[UInt])*) extends Record {
   val elements = ListMap(elts map { case (field, elt) => field -> elt.chiselCloneType }: _*)
   def apply(elt: String): DecoupledIO[UInt] = elements(elt)
   override def cloneType = (new CustomDecoupledUIntBundle(elements.toList: _*)).asInstanceOf[this.type]
 }
 
-class ImperativeModule( ast : Program) extends Module {
+class ImperativeModule( ast : Process) extends Module {
 
-  val decl_lst = ast match { case Program( PortDeclList( decl_lst), _) => decl_lst}
+  val decl_lst = ast match { case Process( PortDeclList( decl_lst), _) => decl_lst}
 
   val iod_tuples = decl_lst.map{ 
     case PortDecl( Port(p), Inp, Type(w)) => (p,Flipped(Decoupled(UInt(w.W))))
@@ -43,27 +37,26 @@ class ImperativeModule( ast : Program) extends Module {
     case NBCanPut( Port( p)) => sT.pget( p)._1
   }
 
-  def eval( sT : SymTbl, ast : Program) : SymTbl = ast match {
-    case Program( lst : PortDeclList, cmd : Command) => {
-      eval( sT, cmd)
+  def eval( sT : SymTbl, ast : Process) : SymTbl = ast match {
+    case Process( lst : PortDeclList, cmd : Command) => cmd match {
+      case Blk( seqDeclLst, List( While( ConstantTrue, Blk( declLst, lst)))) => {
+        assert( lst.last == Wait) // Only accepting one format: { var ... while (true) { ...; wait }
+
+        val sT0 = seqDeclLst.foldLeft(sT.push){ case (st, Decl( Variable(v), Type(i))) => {
+          st.insert( v, RegInit( 0.U(i.W)))
+        }}
+
+        val sT1 = eval( sT0, Blk( declLst, lst.init))
+        val changedKeys = sT0.keys.filter{ k => sT0(k) != sT1(k)}
+        (changedKeys.foldLeft(sT1) { case (s,k) =>
+          sT0(k) := sT1(k) // Next state update
+          s.updated( k, sT0(k)) // Use the register output (not input)
+        }).pop
+      }
     }
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
-    case Blk( seqDeclLst, List( While( ConstantTrue, Blk( declLst, lst)))) => {
-      assert( lst.last == Wait) // Only accepting one format: { var ... while (true) { ...; wait }
-
-      val sT0 = seqDeclLst.foldLeft(sT.push){ case (st, Decl( Variable(v), Type(i))) => {
-        st.insert( v, RegInit( 0.U(i.W)))
-      }}
-
-      val sT1 = eval( sT0, Blk( declLst, lst.init))
-      val changedKeys = sT0.keys.filter{ k => sT0(k) != sT1(k)}
-      (changedKeys.foldLeft(sT1) { case (s,k) =>
-        sT0(k) := sT1(k) // Next state update
-        s.updated( k, sT0(k)) // Use the register output (not input)
-      }).pop
-    }
     case Blk( decl_lst, seq) => {
       val sT0 = decl_lst.foldLeft(sT.push){ case (st, Decl( Variable(v), Type(i))) => {
         st.insert( v, Wire( UInt(i.W)))
@@ -81,35 +74,48 @@ class ImperativeModule( ast : Program) extends Module {
     }
     case IfThenElse( b, t, e) => {
       val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
+
+// can't make || work. Chisel.Bool found instead of Boolean
+//      val changedKeys = sT.keys.filter{ k => sT(k) != tST(k) || sT(k) != eST(k)}
+      def or( l : Boolean, r : Boolean) : Boolean = l || r
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
-      val changedKeys = sT.keys.filter{ k => tST(k) != eST(k)}
+      val changedKeys = sT.keys.filter{ k => or( sT(k) != tST(k), sT(k) != eST(k))}
 // (sT /: changedKeys) is the same as changedKeys.foldLeft(sT) 
       val new_sT = (sT /: changedKeys) { case (s,k) =>
         val w = Wire( init=eST(k))
         when( bb) { w := tST(k) }
         s.updated( k, w)
       }
+
       sT.pkeys.foldLeft(new_sT){ (s,p) => {
-        val (r,v,d) = (Wire(Bool()),Wire(Bool()),Wire(UInt()))
-        val (er,ev,ed) = eST.pget( p)
+        val (pr,pv,pd) = sT.pget( p) // previous
         val (tr,tv,td) = tST.pget( p)
-        println( s"${p} tr,tv,td: ${tr} ${tv} ${td}")
-        println( s"${p} er,ev,ed: ${er} ${ev} ${ed}")
-        println( s"${p} r ,v ,d : ${r} ${v} ${d}")
-/*
-        printf( s"${p} tr,tv,td: %d %d %d\n", tr, tv, td)
-        printf( s"${p} er,ev,ed: %d %d %d\n", er, ev, ed)
-        printf( s"${p} bb; r,v,d: %d %d %d %d\n", bb, r, v, d)
- */
-        when( bb) {
-          r := tr
-          v := tv
-          d := td
-        } .otherwise {
+        val (er,ev,ed) = eST.pget( p)
+
+        val r = if ( or(pr != tr, pr != er)) {
+//          println( s"${p} pr,tr,er: ${pr} ${tr} ${er}")
+          val r = Wire(Bool())
           r := er
+          when( bb) { r := tr}
+          r
+        } else pr
+
+        val v = if ( or(pv != tv, pv != ev)) {
+//          println( s"${p} pv,tv,ev: ${pv} ${tv} ${ev}")
+          val v = Wire(Bool())
           v := ev
+          when( bb) { v := tv}
+          v
+        } else pv
+
+        val d = if ( or(pd != td, pd != ed)) {
+//          println( s"${p} pd,td,ed: ${pd} ${td} ${ed}")
+          val d = Wire(UInt())
           d := ed
-        }
+          when( bb) { d := td}
+          d
+        } else pd
+
         s.pupdated( p, r, v, d)
       }}
     }
@@ -135,12 +141,12 @@ class ImperativeModule( ast : Program) extends Module {
   decl_lst.foreach {
     case PortDecl( Port(p), Inp, Type(w)) => {
       val (r,v,d) = sTLast.pget( p)
-      println( s"${p} r: ${r}")
+//      println( s"${p} r: ${r}")
       io(p).ready := r
     }
     case PortDecl( Port(p), Out, Type(w)) => {
       val (r,v,d) = sTLast.pget( p)
-      println( s"${p} v: ${v} d: ${d}")
+//      println( s"${p} v: ${v} d: ${d}")
       io( p).valid := RegNext( next=v, init=false.B)
       io( p).bits := RegNext( next=d)
     }

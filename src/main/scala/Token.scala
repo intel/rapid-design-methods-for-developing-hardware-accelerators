@@ -18,10 +18,6 @@ case class ELSE() extends Token
 case class AND() extends Token
 case class LPAREN() extends Token
 case class RPAREN() extends Token
-case class NBCANGET() extends Token
-case class NBCANPUT() extends Token
-case class NBGET() extends Token
-case class NBPUT() extends Token
 case class COMMA() extends Token
 case class VAR() extends Token
 case class UINT() extends Token
