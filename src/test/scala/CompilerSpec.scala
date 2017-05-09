@@ -11,28 +11,34 @@ class CompilerSpec extends FlatSpec with Matchers {
 
   val validCode =
     """
-      |while ( true) {
-      |  if ( NBCanGet( P) && NBCanPut( Q)) {
-      |     NBGet( P)
-      |     NBPut( Q, NBGetData( P))
+      |process ValidNoElse( P : inp UInt(8), Q : out UInt(8)) {
+      |  while ( true) {
+      |    if ( NBCanGet( P) && NBCanPut( Q)) {
+      |      var v : UInt(8)
+      |      NBGet( P, v)
+      |      NBPut( Q, v)
+      |    }
+      |    wait
       |  }
-      |  wait
       |}
     """.stripMargin.trim
 
   val validCodeWithElse =
     """
-      |while ( true) {
-      |  if ( NBCanGet( P) && NBCanPut( Q)) {
-      |     NBGet( P)
-      |     NBPut( Q, NBGetData( P))
-      |  } else {
+      |process ValidWithElse( P : inp UInt(8), Q : out UInt(8)) {
+      |  while ( true) {
+      |    if ( NBCanGet( P) && NBCanPut( Q)) {
+      |      var v : UInt(8)
+      |      NBGet( P, v)
+      |      NBPut( Q, v)
+      |    } else {
+      |    }
+      |    wait
       |  }
-      |  wait
       |}
     """.stripMargin.trim
 
-  val successfulAST = While(ConstantTrue,Blk(List(),List(IfThenElse(AndBExpression(NBCanGet(Port("P")),NBCanPut(Port("Q"))),Blk(List(),List(NBGet(Port("P")), NBPut(Port("Q"),NBGetData(Port("P"))))),Blk(List(),List())), Wait)))
+  val successfulAST = Program(PortDeclList(List(PortDecl(Port("P"),Inp,Type(8)), PortDecl(Port("Q"),Out,Type(8)))),Blk(List(),List(While(ConstantTrue,Blk(List(),List(IfThenElse(AndBExpression(NBCanGet(Port("P")),NBCanPut(Port("Q"))),Blk(List(Decl(Variable("v"),Type(8))),List(NBGet(Port("P"),Variable("v")), NBPut(Port("Q"),Variable("v")))),Blk(List(),List())), Wait))))))
 
   "Compiler" should "successfully parse a valid program" in {
     Compiler(validCode) shouldBe Right(successfulAST)

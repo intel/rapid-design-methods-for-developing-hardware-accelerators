@@ -17,10 +17,11 @@ object Lexer extends RegexParsers {
 
   def tokens: Parser[List[Token]] = {
     phrase(rep1(true_t | while_t | wait_t | var_t | uint_t
-      | nbgetdata | nbcanget | nbcanput | nbget | nbput
-      | if_t | else_t
-      | and_t | not_t | lbrace | rbrace | lparen | rparen | comma
-      | eq_t | assign | colon_t
+      | nbcanget | nbcanput | nbget | nbput
+      | if_t | else_t | process_t | inp_t | out_t
+      | and_t | lbrace | rbrace | lparen | rparen | comma
+      | eq_t | assign | colon_t | add_t | mul_t
+      | query_t | bang_t
       | identifier | integer)) ^^ { rawTokens =>
       rawTokens
     }
@@ -35,19 +36,20 @@ object Lexer extends RegexParsers {
   }
 
   def var_t         = positioned { "var"           ^^ (_ => VAR()) }
+  def process_t     = positioned { "process"       ^^ (_ => PROCESS()) }
+  def inp_t         = positioned { "inp"           ^^ (_ => INP()) }
+  def out_t         = positioned { "out"           ^^ (_ => OUT()) }
   def uint_t        = positioned { "UInt"          ^^ (_ => UINT()) }
   def true_t        = positioned { "true"          ^^ (_ => TRUE()) }
   def while_t       = positioned { "while"         ^^ (_ => WHILE()) }
   def wait_t        = positioned { "wait"          ^^ (_ => WAIT()) }
   def nbcanget      = positioned { "NBCanGet"      ^^ (_ => NBCANGET()) }
   def nbcanput      = positioned { "NBCanPut"      ^^ (_ => NBCANPUT()) }
-  def nbgetdata     = positioned { "NBGetData"     ^^ (_ => NBGETDATA()) }
   def nbget         = positioned { "NBGet"         ^^ (_ => NBGET()) }
   def nbput         = positioned { "NBPut"         ^^ (_ => NBPUT()) }
   def if_t          = positioned { "if"            ^^ (_ => IF()) }
   def else_t        = positioned { "else"          ^^ (_ => ELSE()) }
   def and_t         = positioned { "&&"            ^^ (_ => AND()) }
-  def not_t         = positioned { "!"             ^^ (_ => NOT()) }
   def lbrace        = positioned { "{"             ^^ (_ => LBRACE()) }
   def rbrace        = positioned { "}"             ^^ (_ => RBRACE()) }
   def lparen        = positioned { "("             ^^ (_ => LPAREN()) }
@@ -56,5 +58,9 @@ object Lexer extends RegexParsers {
   def eq_t          = positioned { "=="            ^^ (_ => EQ()) }
   def assign        = positioned { "="             ^^ (_ => ASSIGN()) }
   def colon_t       = positioned { ":"             ^^ (_ => COLON()) }
+  def add_t         = positioned { "+"             ^^ (_ => ADD()) }
+  def mul_t         = positioned { "*"             ^^ (_ => MUL()) }
+  def query_t       = positioned { "?"             ^^ (_ => QUERY()) }
+  def bang_t        = positioned { "!"             ^^ (_ => BANG()) }
 
 }

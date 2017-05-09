@@ -16,16 +16,19 @@ class CustomDecoupledUIntBundle(elts: (String, DecoupledIO[UInt])*) extends Reco
   override def cloneType = (new CustomDecoupledUIntBundle(elements.toList: _*)).asInstanceOf[this.type]
 }
 
-class ImperativeModule( io_tuples : List[(String,UInt)],
-                        iod_tuples : List[(String,DecoupledIO[UInt])],
-                        ast : Command) extends Module {
+class ImperativeModule( ast : Program) extends Module {
 
-//  val io = IO(new CustomUIntBundle( io_tuples: _*))
+  val decl_lst = ast match { case Program( PortDeclList( decl_lst), _) => decl_lst}
+
+  val iod_tuples = decl_lst.map{ 
+    case PortDecl( Port(p), Inp, Type(w)) => (p,Flipped(Decoupled(UInt(w.W))))
+    case PortDecl( Port(p), Out, Type(w)) => (p,Decoupled(UInt(w.W)))
+  }
+
   val io = IO(new CustomDecoupledUIntBundle( iod_tuples: _*))
 
   def eval( sT : SymTbl, ast : Expression) : UInt = ast match {
     case Variable( s) => sT( s)
-    case NBGetData( Port( p)) => sT.pget( p)._3
     case AddExpression( l, r) => eval( sT, l) + eval( sT, r)
     case MulExpression( l, r) => eval( sT, l) * eval( sT, r)
     case ConstantInteger( i) => i.U
@@ -38,6 +41,12 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
     case NotBExpression( e) => !eval( sT, e)
     case NBCanGet( Port( p)) => sT.pget( p)._2
     case NBCanPut( Port( p)) => sT.pget( p)._1
+  }
+
+  def eval( sT : SymTbl, ast : Program) : SymTbl = ast match {
+    case Program( lst : PortDeclList, cmd : Command) => {
+      eval( sT, cmd)
+    }
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
@@ -62,9 +71,9 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
       seq.foldLeft(sT0){ eval}.pop
     }
     case Assignment( Variable( s), r) => sT.updated( s, eval( sT, r))
-    case NBGet( Port( p)) => {
+    case NBGet( Port( p), Variable( s)) => {
       val (r,v,d) = sT.pget( p)
-      sT.pupdated( p, true.B, v, d)
+      sT.pupdated( p, true.B, v, d).updated( s, d)
     }
     case NBPut( Port( p), e) => {
       val (r,v,d) = sT.pget( p)
@@ -106,36 +115,35 @@ class ImperativeModule( io_tuples : List[(String,UInt)],
     }
   }
 
-  val pp = io("P")
-  val (pr,pv,pd) = (pp.ready,pp.valid,pp.bits)
-  val qq = io("Q")
-  val (qr,qv,qd) = (qq.ready,qq.valid,qq.bits)
-
-  val sT = (new SymTbl).pupdated( "P", false.B, pv, pd).pupdated( "Q", qr, false.B, Wire(qd.cloneType))
-/*
-  val inps = io.elements.filter{ case (k,v) => v.dir == core.Direction.Input}
-  val outs = io.elements.filter{ case (k,v) => v.dir == core.Direction.Output}
-
-  val sTInps = inps.foldLeft( sT    ){ case (s,(k,v)) => s.updated( k, io(k))}
-  val sTOuts = outs.foldLeft( sTInps){
-    case (s,(k,v)) => s.updated( k, RegInit( io(k).cloneType, init=0.U))
+  val sT = decl_lst.foldLeft(new SymTbl) {
+    (s,pd) => pd match {
+      case PortDecl( Port(p), Inp, Type(w)) => {
+        val pp = io(p)
+        val (r,v,d) = (pp.ready,pp.valid,pp.bits)
+        s.pupdated( p, false.B, v, d)
+      }
+      case PortDecl( Port(p), Out, Type(w)) => {
+        val pp = io(p)
+        val (r,v,d) = (pp.ready,pp.valid,pp.bits)
+        s.pupdated( p, r, false.B, Wire(d.cloneType))
+      }
+    }
   }
- */
 
   val sTLast = eval( sT, ast)
 
-  {
-    val (r,v,d) = sTLast.pget( "P")
-    println( s"P r: ${r}")
-    io("P").ready := r
+  decl_lst.foreach {
+    case PortDecl( Port(p), Inp, Type(w)) => {
+      val (r,v,d) = sTLast.pget( p)
+      println( s"${p} r: ${r}")
+      io(p).ready := r
+    }
+    case PortDecl( Port(p), Out, Type(w)) => {
+      val (r,v,d) = sTLast.pget( p)
+      println( s"${p} v: ${v} d: ${d}")
+      io( p).valid := RegNext( next=v, init=false.B)
+      io( p).bits := RegNext( next=d)
+    }
   }
-  {
-    val (r,v,d) = sTLast.pget( "Q")
-    println( s"Q v: ${v} d: ${d}")
-    io("Q").valid := RegNext( next=v, init=false.B)
-    io("Q").bits := RegNext( next=d)
-  }
-
-//  outs.foreach{ case (k,v) => io(k) := sTLast(k) }
 
 }

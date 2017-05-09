@@ -19,7 +19,7 @@ object Parser extends Parsers {
   }
 
 
-  def apply(tokens: Seq[Token]): Either[ParserError, Command] = {
+  def apply(tokens: Seq[Token]): Either[ParserError, Program] = {
     val reader = new TokenReader(tokens)
     program(reader) match {
       case NoSuccess(msg, next) => Left(ParserError(Location(next.pos.line, next.pos.column), msg))
@@ -28,8 +28,34 @@ object Parser extends Parsers {
   }
 
 
-  def program: Parser[Command] = positioned {
-    phrase(cmd)
+  def program: Parser[Program] = positioned {
+    val p = PROCESS() ~ identifier ~ LPAREN() ~ portDeclList ~ RPAREN() ~ cmd ^^ {
+      case _ ~ IDENTIFIER(progName) ~ _ ~ lst ~ _ ~ cmd =>
+        Program( lst, cmd)
+    }
+    phrase(p)
+  }
+
+  def portDeclList: Parser[PortDeclList] = positioned {
+    val pdl = portDecl ~ rep(COMMA() ~ portDecl) ^^ {
+      case hd ~ tl => 
+        PortDeclList( (tl.foldLeft(List(hd)) { case (acc, COMMA() ~ pd) => pd :: acc}).reverse)
+    }
+    pdl
+  }
+
+  def portDecl: Parser[PortDecl] = positioned {
+    val pd = identifier ~ COLON() ~ dir ~ UINT() ~ LPAREN() ~ integer ~ RPAREN() ^^ {
+      case IDENTIFIER(p) ~ _ ~ dir ~ _ ~ _ ~ INTEGER(w) ~ _ =>
+        PortDecl( Port( p), dir, Type( w.toInt))
+    }
+    pd
+  }
+
+  def dir: Parser[Dir] = positioned { 
+    val inp = INP() ^^ { _ => Inp}
+    val out = OUT() ^^ { _ => Out}
+    inp | out
   }
 
   def cmd: Parser[Command] = positioned {
@@ -45,18 +71,24 @@ object Parser extends Parsers {
     val sc = LBRACE() ~ rep(decl) ~ rep(cmd) ~ RBRACE() ^^ { 
       case _ ~ d ~ s ~ _ => Blk( d.toList, s.toList)
     }
-    val g = NBGET() ~ LPAREN() ~ identifier ~ RPAREN() ^^ { 
-      case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBGet( Port(s))
+    val g = NBGET() ~ LPAREN() ~ identifier ~ COMMA() ~ identifier ~ RPAREN() ^^ { 
+      case _ ~ _ ~ IDENTIFIER(p) ~ _ ~ IDENTIFIER(v) ~ _ => NBGet( Port(p), Variable(v))
     }
     val p = NBPUT() ~ LPAREN() ~ identifier ~ COMMA() ~ expr ~ RPAREN() ^^ { 
       case _ ~ _ ~ IDENTIFIER(s) ~ _ ~ e ~ _ => NBPut( Port(s), e)
     }
     val w = WAIT() ^^ { _ => Wait }
+    val g0 = identifier ~ QUERY() ~ identifier ^^ { 
+      case IDENTIFIER(p) ~ _ ~ IDENTIFIER(v) => NBGet( Port(p), Variable(v))
+    }
+    val p0 = identifier ~ BANG() ~ expr ^^ { 
+      case IDENTIFIER(s) ~ _ ~ e => NBPut( Port(s), e)
+    }
     val a = identifier ~ ASSIGN() ~ expr ^^ {
       case IDENTIFIER( v) ~ _ ~ e => Assignment( Variable( v), e)
     }
 
-    whl | ite | it | sc | g | p | w | a
+    whl | ite | it | sc | g | p | w | g0 | p0 | a
   }
 
   def bexpr: Parser[BExpression] = positioned {
@@ -74,7 +106,13 @@ object Parser extends Parsers {
     val cp = NBCANPUT() ~ LPAREN() ~ identifier ~ RPAREN() ^^ {
       case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBCanPut( Port( s))
     }
-    val n = NOT() ~ bexpr ^^ { 
+    val cg0 = identifier ~ QUERY() ^^ {
+      case IDENTIFIER(s) ~ _ => NBCanGet( Port( s))
+    }
+    val cp0 = identifier ~ BANG() ^^ {
+      case IDENTIFIER(s) ~ _ => NBCanPut( Port( s))
+    }
+    val n = BANG() ~ bexpr ^^ { 
       case _ ~ n => NotBExpression( n)
     }
     val g = LPAREN() ~ bexpr ~ RPAREN() ^^ { 
@@ -83,20 +121,40 @@ object Parser extends Parsers {
     val e = expr ~ EQ() ~ expr ^^ { 
       case l ~ _ ~ r => EqBExpression( l, r)
     }
-    t | cg | cp | n | g | e
+    t | cg | cp | cg0 | cp0 | n | g | e
   }
 
   def expr: Parser[Expression] = positioned {
+    val m = term ~ MUL() ~ expr ^^ { 
+      case t ~ _ ~ e => MulExpression( t, e)
+    }
+    val t = term ^^ { 
+      case t => t
+    }
+    m | t
+  }
+
+  def term: Parser[Expression] = positioned {
+    val a = prim ~ ADD() ~ term ^^ { 
+      case p ~ _ ~ t => AddExpression( p, t)
+    }
+    val p = prim ^^ { 
+      case p => p
+    }
+    a | p
+  }
+
+  def prim: Parser[Expression] = positioned {
     val v = identifier ^^ { 
       case IDENTIFIER(v) => Variable(v)
     }
     val i = integer ^^ { 
       case INTEGER(v) => ConstantInteger( v.toInt)
     }
-    val gd = NBGETDATA() ~ LPAREN() ~ identifier ~ RPAREN() ^^ { 
-      case _ ~ _ ~ IDENTIFIER(s) ~ _ => NBGetData( Port( s))
+    val e = LPAREN() ~ expr ~ RPAREN() ^^ { 
+      case _ ~ e ~ _ => e
     }
-    v | i | gd
+    v | i | e
   }
 
   def decl: Parser[Decl] = positioned {

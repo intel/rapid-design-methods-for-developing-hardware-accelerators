@@ -13,37 +13,24 @@ object Squash {
 }
 
 class Squash extends ImperativeModule( 
-  List(),
-  List( ("P", Flipped(DecoupledIO(UInt(Squash.width.W)))),
-        ("Q",         DecoupledIO(UInt(Squash.width.W)))),
-  {
-    val code = 
+  Compiler.run(
     """
-      |{
+      |process Squash( P : inp UInt(64), Q : out UInt(64)) {
       |  var f : UInt(1)
       |  var v : UInt(64)
       |  while ( true) {
-      |    if ( f == 1 && NBCanPut( Q)) {
-      |      NBPut( Q, v)
+      |    if ( f == 1 && Q!) {
+      |      Q!v
       |      f = 0
       |    }
-      |    if ( f == 0 && NBCanGet( P)) {
-      |      NBGet( P)
-      |      v = NBGetData( P)
+      |    if ( f == 0 && P?) {
+      |      P?v
       |      f = 1
       |    }
       |    wait
       |  }
       |}
-    """.stripMargin.trim
-    Compiler(code) match {
-      case Right(ast) => ast
-      case Left(ex) => {
-        println( ex)
-        Blk( List(), List())
-      }
-    }
-  })
+    """.stripMargin.trim))
 
 class SquashTester(c:Squash) extends PeekPokeTester(c) {
   poke( c.io("Q").ready, 1)

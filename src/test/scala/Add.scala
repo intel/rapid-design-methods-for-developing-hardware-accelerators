@@ -1,53 +1,75 @@
 package imperative
 
 import org.scalatest.{ Matchers, FlatSpec, GivenWhenThen}
-import org.scalacheck.{ Properties, Gen, Arbitrary}
-import org.scalacheck.Prop.{ forAll, AnyOperators, collect}
 
 import chisel3._
-import firrtl_interpreter.InterpretiveTester
+import chisel3.util._
+import chisel3.iotesters._
+
+import compiler._
 
 object G {
   val width = 8
 }
 
 class Add extends ImperativeModule( 
-  List( ("a", Input(UInt(G.width.W))),
-        ("b", Input(UInt(G.width.W))),
-        ("o", Output(UInt(G.width.W)))),
-  List(),
-  While(
-    ConstantTrue,
-    Blk( List(),
-      List( Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "b"))),
-            Assignment( Variable( "o"), AddExpression( Variable( "a"), Variable( "o"))),
-            Assignment( Variable( "o"), AddExpression( Variable( "b"), Variable( "o"))),
-            Wait)))) 
+    Compiler.run(
+    """
+      |process Channel ( A : inp UInt(8),
+      |                  B : inp UInt(8),
+      |                  O : out UInt(8))
+      |{
+      |  while ( true) {
+      |    if ( NBCanGet( A) && NBCanGet( B) && NBCanPut( O)) {
+      |      var a : UInt(8)
+      |      var b : UInt(8)
+      |      var o : UInt(8)
+      |      NBGet( A, a)
+      |      NBGet( B, b)
+      |      o = a + b
+      |      o = a + o
+      |      o = b + o
+      |      NBPut( O, o)
+      |    }
+      |    wait
+      |  }
+      |}
+    """.stripMargin.trim)
+)
 
 
-class AddTester {
-  val s = chisel3.Driver.emit( () => new Add)
-  val tester = new InterpretiveTester( s)
+class AddTester(c:Add) extends PeekPokeTester(c) {
+  poke( c.io("O").ready, 1)
 
-  tester.poke( s"reset", 1)
-  tester.step()
-  tester.poke( s"reset", 0)
-  tester.step()
+  poke( c.io("A").valid, 0)
+  poke( c.io("B").valid, 0)
 
-  def run( a : Int, b : Int) = {
-    val result = (a + b + a + b) & ((1 << G.width)-1)
-    tester.poke( s"io_a", a)
-    tester.poke( s"io_b", b)
-    tester.step()
-    tester.peek( s"io_o") ?= result
-  }
+  expect( c.io("A").ready, 0) // Mealy
+  expect( c.io("B").ready, 0) // Mealy
+
+  step(1)
+
+  expect( c.io("O").valid, 0) // Moore
+
+  poke( c.io("A").valid, 1)
+  poke( c.io("A").bits, 1)
+  poke( c.io("B").valid, 1)
+  poke( c.io("B").bits, 10)
+
+  expect( c.io("O").ready, 1) // Mealy
+
+  step(1)
+
+  expect( c.io("O").valid, 1) // Moore
+  expect( c.io("O").bits, 22)  // Moore
+
 }
 
-object AddTest extends Properties("Add") {
-  val t = new AddTester
-  val gen = Gen.choose(0,(1 << G.width)-1)
-
-  property("Add") = forAll( gen, gen) {
-    case (a:Int,b:Int) => t.run( a, b)
+class AddTest extends FlatSpec with Matchers {
+  behavior of "Add"
+  it should "work" in {
+    chisel3.iotesters.Driver( () => new Add, "firrtl") { c =>
+      new AddTester( c)
+    } should be ( true)
   }
 }
