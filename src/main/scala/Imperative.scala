@@ -57,6 +57,8 @@ class ImperativeModule( ast : Process) extends Module {
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
+    case While( _, _) => { assert( false); sT} // Currently excluded except at top-level
+    case Wait => { assert( false); sT} // Currently excluded except at top-level
     case Blk( decl_lst, seq) => {
       val sT0 = decl_lst.foldLeft(sT.push){ case (st, Decl( Variable(v), Type(i))) => {
         st.insert( v, Wire( UInt(i.W)))
@@ -75,11 +77,18 @@ class ImperativeModule( ast : Process) extends Module {
     case IfThenElse( b, t, e) => {
       val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
 
-// can't make || work. Chisel.Bool found instead of Boolean
-//      val changedKeys = sT.keys.filter{ k => sT(k) != tST(k) || sT(k) != eST(k)}
-      def or( l : Boolean, r : Boolean) : Boolean = l || r
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
-      val changedKeys = sT.keys.filter{ k => or( sT(k) != tST(k), sT(k) != eST(k))}
+      def ch[T <: Data]( p : T, t : T, e : T) = p != t || p != e
+
+      def mx[T <: Data]( p : T, t : T, e : T) : T = {
+        if ( ch( p, t, e)) {
+          val w = Wire( init=e)
+          when( bb) { w := t}
+          w
+        } else p
+      }
+
+      val changedKeys = sT.keys.filter{ k => ch( sT(k), tST(k), eST(k))}
 // (sT /: changedKeys) is the same as changedKeys.foldLeft(sT) 
       val new_sT = (sT /: changedKeys) { case (s,k) =>
         val w = Wire( init=eST(k))
@@ -92,31 +101,7 @@ class ImperativeModule( ast : Process) extends Module {
         val (tr,tv,td) = tST.pget( p)
         val (er,ev,ed) = eST.pget( p)
 
-        val r = if ( or(pr != tr, pr != er)) {
-//          println( s"${p} pr,tr,er: ${pr} ${tr} ${er}")
-          val r = Wire(Bool())
-          r := er
-          when( bb) { r := tr}
-          r
-        } else pr
-
-        val v = if ( or(pv != tv, pv != ev)) {
-//          println( s"${p} pv,tv,ev: ${pv} ${tv} ${ev}")
-          val v = Wire(Bool())
-          v := ev
-          when( bb) { v := tv}
-          v
-        } else pv
-
-        val d = if ( or(pd != td, pd != ed)) {
-//          println( s"${p} pd,td,ed: ${pd} ${td} ${ed}")
-          val d = Wire(UInt())
-          d := ed
-          when( bb) { d := td}
-          d
-        } else pd
-
-        s.pupdated( p, r, v, d)
+        s.pupdated( p, mx( pr, tr, er), mx( pv, tv, ev), mx( pd, td, ed))
       }}
     }
   }
