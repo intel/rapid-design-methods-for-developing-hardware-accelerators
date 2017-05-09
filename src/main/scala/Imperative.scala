@@ -42,12 +42,25 @@ class ImperativeModule( ast : Process) extends Module {
       case Blk( seqDeclLst, List( While( ConstantTrue, Blk( declLst, lst)))) => {
         assert( lst.last == Wait) // Only accepting one format: { var ... while (true) { ...; wait }
 
+        val sTinit = seqDeclLst.foldLeft(sT.push){
+          case (st, Decl( Variable(v), Type(i))) => st.insert( v, 0.U(i.W))
+        }
+
         val sT0 = seqDeclLst.foldLeft(sT.push){
-          case (st, Decl( Variable(v), Type(i))) => st.insert( v, RegInit( 0.U(i.W)))
+          case (st, Decl( Variable(v), Type(i))) => st.insert( v, Wire( UInt(i.W)))
         }
 
         val sT1 = eval( sT0, Blk( declLst, lst.init))
-        sT0.keys.foreach{ k => sT0(k) := sT1(k)}
+
+        sT0.keys.foreach{
+          k => {
+            if ( sT0(k) != sT1(k)) {
+              sT0(k) := RegNext( next=sT1(k), init=sTinit(k))
+            } else {
+              sT0(k) := sTinit(k)
+            }
+          }
+        }
         sT1.pop
       }
     }
