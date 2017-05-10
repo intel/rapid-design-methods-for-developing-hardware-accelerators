@@ -38,13 +38,20 @@ class ImperativeModule( ast : Process) extends Module {
   }
 
   def eval( sT : SymTbl, ast : Process) : SymTbl = ast match {
-    case Process( lst : PortDeclList, cmd : Command) => cmd match {
-      case Blk( seqDeclLst, List( While( ConstantTrue, Blk( declLst, lst)))) => {
+    case Process( _ : PortDeclList, cmd : Command) => cmd match {
+      case Blk( seqDeclLst, lst2) => {
+        val (declLst, lst) = lst2.last match {
+          case While( ConstantTrue, Blk( declLst, lst)) => (declLst, lst)
+          case _ => { assert(false); (List(), List()) }
+        }
         assert( lst.last == Wait) // Only accepting one format: { var ... while (true) { ...; wait }
+        assert( lst2.init == Nil) // Initial segments empty
 
+// might want to be cleverer about which registers are initialized
         val sTinit = seqDeclLst.foldLeft(sT.push){
           case (st, Decl( Variable(v), Type(i))) => st.insert( v, 0.U(i.W))
         }
+        val sTinit0 = eval( sTinit, Blk( List(), lst2.init))
 
         val sT0 = seqDeclLst.foldLeft(sT.push){
           case (st, Decl( Variable(v), Type(i))) => st.insert( v, Wire( UInt(i.W)))
@@ -54,16 +61,17 @@ class ImperativeModule( ast : Process) extends Module {
 
         sT0.keys.foreach{
           k => {
+            sT0(k) := sTinit0(k)
             if ( sT0(k) != sT1(k)) {
-              sT0(k) := RegNext( next=sT1(k), init=sTinit(k))
-            } else {
-              sT0(k) := sTinit(k)
+              sT0(k) := RegNext( next=sT1(k), init=sTinit0(k))
             }
           }
         }
         sT1.pop
       }
+      case _ => { assert(false); sT}
     }
+    case _ => { assert(false); sT}
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
