@@ -16,6 +16,7 @@ class ThreeXPlus1 extends ImperativeModule(
 process ThreeXPlus1 ( O: out UInt(80))
 {
   var x : UInt(80)
+  x = 0
   while ( true) {
     if ( O!) {
       x = 3*x + 1       

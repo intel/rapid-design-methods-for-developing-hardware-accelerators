@@ -27,9 +27,10 @@ class SymTblTest extends FlatSpec with Matchers {
     val sT = new SymTbl().push.insert( "f", 0.U).pop
     sT.keys should be ( Set())
   }
-  it should "updated should not changed anything if the key is missing" in {
-    val sT = new SymTbl().updated( "f", 0.U)
-    sT.keys should be ( Set())
+  it should "updated should throw exception if the key is missing" in {
+    an [AttemptedToUpdateMissingSymbolException] should be thrownBy {
+      new SymTbl().updated( "f", 0.U)
+    }
   }
   it should "have one var if we update it" in {
     val sT = new SymTbl().insert( "f", 0.U)
@@ -59,10 +60,10 @@ class SymTblTest extends FlatSpec with Matchers {
     sT("f").litValue should be ( 2)
     sT.pop("f").litValue should be ( 0)
   }
-  it should "not change the SymTbl if you update an unknown variable" in {
-    val sT = new SymTbl().insert( "f", 0.U).push.updated( "g", 2.U)
-    sT.keys should be ( Set("f"))
-    sT("f").litValue should be ( 0)
+  it should "should throw an exception if you update an unknown variable" in {
+    an [AttemptedToUpdateMissingSymbolException] should be thrownBy {
+      new SymTbl().insert( "f", 0.U).push.updated( "g", 2.U)
+    }
   }
 
 }

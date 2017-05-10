@@ -14,6 +14,8 @@ class Squash extends ImperativeModule(
       |process Squash( P : inp UInt(64), Q : out UInt(64)) {
       |  var f : UInt(1)
       |  var v : UInt(64)
+      |  var unused : UInt(64)
+      |  f = 0
       |  while ( true) {
       |    if ( f == 1 && Q!) {
       |      Q!v

@@ -6,6 +6,8 @@ import collection.immutable.ListMap
 
 import scala.annotation.tailrec
 
+class AttemptedToUpdateMissingSymbolException( val v : String) extends Exception
+
 class SymTbl( 
   private val pm : ListMap[String,(Bool,Bool,UInt)] = ListMap(),
   private val listOfLM : List[ListMap[String,UInt]] = List(ListMap())
@@ -41,6 +43,7 @@ class SymTbl(
       }
     }
     if ( !contains( s)) {
+      throw new AttemptedToUpdateMissingSymbolException(s)
       println( s"updated: ${s} not in SymTbl. Table not updated")
       this
     } else {

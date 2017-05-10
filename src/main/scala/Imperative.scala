@@ -10,6 +10,18 @@ class CustomDecoupledUIntBundle(elts: (String, DecoupledIO[UInt])*) extends Reco
   override def cloneType = (new CustomDecoupledUIntBundle(elements.toList: _*)).asInstanceOf[this.type]
 }
 
+class CustomDecoupledBundle[T <: Data](elts: (String, DecoupledIO[T])*) extends Record {
+  val elements = ListMap(elts map { case (field, elt) => field -> elt.chiselCloneType }: _*)
+  def apply(elt: String): DecoupledIO[T] = elements(elt)
+  override def cloneType = (new CustomDecoupledBundle(elements.toList: _*)).asInstanceOf[this.type]
+}
+
+class InitialSegmentContainsCommunicationException extends Exception
+class WaitOccursNotAtEndOfSingleWhileLoopException extends Exception
+class FinalCommandNotWhileTrueException extends Exception
+class WhileUsedIncorrectlyException extends Exception
+class BadTopLevelMatchException extends Exception
+
 class ImperativeModule( ast : Process) extends Module {
 
   val decl_lst = ast match { case Process( PortDeclList( decl_lst), _) => decl_lst}
@@ -20,6 +32,30 @@ class ImperativeModule( ast : Process) extends Module {
   }
 
   val io = IO(new CustomDecoupledUIntBundle( iod_tuples: _*))
+
+  def containsCommunication( found : Boolean, ast : Expression) : Boolean = found
+
+  def containsCommunication( found : Boolean, ast : BExpression) : Boolean = ast match {
+    case NBCanGet( _) => true
+    case NBCanPut( _) => true
+    case _ => found
+  }
+  def containsCommunication( found : Boolean, ast : Command) : Boolean = ast match {
+    case Blk( _, seq) => (found /: seq){ containsCommunication}
+    case NBGet( _, _) => true
+    case NBPut( _, _) => true
+    case IfThenElse( b, t, e) => {
+      containsCommunication( found, b) ||
+      containsCommunication( found, t) ||
+      containsCommunication( found, e)
+    }
+    case While( b, t) => {
+      containsCommunication( found, b) ||
+      containsCommunication( found, t)
+    }
+    case _ => false
+  }
+
 
   def eval( sT : SymTbl, ast : Expression) : UInt = ast match {
     case Variable( s) => sT( s)
@@ -38,23 +74,29 @@ class ImperativeModule( ast : Process) extends Module {
   }
 
   def eval( sT : SymTbl, ast : Process) : SymTbl = ast match {
-    case Process( _ : PortDeclList, cmd : Command) => cmd match {
-      case Blk( seqDeclLst, lst2) => {
-        val (declLst, lst) = lst2.last match {
-          case While( ConstantTrue, Blk( declLst, lst)) => (declLst, lst)
-          case _ => { assert(false); (List(), List()) }
-        }
-        assert( lst.last == Wait) // Only accepting one format: { var ... while (true) { ...; wait }
-        assert( lst2.init == Nil) // Initial segments empty
+    case Process( _, Blk( seqDeclLst, lst2)) => {
 
-// might want to be cleverer about which registers are initialized
         val sTinit = seqDeclLst.foldLeft(sT.push){
-          case (st, Decl( Variable(v), Type(i))) => st.insert( v, 0.U(i.W))
+          case (st, Decl( Variable(v), Type(i))) => st.insert( v, Wire( UInt(i.W), init=47.U))
         }
+
+        if ( containsCommunication( false, Blk( List(), lst2.init))) {
+          throw new InitialSegmentContainsCommunicationException
+        }
+
         val sTinit0 = eval( sTinit, Blk( List(), lst2.init))
 
         val sT0 = seqDeclLst.foldLeft(sT.push){
           case (st, Decl( Variable(v), Type(i))) => st.insert( v, Wire( UInt(i.W)))
+        }
+
+        val (declLst, lst) = lst2.last match {
+          case While( ConstantTrue, Blk( declLst, lst)) => (declLst, lst)
+          case _ => throw new FinalCommandNotWhileTrueException
+        }
+
+        if ( lst.last != Wait) {
+          throw new WaitOccursNotAtEndOfSingleWhileLoopException
         }
 
         val sT1 = eval( sT0, Blk( declLst, lst.init))
@@ -63,20 +105,31 @@ class ImperativeModule( ast : Process) extends Module {
           k => {
             sT0(k) := sTinit0(k)
             if ( sT0(k) != sT1(k)) {
-              sT0(k) := RegNext( next=sT1(k), init=sTinit0(k))
+              if ( sTinit(k) == sTinit0(k)) {
+                println( s"-I- Induction variable ${k} is not initialized but is updated")
+                sT0(k) := RegNext( next=sT1(k))
+              } else {
+                println( s"-I- Induction variable ${k} is both initialized and updated")
+                sT0(k) := RegNext( next=sT1(k), init=sTinit0(k))
+              }
+            } else {
+              if ( sTinit(k) != sTinit0(k)) {
+                println( s"-I- Induction variable ${k} is initialized but not updated")
+                sT0(k) := sTinit0(k)
+              } else {
+                println( s"-I- Induction variable ${k} is not initialized and not updated")
+              }
             }
           }
         }
         sT1.pop
       }
-      case _ => { assert(false); sT}
-    }
-    case _ => { assert(false); sT}
+    case _ => throw new BadTopLevelMatchException
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
-    case While( _, _) => { assert( false); sT} // Currently excluded except at top-level
-    case Wait => { assert( false); sT} // Currently excluded except at top-level
+    case While( _, _) => throw new WhileUsedIncorrectlyException
+    case Wait => throw new WaitOccursNotAtEndOfSingleWhileLoopException
     case Blk( decl_lst, seq) => {
       val sT0 = decl_lst.foldLeft(sT.push){ case (st, Decl( Variable(v), Type(i))) => {
         st.insert( v, Wire( UInt(i.W)))
