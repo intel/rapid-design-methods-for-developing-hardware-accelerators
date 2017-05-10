@@ -5,8 +5,8 @@ import compiler.{Location, LexerError}
 import scala.util.parsing.combinator.RegexParsers
 
 object Lexer extends RegexParsers {
-  override def skipWhitespace = true
-  override val whiteSpace = "[ \t\r\f\n]+".r
+//  override def skipWhitespace = true
+//  override val whiteSpace = "[ \t\r\f\n]+".r
 
   def apply(code: String): Either[LexerError, List[Token]] = {
     parse(tokens, code) match {
@@ -34,17 +34,18 @@ object Lexer extends RegexParsers {
     "0|[1-9][0-9]*".r ^^ { str => INTEGER(BigInt(str)) }
   }
 
-  def var_t         = positioned { "var"           ^^ (_ => VAR()) }
-  def process_t     = positioned { "process"       ^^ (_ => PROCESS()) }
-  def inp_t         = positioned { "inp"           ^^ (_ => INP()) }
-  def out_t         = positioned { "out"           ^^ (_ => OUT()) }
-  def uint_t        = positioned { "UInt"          ^^ (_ => UINT()) }
-  def vec_t         = positioned { "Vec"           ^^ (_ => VEC()) }
-  def true_t        = positioned { "true"          ^^ (_ => TRUE()) }
-  def while_t       = positioned { "while"         ^^ (_ => WHILE()) }
-  def wait_t        = positioned { "wait"          ^^ (_ => WAIT()) }
-  def if_t          = positioned { "if"            ^^ (_ => IF()) }
-  def else_t        = positioned { "else"          ^^ (_ => ELSE()) }
+// Word boundary to keep prefixes from matching
+  def var_t         = positioned { "var\\b".r      ^^ (_ => VAR()) }
+  def process_t     = positioned { "process\\b".r  ^^ (_ => PROCESS()) }
+  def inp_t         = positioned { "inp\\b".r      ^^ (_ => INP()) }
+  def out_t         = positioned { "out\\b".r      ^^ (_ => OUT()) }
+  def uint_t        = positioned { "UInt\\b".r     ^^ (_ => UINT()) }
+  def vec_t         = positioned { "Vec\\b".r      ^^ (_ => VEC()) }
+  def true_t        = positioned { "true\\b".r     ^^ (_ => TRUE()) }
+  def while_t       = positioned { "while\\b".r    ^^ (_ => WHILE()) }
+  def wait_t        = positioned { "wait\\b".r     ^^ (_ => WAIT()) }
+  def if_t          = positioned { "if\\b".r       ^^ (_ => IF()) }
+  def else_t        = positioned { "else\\b".r     ^^ (_ => ELSE()) }
   def and_t         = positioned { "&&"            ^^ (_ => AND()) }
   def lbrace        = positioned { "{"             ^^ (_ => LBRACE()) }
   def rbrace        = positioned { "}"             ^^ (_ => RBRACE()) }

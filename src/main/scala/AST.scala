@@ -9,7 +9,10 @@ sealed trait Dir extends Positional
 sealed trait Type extends Positional
 
 case class Port( nm : String) extends Positional
+
 case class Variable( nm : String) extends Expression
+case class VectorIndex( nm : String, i : Expression) extends Expression
+
 case class ConstantInteger( c : Int) extends Expression
 case object ConstantTrue extends BExpression
 
@@ -24,7 +27,7 @@ case class VecType( n : Int, t : Type) extends Type
 case class Decl( v : Variable, t : Type) extends Positional
 case class PortDecl( p : Port, dir : Dir, t : Type) extends Positional
 case class PortDeclList( lst : List[PortDecl]) extends Positional
-case class Assignment( lhs : Variable, rhs : Expression) extends Command
+case class Assignment( lhs : Expression, rhs : Expression) extends Command
 case class While( cond : BExpression, body : Command) extends Command
 case class IfThenElse( cond : BExpression, bodyT : Command, bodyF : Command) extends Command
 case class Blk( decls : Seq[Decl], seq : Seq[Command]) extends Command

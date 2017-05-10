@@ -22,8 +22,8 @@ class ImperativeModule( ast : Process) extends Module {
   val decl_lst = ast match { case Process( PortDeclList( decl_lst), _) => decl_lst}
 
   val iod_tuples = decl_lst.map{ 
-    case PortDecl( Port(p), Inp, UIntType(w)) => (p,Flipped(Decoupled(UInt(w.W))),UIntType(w))
-    case PortDecl( Port(p), Out, UIntType(w)) => (p,Decoupled(UInt(w.W)),UIntType(w))
+    case PortDecl( Port(p), Inp, t @ UIntType(w)) => (p,Flipped(Decoupled(UInt(w.W))),t)
+    case PortDecl( Port(p), Out, t @ UIntType(w)) => (p,Decoupled(UInt(w.W)),t)
     case PortDecl( Port(p), Inp, t @ VecType(n,UIntType(w))) => (p,Flipped(Decoupled(Vec(n,UInt(w.W)))),t)
     case PortDecl( Port(p), Out, t @ VecType(n,UIntType(w))) => (p,Decoupled(Vec(n,UInt(w.W))),t)
   }
@@ -65,6 +65,7 @@ class ImperativeModule( ast : Process) extends Module {
 
 
   def eval( sT : SymTbl, ast : Expression) : Data = ast match {
+    case VectorIndex( s, e : Expression) => sT( s).asInstanceOf[Vec[UInt]]( eval( sT, e).asInstanceOf[UInt]) 
     case Variable( s) => sT( s)
     case AddExpression( l, r) => eval( sT, l).asInstanceOf[UInt] + eval( sT, r).asInstanceOf[UInt]
     case MulExpression( l, r) => eval( sT, l).asInstanceOf[UInt] * eval( sT, r).asInstanceOf[UInt]
@@ -131,15 +132,31 @@ class ImperativeModule( ast : Process) extends Module {
     case While( _, _) => throw new WhileUsedIncorrectlyException
     case Wait => throw new WaitOccursNotAtEndOfSingleWhileLoopException
     case Blk( decl_lst, seq) => {
-      val sT0 = decl_lst.foldLeft(sT.push){ case (st, Decl( Variable(v), UIntType(i))) => {
-        st.insert( v, Wire( UInt(i.W)))
-      }}
+      val sT0 = decl_lst.foldLeft(sT.push){
+        case (st, Decl( Variable(v), UIntType(w))) => {
+          st.insert( v, Wire( UInt(w.W)))
+        }
+        case (st, Decl( Variable(v), VecType( n, UIntType(w)))) => {
+          st.insert( v, Wire( Vec(n,UInt(w.W))))
+        }
+      }
       seq.foldLeft(sT0){ eval}.pop
     }
-    case Assignment( Variable( s), r) => sT.updated( s, eval( sT, r).asInstanceOf[UInt])
+    case Assignment( Variable( s), r) => sT.updated( s, eval( sT, r))
+    case Assignment( VectorIndex( s, i), r) => {
+      sT( s) match {
+        case v : Vec[UInt] => {
+          val whole : Vec[UInt] = Wire(init=v)
+          val part = eval( sT, r)
+          val index = eval( sT, i)
+          whole(index) := part
+          sT.updated( s, whole)
+        }
+      }
+    }
     case NBGet( Port( p), Variable( s)) => {
       val (r,v,d) = sT.pget( p)
-      sT.pupdated( p, true.B, v, d).updated( s, d.asInstanceOf[UInt])
+      sT.pupdated( p, true.B, v, d).updated( s, d)
     }
     case NBPut( Port( p), e) => {
       val (r,v,d) = sT.pget( p)

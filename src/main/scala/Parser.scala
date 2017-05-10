@@ -68,7 +68,7 @@ object Parser extends Parsers {
     val it = IF() ~ LPAREN() ~ bexpr ~ RPAREN() ~ cmd ^^ {
       case _ ~ _ ~ i ~ _ ~ t => IfThenElse(i,t,Blk( List(), List()))
     }
-    val sc = LBRACE() ~ rep(decl) ~ rep(cmd) ~ RBRACE() ^^ { 
+    val sc = LBRACE() ~! rep(decl) ~ rep(cmd) ~ RBRACE() ^^ { 
       case _ ~ d ~ s ~ _ => Blk( d.toList, s.toList)
     }
     val w = WAIT() ^^ { _ => Wait }
@@ -78,11 +78,14 @@ object Parser extends Parsers {
     val p = identifier ~ BANG() ~ expr ^^ { 
       case IDENTIFIER(s) ~ _ ~ e => NBPut( Port(s), e)
     }
+    val va = identifier ~ LPAREN() ~ expr ~ RPAREN() ~ ASSIGN() ~ expr ^^ { 
+      case IDENTIFIER(v) ~ _ ~ i ~ _ ~ _ ~ e => Assignment( VectorIndex(v,i), e)
+    }
     val a = identifier ~ ASSIGN() ~ expr ^^ {
       case IDENTIFIER( v) ~ _ ~ e => Assignment( Variable( v), e)
     }
 
-    whl | ite | it | sc | w | g | p | a
+    whl | ite | it | sc | w | g | p | va | a
   }
 
   def bexpr: Parser[BExpression] = positioned {
@@ -133,6 +136,9 @@ object Parser extends Parsers {
   }
 
   def prim: Parser[Expression] = positioned {
+    val vi = identifier ~ LPAREN() ~ expr ~ RPAREN() ^^ { 
+      case IDENTIFIER(v) ~ _ ~ e ~ _ => VectorIndex(v,e)
+    }
     val v = identifier ^^ { 
       case IDENTIFIER(v) => Variable(v)
     }
@@ -142,7 +148,7 @@ object Parser extends Parsers {
     val e = LPAREN() ~ expr ~ RPAREN() ^^ { 
       case _ ~ e ~ _ => e
     }
-    v | i | e
+    vi | v | i | e
   }
 
   def decl: Parser[Decl] = positioned {
@@ -153,13 +159,13 @@ object Parser extends Parsers {
   }
 
   def type_p: Parser[Type] = positioned {
-    val t = UINT() ~ LPAREN() ~ integer ~ RPAREN() ^^ { 
-      case _ ~ _ ~ INTEGER(w) ~ _ => UIntType(w.toInt)
-    }
     val v = VEC() ~ LPAREN() ~ integer ~ COMMA() ~ type_p ~ RPAREN() ^^ { 
       case _ ~ _ ~ INTEGER(n) ~ _ ~ t ~ _ => VecType( n.toInt, t)
     }
-    t
+    val t = UINT() ~ LPAREN() ~ integer ~ RPAREN() ^^ { 
+      case _ ~ _ ~ INTEGER(w) ~ _ => UIntType(w.toInt)
+    }
+    v | t
   }
 
   private def identifier: Parser[IDENTIFIER] = positioned {
