@@ -37,7 +37,7 @@ class ThreeXPlus1Tester(c:ThreeXPlus1) extends PeekPokeTester(c) {
 
     if ( peek( c.io("O").valid) == 1) {
       x = 3*x+1
-      expect( c.io("O").bits, x)
+      expect( c.io("O").bits.asInstanceOf[UInt], x)
     }
 
   }

@@ -21,6 +21,7 @@ case class RPAREN() extends Token
 case class COMMA() extends Token
 case class VAR() extends Token
 case class UINT() extends Token
+case class VEC() extends Token
 case class WAIT() extends Token
 case class ASSIGN() extends Token
 case class EQ() extends Token

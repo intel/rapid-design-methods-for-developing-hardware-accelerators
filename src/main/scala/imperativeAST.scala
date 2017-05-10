@@ -6,6 +6,7 @@ sealed trait Command extends Positional
 sealed trait Expression extends Positional
 sealed trait BExpression extends Positional
 sealed trait Dir extends Positional
+sealed trait Type extends Positional
 
 case class Port( nm : String) extends Positional
 case class Variable( nm : String) extends Expression
@@ -16,7 +17,10 @@ case object Inp extends Dir
 case object Out extends Dir
 
 case class Process( lst : PortDeclList, cmd : Command) extends Positional
-case class Type( width : Int) extends Positional
+
+case class UIntType( width : Int) extends Type
+case class VecType( n : Int, t : Type) extends Type
+
 case class Decl( v : Variable, t : Type) extends Positional
 case class PortDecl( p : Port, dir : Dir, t : Type) extends Positional
 case class PortDeclList( lst : List[PortDecl]) extends Positional

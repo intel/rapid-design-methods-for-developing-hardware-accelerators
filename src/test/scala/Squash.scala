@@ -41,7 +41,7 @@ class SquashTester(c:Squash) extends PeekPokeTester(c) {
   expect( c.io("Q").valid, 0) // Moore
 
   poke( c.io("P").valid, 1)
-  poke( c.io("P").bits, 4747)
+  poke( c.io("P").bits.asInstanceOf[UInt], 4747)
 
   expect( c.io("P").ready, 1) // Mealy
 
@@ -60,14 +60,14 @@ class SquashTester(c:Squash) extends PeekPokeTester(c) {
 
   poke( c.io("Q").ready, 1)
   poke( c.io("P").valid, 1)
-  poke( c.io("P").bits, 5454)
+  poke( c.io("P").bits.asInstanceOf[UInt], 5454)
 
   expect( c.io("P").ready, 1) // Mealy
 
   step(1)
 
   expect( c.io("Q").valid, 1) // Moore
-  expect( c.io("Q").bits, 4747)  // Moore
+  expect( c.io("Q").bits.asInstanceOf[UInt], 4747)  // Moore
 
 }
 

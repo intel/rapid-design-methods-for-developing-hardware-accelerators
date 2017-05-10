@@ -48,16 +48,16 @@ class AddTester(c:Add) extends PeekPokeTester(c) {
   expect( c.io("O").valid, 0) // Moore
 
   poke( c.io("A").valid, 1)
-  poke( c.io("A").bits, 1)
+  poke( c.io("A").bits.asInstanceOf[UInt], 1)
   poke( c.io("B").valid, 1)
-  poke( c.io("B").bits, 10)
+  poke( c.io("B").bits.asInstanceOf[UInt], 10)
 
   expect( c.io("O").ready, 1) // Mealy
 
   step(1)
 
   expect( c.io("O").valid, 1) // Moore
-  expect( c.io("O").bits, 22)  // Moore
+  expect( c.io("O").bits.asInstanceOf[UInt], 22)  // Moore
 
 }
 

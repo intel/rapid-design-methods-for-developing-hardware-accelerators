@@ -38,7 +38,7 @@ class CompilerSpec extends FlatSpec with Matchers {
       |}
     """.stripMargin.trim
 
-  val successfulAST = Process(PortDeclList(List(PortDecl(Port("P"),Inp,Type(8)), PortDecl(Port("Q"),Out,Type(8)))),Blk(List(),List(While(ConstantTrue,Blk(List(),List(IfThenElse(AndBExpression(NBCanGet(Port("P")),NBCanPut(Port("Q"))),Blk(List(Decl(Variable("v"),Type(8))),List(NBGet(Port("P"),Variable("v")), NBPut(Port("Q"),Variable("v")))),Blk(List(),List())), Wait))))))
+  val successfulAST = Process(PortDeclList(List(PortDecl(Port("P"),Inp,UIntType(8)), PortDecl(Port("Q"),Out,UIntType(8)))),Blk(List(),List(While(ConstantTrue,Blk(List(),List(IfThenElse(AndBExpression(NBCanGet(Port("P")),NBCanPut(Port("Q"))),Blk(List(Decl(Variable("v"),UIntType(8))),List(NBGet(Port("P"),Variable("v")), NBPut(Port("Q"),Variable("v")))),Blk(List(),List())), Wait))))))
 
   "Compiler" should "successfully parse a valid process" in {
     Compiler(validCodeNoElse) shouldBe Right(successfulAST)

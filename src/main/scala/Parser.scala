@@ -45,9 +45,9 @@ object Parser extends Parsers {
   }
 
   def portDecl: Parser[PortDecl] = positioned {
-    val pd = identifier ~ COLON() ~ dir ~ UINT() ~ LPAREN() ~ integer ~ RPAREN() ^^ {
-      case IDENTIFIER(p) ~ _ ~ dir ~ _ ~ _ ~ INTEGER(w) ~ _ =>
-        PortDecl( Port( p), dir, Type( w.toInt))
+    val pd = identifier ~ COLON() ~ dir ~ type_p ^^ {
+      case IDENTIFIER(p) ~ _ ~ dir ~ t =>
+        PortDecl( Port( p), dir, t)
     }
     pd
   }
@@ -146,14 +146,20 @@ object Parser extends Parsers {
   }
 
   def decl: Parser[Decl] = positioned {
-    val d = VAR() ~ identifier ~ COLON() ~ UINT() ~ LPAREN() ~ integer ~ RPAREN() ^^ { 
-      case _ ~ IDENTIFIER(v) ~ _ ~ _ ~ _ ~ INTEGER(w) ~ _ => Decl( Variable(v), Type(w.toInt))
-      case q => {
-        println( s"Bad match: ${q}")
-        Decl( Variable("<xxx>"), Type(1))
-      }
+    val d = VAR() ~ identifier ~ COLON() ~ type_p ^^ { 
+      case _ ~ IDENTIFIER(v) ~ _ ~ t => Decl( Variable(v), t)
     }
     d
+  }
+
+  def type_p: Parser[Type] = positioned {
+    val t = UINT() ~ LPAREN() ~ integer ~ RPAREN() ^^ { 
+      case _ ~ _ ~ INTEGER(w) ~ _ => UIntType(w.toInt)
+    }
+    val v = VEC() ~ LPAREN() ~ integer ~ COMMA() ~ type_p ~ RPAREN() ^^ { 
+      case _ ~ _ ~ INTEGER(n) ~ _ ~ t ~ _ => VecType( n.toInt, t)
+    }
+    t
   }
 
   private def identifier: Parser[IDENTIFIER] = positioned {
