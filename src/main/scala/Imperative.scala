@@ -175,6 +175,8 @@ class ImperativeModule( ast : Process) extends Module {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = Wire(init=v)
+// This line produces smaller intermediate code, but is going to do the wrong thing in an if then else
+//          val whole : Vec[UInt] = v
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
           val index : UInt = eval( sT, i).asInstanceOf[UInt]
 //          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d\n", whole(0), whole(1), index, part)
