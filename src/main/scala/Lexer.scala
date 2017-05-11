@@ -17,7 +17,7 @@ object Lexer extends RegexParsers {
 
   def tokens: Parser[List[Token]] = {
     phrase(rep1(true_t | while_t | wait_t | var_t | uint_t | vec_t
-      | if_t | else_t | process_t | inp_t | out_t
+      | if_t | else_t | process_t | inp_t | out_t | unroll_t
       | and_t | lbrace | rbrace | lparen | rparen | comma
       | eq_t | assign | colon_t | add_t | mul_t
       | query_t | bang_t
@@ -46,6 +46,7 @@ object Lexer extends RegexParsers {
   def wait_t        = positioned { "wait\\b".r     ^^ (_ => WAIT()) }
   def if_t          = positioned { "if\\b".r       ^^ (_ => IF()) }
   def else_t        = positioned { "else\\b".r     ^^ (_ => ELSE()) }
+  def unroll_t      = positioned { "unroll\\b".r   ^^ (_ => UNROLL()) }
   def and_t         = positioned { "&&"            ^^ (_ => AND()) }
   def lbrace        = positioned { "{"             ^^ (_ => LBRACE()) }
   def rbrace        = positioned { "}"             ^^ (_ => RBRACE()) }

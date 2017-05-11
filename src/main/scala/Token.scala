@@ -7,6 +7,7 @@ sealed trait Token extends Positional
 case class IDENTIFIER(str: String) extends Token
 case class INTEGER(i: BigInt) extends Token
 case class PROCESS() extends Token
+case class UNROLL() extends Token
 case class INP() extends Token
 case class OUT() extends Token
 case class WHILE() extends Token

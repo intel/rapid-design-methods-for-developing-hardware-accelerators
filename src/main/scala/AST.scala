@@ -27,6 +27,7 @@ case class VecType( n : Int, t : Type) extends Type
 case class Decl( v : Variable, t : Type) extends Positional
 case class PortDecl( p : Port, dir : Dir, t : Type) extends Positional
 case class PortDeclList( lst : List[PortDecl]) extends Positional
+case class Unroll( v : Variable, lb : Expression, ub : Expression, cmd : Command) extends Command
 case class Assignment( lhs : Expression, rhs : Expression) extends Command
 case class While( cond : BExpression, body : Command) extends Command
 case class IfThenElse( cond : BExpression, bodyT : Command, bodyF : Command) extends Command

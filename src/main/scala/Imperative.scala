@@ -16,6 +16,8 @@ class WaitOccursNotAtEndOfSingleWhileLoopException extends Exception
 class FinalCommandNotWhileTrueException extends Exception
 class WhileUsedIncorrectlyException extends Exception
 class BadTopLevelMatchException extends Exception
+class ImproperLeftHandSideException extends Exception
+class NonConstantUnrollBoundsException extends Exception
 
 class ImperativeModule( ast : Process) extends Module {
 
@@ -65,7 +67,19 @@ class ImperativeModule( ast : Process) extends Module {
 
 
   def eval( sT : SymTbl, ast : Expression) : Data = ast match {
-    case VectorIndex( s, e : Expression) => sT( s).asInstanceOf[Vec[UInt]]( eval( sT, e).asInstanceOf[UInt]) 
+    case VectorIndex( s, ConstantInteger( i)) => {
+      val whole = sT( s).asInstanceOf[Vec[UInt]]
+      val part = whole(i)
+//      printf( s"vector eval: ${s}(${i}) %d %d %d\n", whole(0), whole(1), part)
+      part
+    }
+    case VectorIndex( s, e : Expression) => {
+      val whole = sT( s).asInstanceOf[Vec[UInt]]
+      val index = eval( sT, e).asInstanceOf[UInt]
+      val part = whole(index)
+//      printf( s"vector eval: ${s}(${e}) %d %d %d %d\n", whole(0), whole(1), index, part)
+      part
+    }
     case Variable( s) => sT( s)
     case AddExpression( l, r) => eval( sT, l).asInstanceOf[UInt] + eval( sT, r).asInstanceOf[UInt]
     case MulExpression( l, r) => eval( sT, l).asInstanceOf[UInt] * eval( sT, r).asInstanceOf[UInt]
@@ -131,6 +145,9 @@ class ImperativeModule( ast : Process) extends Module {
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
     case While( _, _) => throw new WhileUsedIncorrectlyException
     case Wait => throw new WaitOccursNotAtEndOfSingleWhileLoopException
+    case Unroll( Variable( v), ConstantInteger( lb), ConstantInteger( ub), cmd) => 
+      (lb until ub).foldLeft( sT){ case( st, i) => eval( st.push.insert( v, i.U), cmd).pop}
+    case Unroll( Variable( v), _, _, cmd) => throw new NonConstantUnrollBoundsException
     case Blk( decl_lst, seq) => {
       val sT0 = decl_lst.foldLeft(sT.push){
         case (st, Decl( Variable(v), UIntType(w))) => {
@@ -143,17 +160,30 @@ class ImperativeModule( ast : Process) extends Module {
       seq.foldLeft(sT0){ eval}.pop
     }
     case Assignment( Variable( s), r) => sT.updated( s, eval( sT, r))
+    case Assignment( VectorIndex( s, ConstantInteger( i)), r) => {
+      sT( s) match {
+        case v : Vec[UInt] => {
+          val whole : Vec[UInt] = Wire(init=v)
+          val part : UInt = eval( sT, r).asInstanceOf[UInt]
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d\n", whole(0), whole(1), part)
+          whole(i) := part
+          sT.updated( s, whole)
+        }
+      }
+    }
     case Assignment( VectorIndex( s, i), r) => {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = Wire(init=v)
-          val part = eval( sT, r)
-          val index = eval( sT, i)
+          val part : UInt = eval( sT, r).asInstanceOf[UInt]
+          val index : UInt = eval( sT, i).asInstanceOf[UInt]
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d\n", whole(0), whole(1), index, part)
           whole(index) := part
           sT.updated( s, whole)
         }
       }
     }
+    case Assignment( _, _) => throw new ImproperLeftHandSideException
     case NBGet( Port( p), Variable( s)) => {
       val (r,v,d) = sT.pget( p)
       sT.pupdated( p, true.B, v, d).updated( s, d)

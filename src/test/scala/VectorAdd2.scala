@@ -20,11 +20,12 @@ class VectorAdd2 extends ImperativeModule(
       |    if ( A? && B? && O!) {
       |      var a : Vec(2,UInt(8))
       |      var b : Vec(2,UInt(8))
+      |      var o : Vec(2,UInt(8))
       |      A?a
-      |      A?b
-      |      a(0) = a(0) + b(0)
-      |      a(1) = a(1) + b(1)
-      |      O!a
+      |      B?b
+      |      o(0) = a(0) + b(0)
+      |      o(1) = a(1) + b(1)
+      |      O!o
       |    }
       |    wait
       |  }
@@ -37,8 +38,10 @@ class VectorAdd2Tester(c:VectorAdd2) extends PeekPokeTester(c) {
   poke( c.io("O").ready, 1)
 
   poke( c.io("A").valid, 0)
+  poke( c.io("B").valid, 0)
 
   expect( c.io("A").ready, 0) // Mealy
+  expect( c.io("B").ready, 0) // Mealy
 
   step(1)
 
@@ -49,12 +52,13 @@ class VectorAdd2Tester(c:VectorAdd2) extends PeekPokeTester(c) {
   poke( c.io("A").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](1,10))
   poke( c.io("B").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](7,2))
 
-  expect( c.io("O").ready, 1) // Mealy
+  expect( c.io("A").ready, 1) // Mealy
+  expect( c.io("B").ready, 1) // Mealy
 
   step(1)
 
   expect( c.io("O").valid, 1) // Moore
-  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](8,12))  // Moore
+  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](8,12))
 
 }
 

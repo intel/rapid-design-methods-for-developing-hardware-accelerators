@@ -62,6 +62,9 @@ object Parser extends Parsers {
     val whl = WHILE() ~ LPAREN() ~ bexpr ~ RPAREN() ~ cmd ^^ {
       case _ ~ _ ~ cond ~ _ ~ cmd => While(cond,cmd)
     }
+    val unrl = UNROLL() ~ LPAREN() ~ identifier ~ COMMA() ~ expr ~ COMMA() ~ expr ~ RPAREN() ~ cmd ^^ {
+      case _ ~ _ ~ IDENTIFIER(v) ~ _ ~ lb ~ _ ~ ub ~ _ ~ cmd => Unroll(Variable(v),lb,ub,cmd)
+    }
     val ite = IF() ~ LPAREN() ~ bexpr ~ RPAREN() ~ cmd ~ ELSE() ~ cmd ^^ {
       case _ ~ _ ~ i ~ _ ~ t ~ _ ~ e => IfThenElse(i,t,e)
     }
@@ -85,7 +88,7 @@ object Parser extends Parsers {
       case IDENTIFIER( v) ~ _ ~ e => Assignment( Variable( v), e)
     }
 
-    whl | ite | it | sc | w | g | p | va | a
+    whl | unrl | ite | it | sc | w | g | p | va | a
   }
 
   def bexpr: Parser[BExpression] = positioned {
