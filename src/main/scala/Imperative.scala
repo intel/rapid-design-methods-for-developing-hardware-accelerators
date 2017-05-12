@@ -70,18 +70,19 @@ class ImperativeModule( ast : Process) extends Module {
     case VectorIndex( s, ConstantInteger( i)) => {
       val whole = sT( s).asInstanceOf[Vec[UInt]]
       val part = whole(i)
-//      printf( s"vector eval: ${s}(${i}) %d %d %d\n", whole(0), whole(1), part)
+//      printf( s"vector eval: ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
       part
     }
     case VectorIndex( s, e : Expression) => {
       val whole = sT( s).asInstanceOf[Vec[UInt]]
       val index = eval( sT, e).asInstanceOf[UInt]
       val part = whole(index)
-//      printf( s"vector eval: ${s}(${e}) %d %d %d %d\n", whole(0), whole(1), index, part)
+//      printf( s"vector eval: ${s}(${e}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
       part
     }
     case Variable( s) => sT( s)
     case AddExpression( l, r) => eval( sT, l).asInstanceOf[UInt] + eval( sT, r).asInstanceOf[UInt]
+    case SubExpression( l, r) => eval( sT, l).asInstanceOf[UInt] - eval( sT, r).asInstanceOf[UInt]
     case MulExpression( l, r) => eval( sT, l).asInstanceOf[UInt] * eval( sT, r).asInstanceOf[UInt]
     case ConstantInteger( i) => i.U
   }
@@ -164,22 +165,41 @@ class ImperativeModule( ast : Process) extends Module {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = Wire(init=v)
+// This line produces smaller intermediate code, but doesn't work in if/then/else (see VectorAddUpdateThenTest)
+//          val whole : Vec[UInt] = v
+//          println( s"XXXvector assignment: ${r} ${whole}")
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
-//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d\n", whole(0), whole(1), part)
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
           whole(i) := part
+
           sT.updated( s, whole)
         }
       }
     }
+/*
+    case Assignment( VectorIndex( s, ConstantInteger( i)), r) => {
+      sT( s) match {
+        case v : Vec[UInt] => {
+          val whole : Vec[UInt] = v
+//          println( s"XXXvector assignment: ${r} ${whole}")
+          val part : UInt = eval( sT, r).asInstanceOf[UInt]
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
+          val w = v.updated( i, part)
+          sT.updated( s, w)
+        }
+      }
+    }
+ */
     case Assignment( VectorIndex( s, i), r) => {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = Wire(init=v)
-// This line produces smaller intermediate code, but is going to do the wrong thing in an if then else
+// This line produces smaller intermediate code, but doesn't work in if/then/else (see VectorAddUpdateThenTest)
 //          val whole : Vec[UInt] = v
+//          println( s"XXXvector assignment: ${r} ${whole}")
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
           val index : UInt = eval( sT, i).asInstanceOf[UInt]
-//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d\n", whole(0), whole(1), index, part)
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
           whole(index) := part
           sT.updated( s, whole)
         }
@@ -188,7 +208,13 @@ class ImperativeModule( ast : Process) extends Module {
     case Assignment( _, _) => throw new ImproperLeftHandSideException
     case NBGet( Port( p), Variable( s)) => {
       val (r,v,d) = sT.pget( p)
-      sT.pupdated( p, true.B, v, d).updated( s, d)
+      val res_sT = sT.pupdated( p, true.B, v, d).updated( s, d)
+      res_sT.pget( p)._3 match {
+        case v : Vec[UInt] =>
+//          printf( s"nbget assignment: ${p} %d %d %d %d\n", v(0), v(1), v(2), v(3))
+        case _ => ()
+      }
+      res_sT
     }
     case NBPut( Port( p), e) => {
       val (r,v,d) = sT.pget( p)

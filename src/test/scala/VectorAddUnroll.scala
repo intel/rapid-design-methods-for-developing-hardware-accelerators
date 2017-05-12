@@ -23,8 +23,10 @@ class VectorAddUnroll extends ImperativeModule(
       |      var o : Vec(64,UInt(8))
       |      A?a
       |      B?b
-      |      unroll( i, 0, 64) {
-      |        o(i) = a(i) + b(i)
+      |      unroll( i, 1, 65) {
+      |        var j : UInt(8)
+      |        j = i-1
+      |        o(j) = a(j) + b(j)
       |      }
       |      O!o
       |    }

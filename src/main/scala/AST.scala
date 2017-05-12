@@ -33,6 +33,7 @@ case class While( cond : BExpression, body : Command) extends Command
 case class IfThenElse( cond : BExpression, bodyT : Command, bodyF : Command) extends Command
 case class Blk( decls : Seq[Decl], seq : Seq[Command]) extends Command
 case class AddExpression( l : Expression, r : Expression) extends Expression
+case class SubExpression( l : Expression, r : Expression) extends Expression
 case class MulExpression( l : Expression, r : Expression) extends Expression
 case class EqBExpression( l : Expression, r : Expression) extends BExpression
 case class AndBExpression( l : BExpression, r : BExpression) extends BExpression
