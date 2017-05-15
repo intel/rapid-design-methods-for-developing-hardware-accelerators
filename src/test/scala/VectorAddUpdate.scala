@@ -95,77 +95,73 @@ class VectorAddUpdateElse extends ImperativeModule(
 
 class VectorAddUpdateTester(c:VectorAddUpdate) extends PeekPokeTester(c) {
   poke( c.io("O").ready, 1)
-
   poke( c.io("A").valid, 0)
 
-  expect( c.io("A").ready, 0) // Mealy
+ // Mealy
+  expect( c.io("O").valid, 0)
+//  expect( c.io("A").ready, 1) /* Don't care */
 
   step(1)
 
-  expect( c.io("O").valid, 0) // Moore
-
+  poke( c.io("O").ready, 1)
   poke( c.io("A").valid, 1)
   val a = for( i<-0 until 4) yield BigInt(i)
   val o = for( i<-0 until 4) yield BigInt(i*(i+1)/2)
   poke( c.io("A").bits.asInstanceOf[Vec[UInt]], a.reverse)
 
-  expect( c.io("A").ready, 1) // Mealy
+// Mealy
+  expect( c.io("O").valid, 1)
+  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], o.reverse)
+  expect( c.io("A").ready, 1)
 
   step(1)
-
-  expect( c.io("O").valid, 1) // Moore
-  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], o.reverse)
-
 }
 
 class VectorAddUpdateThenTester(c:VectorAddUpdateThen) extends PeekPokeTester(c) {
   poke( c.io("O").ready, 1)
-
   poke( c.io("A").valid, 0)
 
-  expect( c.io("A").ready, 0) // Mealy
+// Mealy
+  expect( c.io("O").valid, 0)
+//  expect( c.io("A").ready, 0) /* Don't care */
 
   step(1)
 
-  expect( c.io("O").valid, 0) // Moore
-
+  poke( c.io("O").ready, 1)
   poke( c.io("A").valid, 1)
   val a = for( i<-0 until 4) yield BigInt(i)
   val o = for( i<-0 until 4) yield BigInt(i*(i+1)/2)
   poke( c.io("A").bits.asInstanceOf[Vec[UInt]], a.reverse)
 
+  expect( c.io("O").valid, 1) // Moore
+  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], o.reverse)
   expect( c.io("A").ready, 1) // Mealy
 
   step(1)
-
-  expect( c.io("O").valid, 1) // Moore
-  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], o.reverse)
-
 }
 
 class VectorAddUpdateElseTester(c:VectorAddUpdateElse) extends PeekPokeTester(c) {
   poke( c.io("O").ready, 1)
-
   poke( c.io("A").valid, 0)
 
-  expect( c.io("A").ready, 0) // Mealy
+// Mealy
+  expect( c.io("O").valid, 0)
+//  expect( c.io("A").ready, 0) /* Don't care */
 
   step(1)
 
-  expect( c.io("O").valid, 0) // Moore
-
+  poke( c.io("O").ready, 1)
   poke( c.io("A").valid, 1)
   val a = for( i<-0 until 4) yield BigInt(i)
   val o = for( i<-0 until 4) yield BigInt(i)
   poke( c.io("A").bits.asInstanceOf[Vec[UInt]], a.reverse)
 
-  expect( c.io("A").ready, 1) // Mealy
+// Mealy
+  expect( c.io("O").valid, 1)
+  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], o.reverse)
+  expect( c.io("A").ready, 1)
 
   step(1)
-
-  expect( c.io("O").valid, 1) // Moore
-  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], o.reverse)
-
 }
 
 class VectorAddUpdateTest extends FlatSpec with Matchers {

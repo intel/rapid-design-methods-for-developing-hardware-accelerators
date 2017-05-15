@@ -65,6 +65,16 @@ class ImperativeModule( ast : Process) extends Module {
     case NBCanPut( Port( p)) => sT.pget( p)._1
   }
 
+  def evalWithoutPort( p : Port)( sT : SymTbl, ast : BExpression) : Bool = ast match {
+    case ConstantTrue => true.B
+    case EqBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] === eval( sT, r).asInstanceOf[UInt]
+    case AndBExpression( l, r) => evalWithoutPort( p)( sT, l) && evalWithoutPort( p)( sT, r)
+    case NotBExpression( e) => !evalWithoutPort( p)( sT, e)
+    case NBCanGet( Port( pp)) if Port( pp) == p => true.B
+    case NBCanGet( Port( pp)) if Port( pp) != p => sT.pget( pp)._2
+    case NBCanPut( Port( pp)) if Port( pp) == p => true.B
+    case NBCanPut( Port( pp)) if Port( pp) != p => sT.pget( pp)._1
+  }
 
   def eval( sT : SymTbl, ast : Expression) : Data = ast match {
     case VectorIndex( s, ConstantInteger( i)) => {
@@ -223,7 +233,7 @@ class ImperativeModule( ast : Process) extends Module {
     case IfThenElse( b, t, e) => {
       val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
 
-      def mx[T <: Data]( p : T, t : T, e : T) : T = {
+      def mx[T <: Data]( bb : Bool, p : T, t : T, e : T) : T = {
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
         if ( p != t || p != e) {
           val w = Wire( init=e)
@@ -233,14 +243,16 @@ class ImperativeModule( ast : Process) extends Module {
       }
 
       val new_sT = (sT /: sT.keys) { case (s,k) =>
-        s.updated( k, mx( sT(k), tST(k), eST(k)))
+        s.updated( k, mx( bb, sT(k), tST(k), eST(k)))
       }
 
       sT.pkeys.foldLeft(new_sT){ (s,p) => {
+        val bbb = evalWithoutPort( Port( p))( sT, b)
+
         val (pr,pv,pd) = sT.pget( p) // previous
         val (tr,tv,td) = tST.pget( p)
         val (er,ev,ed) = eST.pget( p)
-        s.pupdated( p, mx( pr, tr, er), mx( pv, tv, ev), mx( pd, td, ed))
+        s.pupdated( p, mx( bbb, pr, tr, er), mx( bbb, pv, tv, ev), mx( bbb, pd, td, ed))
       }}
     }
   }
@@ -281,8 +293,10 @@ class ImperativeModule( ast : Process) extends Module {
     case PortDecl( Port(p), Out, _) => {
       val (r,v,d) = sTLast.pget( p)
 //      println( s"${p} v: ${v} d: ${d}")
-      io( p).valid := RegNext( next=v, init=false.B)
-      io( p).bits := RegNext( next=d)
+//      io( p).valid := RegNext( next=v, init=false.B)
+//      io( p).bits := RegNext( next=d)
+      io( p).valid := v
+      io( p).bits := d
     }
   }
 

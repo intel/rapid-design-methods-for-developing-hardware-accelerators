@@ -34,40 +34,49 @@ class SquashTester(c:Squash) extends PeekPokeTester(c) {
   poke( c.io("Q").ready, 1)
   poke( c.io("P").valid, 0)
 
-  expect( c.io("P").ready, 0) // Mealy
+//Mealy
+  expect( c.io("Q").valid, 0)
+//  expect( c.io("P").ready, 1) /* Don't care */
 
   step(1)
 
-  expect( c.io("Q").valid, 0) // Moore
-
+  poke( c.io("Q").ready, 1)
   poke( c.io("P").valid, 1)
   poke( c.io("P").bits.asInstanceOf[UInt], 4747)
 
-  expect( c.io("P").ready, 1) // Mealy
+//Mealy
+  expect( c.io("Q").valid, 0)
+  expect( c.io("P").ready, 1)
 
   step(1)
-
-  expect( c.io("Q").valid, 0) // Moore
 
   poke( c.io("Q").ready, 0)
   poke( c.io("P").valid, 0)
 
-  expect( c.io("P").ready, 0) // Mealy
+//Mealy
+//  expect( c.io("Q").valid, 1) /* Don't care */
+//  expect( c.io("P").ready, 1) /* Don't care */
 
   step(1)
-
-  expect( c.io("Q").valid, 0) // Moore
 
   poke( c.io("Q").ready, 1)
   poke( c.io("P").valid, 1)
   poke( c.io("P").bits.asInstanceOf[UInt], 5454)
 
-  expect( c.io("P").ready, 1) // Mealy
+//Mealy
+  expect( c.io("P").ready, 1)
+  expect( c.io("Q").valid, 1)
+  expect( c.io("Q").bits.asInstanceOf[UInt], 4747)
 
   step(1)
 
-  expect( c.io("Q").valid, 1) // Moore
-  expect( c.io("Q").bits.asInstanceOf[UInt], 4747)  // Moore
+  poke( c.io("Q").ready, 1)
+  poke( c.io("P").valid, 0)
+
+//Mealy
+  expect( c.io("Q").valid, 1)
+  expect( c.io("Q").bits.asInstanceOf[UInt], 5454)
+//  expect( c.io("P").ready, 1) /* Don't care */
 
 }
 

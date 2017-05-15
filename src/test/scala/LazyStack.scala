@@ -79,15 +79,6 @@ class LazyStackN( n : Int) extends Module {
 
 class LazyStackNTester(c:LazyStackN) extends PeekPokeTester(c) {
 
-  poke( c.io.Out.ready, 0)
-  poke( c.io.In.valid, 0)
-
-  expect( c.io.In.ready, 0) // Mealy
-
-  step(1)
-
-  expect( c.io.Out.valid, 0) // Moore
-
 //
 
   val mybreaks = new Breaks
@@ -102,63 +93,68 @@ class LazyStackNTester(c:LazyStackN) extends PeekPokeTester(c) {
 
     var steps = 0
 
-    println( s"doIn init: ${peek( c.io.In.ready)}")
-
     breakable {
       while ( peek( c.io.In.ready) == BigInt(0)) {
         step(1)
-        expect( c.io.Out.valid, 0) // Moore
         if ( steps >= timeOut) {
           println( s"In loop timeOut")
           break()
         }
         steps += 1
       }
+      println( s"doIn transfer: ${v}")
     }
-    step( 1)
-    expect( c.io.Out.valid, 0) // Moore
   }
-
 
   def doOut( v : BigInt) {
     poke( c.io.Out.ready, 1)
     poke( c.io.In.valid, 0)
 
-    expect( c.io.In.ready, 0) // Mealy
-
     var steps = 0
 
-    step(1)
-    println( s"doOut init: ${peek( c.io.Out.valid)}")
-
     breakable {
-    while( peek( c.io.Out.valid) == BigInt(0)) {
-      step(1)
-      if ( steps >= timeOut) {
-        println( s"Out loop timeOut")
-        break()
+      while( peek( c.io.Out.valid) == BigInt(0)) {
+        step(1)
+        if ( steps >= timeOut) {
+          println( s"Out loop timeOut")
+          break()
+        }
+        steps += 1
       }
-      steps += 1
+      println( s"doOut transfer: ${peek( c.io.Out.bits)} ${v}")
+      expect( c.io.Out.bits, v)
     }
-    }
-    expect( c.io.Out.bits, v)
   }
 
-  doIn( 47)
-  doOut( 47)
+  poke( c.io.Out.ready, 0)
+  poke( c.io.In.valid, 0)
 
-  doIn( 100)
-// This doesn't work yet
-//  doIn( 101)
+  expect( c.io.In.ready, 1) // Mealy
+  expect( c.io.Out.valid, 1) // Mealy
 
-//  doOut( 101)
-  doOut( 100)
+  step(1)
+
+  doIn(  47); step(1)
+  doOut( 47); step(1)
+
+  doIn( 100); step(1)
+  doIn( 101); step(1)
+
+  doOut( 101); step(1)
+  doIn( 102); step(1)
+  doIn( 103); step(1)
+  doIn( 104); step(1)
+
+  doOut( 104); step(1)
+  doOut( 103); step(1)
+  doOut( 102); step(1)
+  doOut( 100); step(1)
 }
 
 class LazyStackNTest extends FlatSpec with Matchers {
   behavior of "LazyStackN"
   it should "work" in {
-    chisel3.iotesters.Driver( () => new LazyStackN(2), "vcs") { c =>
+    chisel3.iotesters.Driver( () => new LazyStackN(10), "vcs") { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
