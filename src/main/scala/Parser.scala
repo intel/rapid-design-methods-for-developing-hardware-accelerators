@@ -92,7 +92,7 @@ object Parser extends Parsers {
   }
 
   def bexpr: Parser[BExpression] = positioned {
-    val a = bterm ~ AND() ~ bexpr ^^ { 
+    val a = bterm ~ ( AND() | LAND()) ~ bexpr ^^ { 
       case l ~ _ ~ r => AndBExpression( l, r)
     }
     a | bterm
@@ -106,7 +106,7 @@ object Parser extends Parsers {
     val cp = identifier ~ BANG() ^^ {
       case IDENTIFIER(s) ~ _ => NBCanPut( Port( s))
     }
-    val n = BANG() ~ bexpr ^^ { 
+    val n = ( BANG() | LNOT()) ~ bexpr ^^ { 
       case _ ~ n => NotBExpression( n)
     }
     val g = LPAREN() ~ bexpr ~ RPAREN() ^^ { 
@@ -122,10 +122,13 @@ object Parser extends Parsers {
     val m = term ~ ADD() ~ expr ^^ { 
       case t ~ _ ~ e => AddExpression( t, e)
     }
+    val s = term ~ SUB() ~ expr ^^ { 
+      case t ~ _ ~ e => SubExpression( t, e)
+    }
     val t = term ^^ { 
       case t => t
     }
-    m | t
+    m | s | t
   }
 
   def term: Parser[Expression] = positioned {

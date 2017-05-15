@@ -43,9 +43,9 @@ class VectorAdd2Tester(c:VectorAdd2) extends PeekPokeTester(c) {
   expect( c.io("A").ready, 0) // Mealy
   expect( c.io("B").ready, 0) // Mealy
 
-  step(1)
+  expect( c.io("O").valid, 0) // Mealy
 
-  expect( c.io("O").valid, 0) // Moore
+  step(1)
 
   poke( c.io("A").valid, 1)
   poke( c.io("B").valid, 1)
@@ -55,11 +55,10 @@ class VectorAdd2Tester(c:VectorAdd2) extends PeekPokeTester(c) {
   expect( c.io("A").ready, 1) // Mealy
   expect( c.io("B").ready, 1) // Mealy
 
+  expect( c.io("O").valid, 1) // Mealy
+  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](8,12)) // Mealy
+
   step(1)
-
-  expect( c.io("O").valid, 1) // Moore
-  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](8,12))
-
 }
 
 class VectorAdd2Test extends FlatSpec with Matchers {

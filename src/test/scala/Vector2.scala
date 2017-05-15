@@ -30,25 +30,24 @@ class Vector2 extends ImperativeModule(
 
 class Vector2Tester(c:Vector2) extends PeekPokeTester(c) {
   poke( c.io("O").ready, 1)
-
   poke( c.io("A").valid, 0)
 
-  expect( c.io("A").ready, 0) // Mealy
+// Mealy
+  expect( c.io("O").valid, 0)
+//  expect( c.io("A").ready, 1) /* don't care */
 
   step(1)
 
-  expect( c.io("O").valid, 0) // Moore
-
+  poke( c.io("O").ready, 1)
   poke( c.io("A").valid, 1)
   poke( c.io("A").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](1,10))
 
-  expect( c.io("O").ready, 1) // Mealy
+//Mealy
+  expect( c.io("O").valid, 1)
+  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](1,10))
+  expect( c.io("A").ready, 1)
 
   step(1)
-
-  expect( c.io("O").valid, 1) // Moore
-  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](1,10))  // Moore
-
 }
 
 class Vector2Test extends FlatSpec with Matchers {

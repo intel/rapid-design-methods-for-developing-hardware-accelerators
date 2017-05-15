@@ -65,23 +65,34 @@ class ImperativeModule( ast : Process) extends Module {
     case NBCanPut( Port( p)) => sT.pget( p)._1
   }
 
+  def evalWithoutPort( p : Port)( sT : SymTbl, ast : BExpression) : Bool = ast match {
+    case ConstantTrue => true.B
+    case EqBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] === eval( sT, r).asInstanceOf[UInt]
+    case AndBExpression( l, r) => evalWithoutPort( p)( sT, l) && evalWithoutPort( p)( sT, r)
+    case NotBExpression( e) => !evalWithoutPort( p)( sT, e)
+    case NBCanGet( Port( pp)) if Port( pp) == p => true.B
+    case NBCanGet( Port( pp)) if Port( pp) != p => sT.pget( pp)._2
+    case NBCanPut( Port( pp)) if Port( pp) == p => true.B
+    case NBCanPut( Port( pp)) if Port( pp) != p => sT.pget( pp)._1
+  }
 
   def eval( sT : SymTbl, ast : Expression) : Data = ast match {
     case VectorIndex( s, ConstantInteger( i)) => {
       val whole = sT( s).asInstanceOf[Vec[UInt]]
       val part = whole(i)
-//      printf( s"vector eval: ${s}(${i}) %d %d %d\n", whole(0), whole(1), part)
+//      printf( s"vector eval: ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
       part
     }
     case VectorIndex( s, e : Expression) => {
       val whole = sT( s).asInstanceOf[Vec[UInt]]
       val index = eval( sT, e).asInstanceOf[UInt]
       val part = whole(index)
-//      printf( s"vector eval: ${s}(${e}) %d %d %d %d\n", whole(0), whole(1), index, part)
+//      printf( s"vector eval: ${s}(${e}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
       part
     }
     case Variable( s) => sT( s)
     case AddExpression( l, r) => eval( sT, l).asInstanceOf[UInt] + eval( sT, r).asInstanceOf[UInt]
+    case SubExpression( l, r) => eval( sT, l).asInstanceOf[UInt] - eval( sT, r).asInstanceOf[UInt]
     case MulExpression( l, r) => eval( sT, l).asInstanceOf[UInt] * eval( sT, r).asInstanceOf[UInt]
     case ConstantInteger( i) => i.U
   }
@@ -164,22 +175,41 @@ class ImperativeModule( ast : Process) extends Module {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = Wire(init=v)
+// This line produces smaller intermediate code, but doesn't work in if/then/else (see VectorAddUpdateThenTest)
+//          val whole : Vec[UInt] = v
+//          println( s"XXXvector assignment: ${r} ${whole}")
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
-//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d\n", whole(0), whole(1), part)
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
           whole(i) := part
+
           sT.updated( s, whole)
         }
       }
     }
+/*
+    case Assignment( VectorIndex( s, ConstantInteger( i)), r) => {
+      sT( s) match {
+        case v : Vec[UInt] => {
+          val whole : Vec[UInt] = v
+//          println( s"XXXvector assignment: ${r} ${whole}")
+          val part : UInt = eval( sT, r).asInstanceOf[UInt]
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
+          val w = v.updated( i, part)
+          sT.updated( s, w)
+        }
+      }
+    }
+ */
     case Assignment( VectorIndex( s, i), r) => {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = Wire(init=v)
-// This line produces smaller intermediate code, but is going to do the wrong thing in an if then else
+// This line produces smaller intermediate code, but doesn't work in if/then/else (see VectorAddUpdateThenTest)
 //          val whole : Vec[UInt] = v
+//          println( s"XXXvector assignment: ${r} ${whole}")
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
           val index : UInt = eval( sT, i).asInstanceOf[UInt]
-//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d\n", whole(0), whole(1), index, part)
+//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
           whole(index) := part
           sT.updated( s, whole)
         }
@@ -188,7 +218,13 @@ class ImperativeModule( ast : Process) extends Module {
     case Assignment( _, _) => throw new ImproperLeftHandSideException
     case NBGet( Port( p), Variable( s)) => {
       val (r,v,d) = sT.pget( p)
-      sT.pupdated( p, true.B, v, d).updated( s, d)
+      val res_sT = sT.pupdated( p, true.B, v, d).updated( s, d)
+      res_sT.pget( p)._3 match {
+        case v : Vec[UInt] =>
+//          printf( s"nbget assignment: ${p} %d %d %d %d\n", v(0), v(1), v(2), v(3))
+        case _ => ()
+      }
+      res_sT
     }
     case NBPut( Port( p), e) => {
       val (r,v,d) = sT.pget( p)
@@ -197,7 +233,7 @@ class ImperativeModule( ast : Process) extends Module {
     case IfThenElse( b, t, e) => {
       val (bb, tST, eST) = ( eval( sT, b), eval( sT, t), eval( sT, e))
 
-      def mx[T <: Data]( p : T, t : T, e : T) : T = {
+      def mx[T <: Data]( bb : Bool, p : T, t : T, e : T) : T = {
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
         if ( p != t || p != e) {
           val w = Wire( init=e)
@@ -207,14 +243,16 @@ class ImperativeModule( ast : Process) extends Module {
       }
 
       val new_sT = (sT /: sT.keys) { case (s,k) =>
-        s.updated( k, mx( sT(k), tST(k), eST(k)))
+        s.updated( k, mx( bb, sT(k), tST(k), eST(k)))
       }
 
       sT.pkeys.foldLeft(new_sT){ (s,p) => {
+        val bbb = evalWithoutPort( Port( p))( sT, b)
+
         val (pr,pv,pd) = sT.pget( p) // previous
         val (tr,tv,td) = tST.pget( p)
         val (er,ev,ed) = eST.pget( p)
-        s.pupdated( p, mx( pr, tr, er), mx( pv, tv, ev), mx( pd, td, ed))
+        s.pupdated( p, mx( bbb, pr, tr, er), mx( bbb, pv, tv, ev), mx( bbb, pd, td, ed))
       }}
     }
   }
@@ -255,8 +293,10 @@ class ImperativeModule( ast : Process) extends Module {
     case PortDecl( Port(p), Out, _) => {
       val (r,v,d) = sTLast.pget( p)
 //      println( s"${p} v: ${v} d: ${d}")
-      io( p).valid := RegNext( next=v, init=false.B)
-      io( p).bits := RegNext( next=d)
+//      io( p).valid := RegNext( next=v, init=false.B)
+//      io( p).bits := RegNext( next=d)
+      io( p).valid := v
+      io( p).bits := d
     }
   }
 
