@@ -1,5 +1,6 @@
-package imperative
+package imperative.LazyStackComb
 
+import imperative.{ ImperativeModule}
 import org.scalatest.{ Matchers, FlatSpec, GivenWhenThen}
 
 import scala.util.control.Breaks
@@ -57,7 +58,6 @@ class LastStack extends Module
   io.Out.bits := 0.U
 }
 
-
 class LazyStackN( n : Int) extends Module {
   val io = IO(new Bundle {
     val In = Flipped(Decoupled(UInt(8.W)))
@@ -75,7 +75,6 @@ class LazyStackN( n : Int) extends Module {
     }
   }
 }
-
 
 class LazyStackNTester(c:LazyStackN) extends PeekPokeTester(c) {
 
@@ -129,8 +128,9 @@ class LazyStackNTester(c:LazyStackN) extends PeekPokeTester(c) {
   poke( c.io.Out.ready, 0)
   poke( c.io.In.valid, 0)
 
-  expect( c.io.In.ready, 1) // Mealy
-  expect( c.io.Out.valid, 1) // Mealy
+//Mealy
+//  expect( c.io.In.ready, 1) /* Don't care */
+//  expect( c.io.Out.valid, 1) /* Don't care */
 
   step(1)
 
