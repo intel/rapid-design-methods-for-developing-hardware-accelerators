@@ -84,16 +84,45 @@ class ImperativeModule( ast : Process) extends Module {
       part
     }
     case VectorIndex( s, e : Expression) => {
-      val whole = sT( s).asInstanceOf[Vec[UInt]]
       val index = eval( sT, e).asInstanceOf[UInt]
-      val part = whole(index)
-//      printf( s"vector eval: ${s}(${e}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
-      part
+      if ( index.isLit()) {
+        println( s"Converting to constant index: ${s}(${index.litValue()})")
+        eval( sT, VectorIndex( s, ConstantInteger( index.litValue().toInt)))
+      } else {
+        val whole = sT( s).asInstanceOf[Vec[UInt]]
+        val part = whole(index)
+//        printf( s"vector eval: ${s}(${e}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
+        part
+      }
     }
     case Variable( s) => sT( s)
-    case AddExpression( l, r) => eval( sT, l).asInstanceOf[UInt] + eval( sT, r).asInstanceOf[UInt]
-    case SubExpression( l, r) => eval( sT, l).asInstanceOf[UInt] - eval( sT, r).asInstanceOf[UInt]
-    case MulExpression( l, r) => eval( sT, l).asInstanceOf[UInt] * eval( sT, r).asInstanceOf[UInt]
+    case AddExpression( l, r) => {
+      val eL = eval( sT, l).asInstanceOf[UInt]
+      val eR = eval( sT, r).asInstanceOf[UInt]
+      if ( eL.isLit() && eR.isLit()) {
+        (eL.litValue() + eR.litValue()).U
+      } else {
+        eL + eR
+      }
+    }
+    case SubExpression( l, r) => {
+      val eL = eval( sT, l).asInstanceOf[UInt]
+      val eR = eval( sT, r).asInstanceOf[UInt]
+      if ( eL.isLit() && eR.isLit()) {
+        (eL.litValue() - eR.litValue()).U
+      } else {
+        eL - eR
+      }
+    }
+    case MulExpression( l, r) => {
+      val eL = eval( sT, l).asInstanceOf[UInt]
+      val eR = eval( sT, r).asInstanceOf[UInt]
+      if ( eL.isLit() && eR.isLit()) {
+        (eL.litValue() * eR.litValue()).U
+      } else {
+        eL * eR
+      }
+    }
     case ConstantInteger( i) => i.U
   }
 
@@ -171,6 +200,7 @@ class ImperativeModule( ast : Process) extends Module {
       seq.foldLeft(sT0){ eval}.pop
     }
     case Assignment( Variable( s), r) => sT.updated( s, eval( sT, r))
+
     case Assignment( VectorIndex( s, ConstantInteger( i)), r) => {
       sT( s) match {
         case v : Vec[UInt] => {
@@ -191,27 +221,35 @@ class ImperativeModule( ast : Process) extends Module {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = v
-//          println( s"XXXvector assignment: ${r} ${whole}")
+
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
 //          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
           val w = v.updated( i, part)
-          sT.updated( s, w)
+          val ww = Vec(w)
+          println( s"XXXvector assignment: ${r} ${whole} ${w} ${ww}")
+          sT.updated( s, ww)
         }
       }
     }
  */
+
     case Assignment( VectorIndex( s, i), r) => {
-      sT( s) match {
-        case v : Vec[UInt] => {
-          val whole : Vec[UInt] = Wire(init=v)
+      val index = eval( sT, i).asInstanceOf[UInt]
+      if ( index.isLit()) {
+        println( s"Vector assignment: convert to constant index ${s}(${index.litValue()})")
+        eval( sT, Assignment( VectorIndex( s, ConstantInteger( index.litValue().toInt)), r))
+      } else {
+        sT( s) match {
+          case v : Vec[UInt] => {
+            val whole : Vec[UInt] = Wire(init=v)
 // This line produces smaller intermediate code, but doesn't work in if/then/else (see VectorAddUpdateThenTest)
 //          val whole : Vec[UInt] = v
 //          println( s"XXXvector assignment: ${r} ${whole}")
-          val part : UInt = eval( sT, r).asInstanceOf[UInt]
-          val index : UInt = eval( sT, i).asInstanceOf[UInt]
+            val part : UInt = eval( sT, r).asInstanceOf[UInt]
 //          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
-          whole(index) := part
-          sT.updated( s, whole)
+            whole(index) := part
+            sT.updated( s, whole)
+          }
         }
       }
     }

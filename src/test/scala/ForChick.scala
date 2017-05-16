@@ -23,8 +23,11 @@ class VecCopy extends Module {
 
   println( s"v: ${v} c: ${c} u: ${u}")
 
+
+  val vv = Wire(Vec(2,UInt(8.W)), init=Vec(c))
+
   io.outv := v
-  io.outc := c
+  io.outc := vv
 
 }
 
