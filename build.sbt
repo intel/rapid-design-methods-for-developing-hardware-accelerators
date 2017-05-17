@@ -2,7 +2,7 @@ organization := "SCL"
 
 version := "0.1"
 
-name := "sparse_cnn_agile"
+name := "imperative"
 
 scalaVersion := "2.11.7"
 
