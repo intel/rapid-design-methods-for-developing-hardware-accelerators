@@ -2,14 +2,15 @@ package compiler
 
 import lexer.Lexer
 import parser.Parser
-import imperative.{Process, PortDeclList, Blk}
+import imperative.{Process, PortDeclList, Blk, SemanticAnalyzer}
 
 object Compiler {
   def apply(code: String): Either[CompilationError, Process] = {
     for {
       tokens <- Lexer(code).right
       ast <- Parser(tokens).right
-    } yield ast
+      ast2 <- SemanticAnalyzer( ast).right
+    } yield ast2
   }
   def run(code: String): Process = {
     apply(code) match {
