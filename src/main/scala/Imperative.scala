@@ -205,29 +205,24 @@ class ImperativeModule( ast : Process) extends Module {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = Wire(init=v)
-// This line produces smaller intermediate code, but doesn't work in if/then/else (see VectorAddUpdateThenTest)
-//          val whole : Vec[UInt] = v
-//          println( s"XXXvector assignment: ${r} ${whole}")
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
-//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
           whole(i) := part
-
           sT.updated( s, whole)
         }
       }
     }
+
 /*
     case Assignment( VectorIndex( s, ConstantInteger( i)), r) => {
       sT( s) match {
         case v : Vec[UInt] => {
           val whole : Vec[UInt] = v
-
-          val part : UInt = eval( sT, r).asInstanceOf[UInt]
-//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), part)
-          val w = v.updated( i, part)
-          val ww = Vec(w)
-          println( s"XXXvector assignment: ${r} ${whole} ${w} ${ww}")
-          sT.updated( s, ww)
+          val part : UInt = Wire( init=eval( sT, r).asInstanceOf[UInt])
+          val w : IndexedSeq[UInt] = whole.updated( i, part)
+// Vec still makes copies of everything
+          val vv = Vec(w)
+          println( s"YYYvector assignment: ${r} ${v} ${vv} ${part}")
+          sT.updated( s, vv)
         }
       }
     }
@@ -242,11 +237,7 @@ class ImperativeModule( ast : Process) extends Module {
         sT( s) match {
           case v : Vec[UInt] => {
             val whole : Vec[UInt] = Wire(init=v)
-// This line produces smaller intermediate code, but doesn't work in if/then/else (see VectorAddUpdateThenTest)
-//          val whole : Vec[UInt] = v
-//          println( s"XXXvector assignment: ${r} ${whole}")
             val part : UInt = eval( sT, r).asInstanceOf[UInt]
-//          printf( s"vector assignment: ${r} ${s}(${i}) %d %d %d %d %d %d\n", whole(0), whole(1), whole(2), whole(3), index, part)
             whole(index) := part
             sT.updated( s, whole)
           }

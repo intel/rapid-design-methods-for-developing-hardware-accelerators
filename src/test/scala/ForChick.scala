@@ -17,7 +17,7 @@ class VecCopy extends Module {
   v(0) := 0.U
   v(1) := 1.U
 
-  val u = 47.U
+  val u = 47.U + 0.U
 //  val c = v.updated[UInt,Vec[UInt]]( 0, u)
   val c : IndexedSeq[UInt] = v.updated( 0, u)
 
