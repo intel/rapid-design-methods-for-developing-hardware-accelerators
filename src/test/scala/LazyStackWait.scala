@@ -86,7 +86,7 @@ class LazyStackNTester(c:LazyStackN) extends PeekPokeTester(c) {
 class LazyStackNTest extends FlatSpec with Matchers {
   behavior of "LazyStackN"
   it should "work" in {
-    chisel3.iotesters.Driver( () => new LazyStackN(10), "vcs") { c =>
+    chisel3.iotesters.Driver( () => new LazyStackN(10), "firrtl") { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
