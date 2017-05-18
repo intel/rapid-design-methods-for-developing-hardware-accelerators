@@ -11,10 +11,7 @@ class CustomDecoupledBundle(elts: (String, DecoupledIO[Data], Type)*) extends Re
   override def cloneType = (new CustomDecoupledBundle(elts.toList: _*)).asInstanceOf[this.type]
 }
 
-class WaitOccursNotAtEndOfSingleWhileLoopException extends Exception
-class FinalCommandNotWhileTrueException extends Exception
-class WhileUsedIncorrectlyException extends Exception
-class BadTopLevelMatchException extends Exception
+class LoweredFormException extends Exception
 class ImproperLeftHandSideException extends Exception
 class NonConstantUnrollBoundsException extends Exception
 
@@ -103,22 +100,20 @@ class ImperativeModule( ast : Process) extends Module {
 
 
   def eval( sT : SymTbl, ast : Process) : SymTbl = ast match {
-    case Process( _, Blk( seqDeclLst, lst2)) => {
+    case Process( _, ResetWhileTrueWait( seqDeclLst, initSeq, mainBlk)) => {
 
         val sTinit = seqDeclLst.foldLeft(sT.push){
-// Really want this to be X, but using 47.U instead; Tests don't seem to break unless I do this
+// Really want this to be uninitialized, but using 47.U instead; Tests don't seem to break unless I do this
           case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W), init=47.U))
         }
 
-        val sTinit0 = eval( sTinit, Blk( List(), lst2.init))
+        val sTinit0 = eval( sTinit, Blk( List(), initSeq))
 
         val sT0 = seqDeclLst.foldLeft(sT.push){
           case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W)))
         }
 
-        val While( ConstantTrue, Blk( declLst, lst)) = lst2.last
-
-        val sT1 = eval( sT0, Blk( declLst, lst.init))
+        val sT1 = eval( sT0, mainBlk)
 
         sT0.keys.foreach{
           k => {
@@ -143,12 +138,13 @@ class ImperativeModule( ast : Process) extends Module {
         }
         sT1.pop
       }
-    case _ => throw new BadTopLevelMatchException
+    case _ => throw new LoweredFormException
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
-    case While( _, _) => throw new WhileUsedIncorrectlyException
-    case Wait => throw new WaitOccursNotAtEndOfSingleWhileLoopException
+    case While( _, _) => throw new LoweredFormException
+    case Wait => throw new LoweredFormException
+    case ResetWhileTrueWait( _, _, _) => throw new LoweredFormException
     case Unroll( Variable( v), ConstantInteger( lb), ConstantInteger( ub), cmd) => 
       (lb until ub).foldLeft( sT){ case( st, i) => eval( st.push.insert( v, i.U), cmd).pop}
     case Unroll( Variable( v), _, _, cmd) => throw new NonConstantUnrollBoundsException

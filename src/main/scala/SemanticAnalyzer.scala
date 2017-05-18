@@ -5,6 +5,7 @@ import collection.immutable.ListMap
 import collection.immutable.Set
 
 class NonConstantUnrollParametersException extends Exception
+class InnerResetWhileTrueWaitException extends Exception
 
 // Return communication ports that are unguarded
 class GuardStack( val portsWithErrors : Set[Port] = Set[Port](),
@@ -80,6 +81,7 @@ object SemanticAnalyzer {
       m.plus( mcmd.scalarMult( ub-lb))
     }
     case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
+    case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
   }
 
   def getCommunications( m : PortHisto, ast : Command) : PortHisto = ast match {
@@ -99,6 +101,7 @@ object SemanticAnalyzer {
       m.plus( mcmd.scalarMult( ub-lb))
     }
     case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
+    case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
   }
 
   def unguardedComms( m : GuardStack, ast : BExpression) : GuardStack = ast match {
@@ -125,6 +128,7 @@ object SemanticAnalyzer {
     case Wait => m
     case Unroll( Variable( v), ConstantInteger( lb), ConstantInteger( ub), cmd) => unguardedComms( m, cmd)
     case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
+    case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
   }
 
   def findWhile( m : Boolean, ast : Command) : Boolean = ast match {
@@ -133,11 +137,6 @@ object SemanticAnalyzer {
     case While( b, t) => true
     case Unroll( _, _, _, cmd) => findWhile( m, cmd)
     case _ => m
-  }
-
-  def lastWhileWithFinalWait( ast : Command) : Boolean = ast match {
-    case While( ConstantTrue, Blk( declLst, lst)) => lst.last == Wait
-    case _ => false
   }
 
   def initSegComms( ast : Command) : Boolean = {
@@ -166,13 +165,9 @@ object SemanticAnalyzer {
 
   def loweredCheck( ast : Process) : Either[CompilationError, Process] = {
     ast match {
-      case Process( portDeclList, Blk( localVars, seq)) => {
-        val initSeg = seq.init
-        val mainSeg = seq.last
+      case Process( portDeclList, ResetWhileTrueWait( localVars, initSeg, mainSeg)) => {
         if ( findWhile( false, Blk( localVars, initSeg))) {
           Left(SemanticAnalyzerError( s"While in initial segment"))
-        } else if( !lastWhileWithFinalWait( mainSeg)) {
-          Left(SemanticAnalyzerError( s"Last segment not a while true with final wait"))
         } else if ( initSegComms( Blk( localVars, initSeg))) {
           Left(SemanticAnalyzerError( s"Communications in initial segment"))
         } else if ( initSegGuards( Blk( localVars, initSeg))) {
@@ -193,13 +188,17 @@ object SemanticAnalyzer {
 
   def pass1( ast : Process) : Either[CompilationError, Process] = {
     ast match {
-      case Process( _, Blk( _, seq)) => {
-//        println( s"Performing semantic analysis ${ast}")
-        Right( ast)
-      }
-      case _ => {
-        Left(SemanticAnalyzerError("Can't have while at top level"))
-      }
+      case Process( portDecls, Blk( decls, seq)) =>
+        seq.last match {
+          case While( ConstantTrue, Blk( innerDecls, innerSeq)) =>
+            if ( Wait != innerSeq.last) {
+              Left(SemanticAnalyzerError("Don't have wait at end of segment"))
+            } else {
+              Right(Process( portDecls, ResetWhileTrueWait( decls, seq.init, Blk( innerDecls, innerSeq.init))))
+            }
+          case _ => Left(SemanticAnalyzerError("Don't have While( ConstantTrue, Blk(...)) combination"))
+        }
+      case _ => Left(SemanticAnalyzerError("Don't have top level process"))
     }
   }
 
