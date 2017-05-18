@@ -11,7 +11,6 @@ class CustomDecoupledBundle(elts: (String, DecoupledIO[Data], Type)*) extends Re
   override def cloneType = (new CustomDecoupledBundle(elts.toList: _*)).asInstanceOf[this.type]
 }
 
-class InitialSegmentContainsCommunicationException extends Exception
 class WaitOccursNotAtEndOfSingleWhileLoopException extends Exception
 class FinalCommandNotWhileTrueException extends Exception
 class WhileUsedIncorrectlyException extends Exception
@@ -31,30 +30,6 @@ class ImperativeModule( ast : Process) extends Module {
   }
 
   val io = IO(new CustomDecoupledBundle( iod_tuples: _*))
-
-  def containsCommunication( found : Boolean, ast : Expression) : Boolean = found
-
-  def containsCommunication( found : Boolean, ast : BExpression) : Boolean = ast match {
-    case NBCanGet( _) => true
-    case NBCanPut( _) => true
-    case _ => found
-  }
-  def containsCommunication( found : Boolean, ast : Command) : Boolean = ast match {
-    case Blk( _, seq) => (found /: seq){ containsCommunication}
-    case NBGet( _, _) => true
-    case NBPut( _, _) => true
-    case IfThenElse( b, t, e) => {
-      containsCommunication( found, b) ||
-      containsCommunication( found, t) ||
-      containsCommunication( found, e)
-    }
-    case While( b, t) => {
-      containsCommunication( found, b) ||
-      containsCommunication( found, t)
-    }
-    case _ => false
-  }
-
 
   def eval( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
@@ -135,24 +110,13 @@ class ImperativeModule( ast : Process) extends Module {
           case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W), init=47.U))
         }
 
-        if ( containsCommunication( false, Blk( List(), lst2.init))) {
-          throw new InitialSegmentContainsCommunicationException
-        }
-
         val sTinit0 = eval( sTinit, Blk( List(), lst2.init))
 
         val sT0 = seqDeclLst.foldLeft(sT.push){
           case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W)))
         }
 
-        val (declLst, lst) = lst2.last match {
-          case While( ConstantTrue, Blk( declLst, lst)) => (declLst, lst)
-          case _ => throw new FinalCommandNotWhileTrueException
-        }
-
-        if ( lst.last != Wait) {
-          throw new WaitOccursNotAtEndOfSingleWhileLoopException
-        }
+        val While( ConstantTrue, Blk( declLst, lst)) = lst2.last
 
         val sT1 = eval( sT0, Blk( declLst, lst.init))
 
@@ -322,8 +286,6 @@ class ImperativeModule( ast : Process) extends Module {
     case PortDecl( Port(p), Out, _) => {
       val (r,v,d) = sTLast.pget( p)
 //      println( s"${p} v: ${v} d: ${d}")
-//      io( p).valid := RegNext( next=v, init=false.B)
-//      io( p).bits := RegNext( next=d)
       io( p).valid := v
       io( p).bits := d
     }

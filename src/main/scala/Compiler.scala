@@ -16,9 +16,8 @@ object Compiler {
     apply(code) match {
       case Right(ast) => ast
       case Left(ex) => {
-        println( ex)
-        assert( false)
-        Process( PortDeclList( List()), Blk( List(), List()))
+        println( s"${ex}")
+        throw new CompilationErrorException( ex)
       }
     }
   }
