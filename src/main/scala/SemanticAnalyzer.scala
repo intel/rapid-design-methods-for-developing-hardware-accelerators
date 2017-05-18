@@ -15,30 +15,32 @@ class GuardStack( val portsWithErrors : Set[Port] = Set[Port](),
   def addPortWithError( p : Port) = new GuardStack( portsWithErrors + p, activeGuards)
   def isActiveGuard( p : Port) : Boolean = activeGuards.foldLeft(false){ case (b,s) => b || s.contains( p)}
   def mergePortsWithErrors( that : GuardStack) = new GuardStack( portsWithErrors ++ that.portsWithErrors, activeGuards)
+
 }
 
-class BadPortMap( val q : ListMap[Port,Int] = ListMap[Port,Int]()) {
+class PortHisto( private val q : ListMap[Port,Int] = ListMap[Port,Int]()) {
 
-  def max( that : BadPortMap) : BadPortMap = {
-    new BadPortMap( q.toList.foldLeft( that.q) { 
+  def max( that : PortHisto) : PortHisto = {
+    new PortHisto( q.toList.foldLeft( that.q) { 
       case ( m, (k,v)) =>
         m.updated( k, scala.math.max( m.getOrElse( k, 0), v))
     })
   }
-  def plus( that : BadPortMap) : BadPortMap = {
-    new BadPortMap( q.toList.foldLeft( that.q) { 
+  def plus( that : PortHisto) : PortHisto = {
+    new PortHisto( q.toList.foldLeft( that.q) { 
       case ( m, (k,v)) =>
         m.updated( k, m.getOrElse( k, 0) + v)
     })
   }
-  def scalarMult( r : Int) : BadPortMap = {
-    new BadPortMap( ListMap[Port,Int]( q.toList.map{ case (k,v) => (k,v*r)}: _*))
+  def scalarMult( r : Int) : PortHisto = {
+    new PortHisto( ListMap[Port,Int]( q.toList.map{ case (k,v) => (k,v*r)}: _*))
   }
 
-  def updated( p : Port, v : Int) = new BadPortMap( q.updated( p, v))
+  def updated( p : Port, v : Int) = new PortHisto( q.updated( p, v))
  
   def getOrElse( p : Port, v : Int) = q.getOrElse( p, v)
 
+  def filter( f : ((Port,Int)) => Boolean ) = q.filter{ f}
 
 }
 
@@ -47,11 +49,40 @@ object SemanticAnalyzer {
   def apply( ast : Process) : Either[CompilationError, Process] = {
     for {
       ast1 <- pass1( ast).right
-      ast2 <- pass2( ast1).right
+      ast2 <- loweredCheck( ast1).right
     } yield ast2
   }
 
-  def getCommunications( m : BadPortMap, ast : Command) : BadPortMap = ast match {
+  def getGuards( m : PortHisto, ast : BExpression) : PortHisto = ast match {
+    case NBCanGet( p) => m.updated( p, m.getOrElse( p, 0) + 1)
+    case NBCanPut( p) => m.updated( p, m.getOrElse( p, 0) + 1)
+    case AndBExpression( l, r) => getGuards( getGuards( m, l), r)
+    case NotBExpression( b) => getGuards( m, b)
+    case EqBExpression( l, r) => m
+    case ConstantTrue => m
+  }
+
+  def getGuards( m : PortHisto, ast : Command) : PortHisto = ast match {
+    case Blk( _, seq) => (m /: seq){ getGuards}
+    case NBGet( p, _) => m
+    case NBPut( p, _) => m
+    case IfThenElse( b, t, e) => {
+      val mb = getGuards( m, b)
+      val mt = getGuards( m, t)
+      val me = getGuards( m, e)
+      mb.max( mt).max( me)
+    }
+    case While( b, t) => getGuards( getGuards( m, b), t)
+    case Assignment( _, _) => m
+    case Wait => m
+    case Unroll( Variable( v), ConstantInteger( lb), ConstantInteger( ub), cmd) => {
+      val mcmd = getGuards( new PortHisto, cmd)
+      m.plus( mcmd.scalarMult( ub-lb))
+    }
+    case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
+  }
+
+  def getCommunications( m : PortHisto, ast : Command) : PortHisto = ast match {
     case Blk( _, seq) => (m /: seq){ getCommunications}
     case NBGet( p, _) => m.updated( p, m.getOrElse( p, 0) + 1)
     case NBPut( p, _) => m.updated( p, m.getOrElse( p, 0) + 1)
@@ -64,7 +95,7 @@ object SemanticAnalyzer {
     case Assignment( _, _) => m
     case Wait => m
     case Unroll( Variable( v), ConstantInteger( lb), ConstantInteger( ub), cmd) => {
-      val mcmd = getCommunications( new BadPortMap, cmd)
+      val mcmd = getCommunications( new PortHisto, cmd)
       m.plus( mcmd.scalarMult( ub-lb))
     }
     case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
@@ -110,22 +141,30 @@ object SemanticAnalyzer {
   }
 
   def initSegComms( ast : Command) : Boolean = {
-    val badPorts = getCommunications( new BadPortMap, ast).q.filter{ case (k,v) => v > 0}
+    val badPorts = getCommunications( new PortHisto, ast).filter{ case (k,v) => v > 0}
     if ( badPorts.size > 0) {
       println( s"Communications in initial segment ${badPorts.toList.mkString}")
     }
     return badPorts.size > 0
   }
 
+  def initSegGuards( ast : Command) : Boolean = {
+    val badPorts = getGuards( new PortHisto, ast).filter{ case (k,v) => v > 0}
+    if ( badPorts.size > 0) {
+      println( s"Guards in initial segment ${badPorts.toList.mkString}")
+    }
+    return badPorts.size > 0
+  }
+
   def mainSegMultiComms( ast : Command) : Boolean = {
-    val badPorts = getCommunications( new BadPortMap, ast).q.filter{ case (k,v) => v > 1}
+    val badPorts = getCommunications( new PortHisto, ast).filter{ case (k,v) => v > 1}
     if ( badPorts.size > 0) {
       println( s"Multiple communications (possibly) in the same cycle: ${badPorts.toList.mkString}")
     }
     return badPorts.size > 0
   }
 
-  def pass1( ast : Process) : Either[CompilationError, Process] = {
+  def loweredCheck( ast : Process) : Either[CompilationError, Process] = {
     ast match {
       case Process( portDeclList, Blk( localVars, seq)) => {
         val initSeg = seq.init
@@ -136,6 +175,8 @@ object SemanticAnalyzer {
           Left(SemanticAnalyzerError( s"Last segment not a while true with final wait"))
         } else if ( initSegComms( Blk( localVars, initSeg))) {
           Left(SemanticAnalyzerError( s"Communications in initial segment"))
+        } else if ( initSegGuards( Blk( localVars, initSeg))) {
+          Left(SemanticAnalyzerError( s"Communication guards in initial segment"))
         } else if ( mainSegMultiComms( mainSeg)) {
           Left(SemanticAnalyzerError( s"Multiple communications (possibly) in the same cycle"))
         } else if ( unguardedComms( new GuardStack(), mainSeg).portsWithErrors.size > 0) {
@@ -150,7 +191,7 @@ object SemanticAnalyzer {
     }
   }
 
-  def pass2( ast : Process) : Either[CompilationError, Process] = {
+  def pass1( ast : Process) : Either[CompilationError, Process] = {
     ast match {
       case Process( _, Blk( _, seq)) => {
 //        println( s"Performing semantic analysis ${ast}")
