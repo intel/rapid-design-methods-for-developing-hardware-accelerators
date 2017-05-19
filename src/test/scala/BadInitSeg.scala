@@ -81,17 +81,17 @@ process GoodInitSeg ( O: out UInt(80))
 class InitSegTest extends FreeSpec with Matchers {
   "Init Segments" - {
     "nbcanput in init segment should throw an exception" in {
-      an [CompilationErrorException] should be thrownBy {
+      a [CompilationErrorException] should be thrownBy {
         Compiler.run(BadInitSeg.txt)
       }
     }
     "while in init segment should throw an exception" in {
-      an [CompilationErrorException] should be thrownBy {
+      a [CompilationErrorException] should be thrownBy {
         Compiler.run(BadInitSeg.txt2)
       }
     }
     "nbput in init segment should throw an exception" in {
-      an [CompilationErrorException] should be thrownBy {
+      a [CompilationErrorException] should be thrownBy {
         Compiler.run(BadInitSeg.txt3)
       }
     }
