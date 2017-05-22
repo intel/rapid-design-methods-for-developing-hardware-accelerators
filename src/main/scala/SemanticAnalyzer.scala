@@ -138,61 +138,53 @@ object SemanticAnalyzer {
     case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
   }
 
-  def findUnguardedComms( mainSeg : Command) : Boolean = {
+  def findUnguardedComms( mainSeg : Command) : Option[String] = {
     val p = unguardedComms( new GuardStack(), mainSeg).portsWithErrors
-    if ( !p.isEmpty) {
-      println( s"Unguarded communications on: ${p}")
+    if ( p.isEmpty) None else Some( s"Unguarded communications on: ${p}")
+  }
+
+  def findWhile( ast : Command, tag : String) : Option[String] = {
+    def findWhile( m : Boolean, ast : Command) : Boolean = ast match {
+      case Blk( _, seq) => (m /: seq){ findWhile}
+      case IfThenElse( b, t, e) => findWhile( findWhile( m, t), e)
+      case While( b, t) => true
+      case Unroll( _, _, _, cmd) => findWhile( m, cmd)
+      case _ => m
     }
-    !p.isEmpty
+    if ( findWhile( false, ast)) Some( s"While loop in ${tag}") else None
   }
 
-  def findWhile( m : Boolean, ast : Command) : Boolean = ast match {
-    case Blk( _, seq) => (m /: seq){ findWhile}
-    case IfThenElse( b, t, e) => findWhile( findWhile( m, t), e)
-    case While( b, t) => true
-    case Unroll( _, _, _, cmd) => findWhile( m, cmd)
-    case _ => m
-  }
-
-  def initSegComms( ast : Command) : Boolean = {
+  def initSegComms( ast : Command) : Option[String] = {
     val badPorts = getCommunications( new PortHisto, ast).filter{ case (k,v) => v > 0}
-    if ( badPorts.size > 0) {
-      println( s"Communications in initial segment ${badPorts.toList.mkString}")
-    }
-    return badPorts.size > 0
+    if ( badPorts.isEmpty) None else Some( s"Communications in initial segment ${badPorts.toList.mkString}")
   }
 
-  def initSegGuards( ast : Command) : Boolean = {
+  def initSegGuards( ast : Command) : Option[String] = {
     val badPorts = getGuards( new PortHisto, ast).filter{ case (k,v) => v > 0}
-    if ( badPorts.size > 0) {
-      println( s"Guards in initial segment ${badPorts.toList.mkString}")
-    }
-    return badPorts.size > 0
+    if ( badPorts.isEmpty) None else Some( s"Guards in initial segment ${badPorts.toList.mkString}")
   }
 
-  def mainSegMultiComms( ast : Command) : Boolean = {
+  def mainSegMultiComms( ast : Command) : Option[String] = {
     val badPorts = getCommunications( new PortHisto, ast).filter{ case (k,v) => v > 1}
-    if ( badPorts.size > 0) {
-      println( s"Multiple communications (possibly) in the same cycle: ${badPorts.toList.mkString}")
-    }
-    return badPorts.size > 0
+    if ( badPorts.isEmpty) None else Some( s"Multiple communications (possibly) in the same cycle: ${badPorts.toList.mkString}")
   }
 
   def loweredCheck( ast : Process) : Either[CompilationError, Process] = {
     ast match {
       case Process( portDeclList, ResetWhileTrueWait( localVars, initSeg, mainSeg)) => {
+// Warnings
         mainSegMultiComms( mainSeg)
-        val e = (findWhile( false, Blk( localVars, initSeg)), s"While in initial segment") ::
-                (initSegComms( Blk( localVars, initSeg)), s"Communications in initial segment") ::
-                (initSegGuards( Blk( localVars, initSeg)), s"Communication guards in initial segment") ::
-                (findUnguardedComms( mainSeg), s"Unguarded communications") ::
-                List[(Boolean,String)]()
-        val errors = e.filter{ _._1}
+        val e = findWhile( Blk( localVars, initSeg), "initial segment") ::
+                findWhile( mainSeg, "main segment") ::
+                initSegComms( Blk( localVars, initSeg)) :: 
+                initSegGuards( Blk( localVars, initSeg)) ::
+                findUnguardedComms( mainSeg) ::
+                List[Option[String]]()
+        val errors = e.flatMap{ identity[Option[String]]}
         if ( errors.isEmpty) {
           Right( ast)
         } else {
-          val tags = errors.map{ _._2}.mkString("; ")
-          Left(SemanticAnalyzerError( tags))
+          Left(SemanticAnalyzerError( errors.mkString("; ")))
         }
       }
       case _ => {
@@ -217,15 +209,23 @@ object SemanticAnalyzer {
     }
   }
 
+  def printWaits( cmd : Command) : Unit = cmd match {
+    case While( b, e) => printWaits( e)
+    case Blk( decls, seq) => seq.foreach{ printWaits}
+    case NBGet( p, v) => ()
+    case NBPut( p, v) => ()
+    case Wait => println( s"\t${cmd}")
+    case _ => () // println( s"\tprintWaits: Unimplemented command ${cmd}")
+  }
+
   def TransformWaits( ast : Process) : Either[CompilationError, Process] = {
     println(ast)
 
     ast match {
-      case Process( portDecls, Blk( decls, seq)) =>
+      case Process( portDecls, Blk( decls, seq)) => ()
+        seq.foreach{ printWaits}
       case _ => ()
     }
-
-
 
     pass1( ast)
   }
