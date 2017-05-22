@@ -28,7 +28,7 @@ import compiler._
     """.stripMargin.trim
  */
 class Split extends ImperativeModule( 
-  Compiler.run(
+  Compiler.runHLS(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
@@ -154,6 +154,7 @@ class Split extends ImperativeModule(
       |}
     """.stripMargin.trim))
  */
+
 
 class Merge extends ImperativeModule( 
   Compiler.run(

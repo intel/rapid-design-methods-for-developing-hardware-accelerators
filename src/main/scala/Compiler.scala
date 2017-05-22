@@ -21,4 +21,20 @@ object Compiler {
       }
     }
   }
+  def hls(code: String): Either[CompilationError, Process] = {
+    for {
+      tokens <- Lexer(code).right
+      ast <- Parser(tokens).right
+      ast2 <- SemanticAnalyzer.hls( ast).right
+    } yield ast2
+  }
+  def runHLS(code: String): Process = {
+    hls(code) match {
+      case Right(ast) => ast
+      case Left(ex) => {
+        println( s"${ex}")
+        throw new CompilationErrorException( ex)
+      }
+    }
+  }
 }
