@@ -166,14 +166,13 @@ object SemanticAnalyzer {
   def loweredCheck( ast : Process) : Either[CompilationError, Process] = {
     ast match {
       case Process( portDeclList, ResetWhileTrueWait( localVars, initSeg, mainSeg)) => {
+        mainSegMultiComms( mainSeg)
         if ( findWhile( false, Blk( localVars, initSeg))) {
           Left(SemanticAnalyzerError( s"While in initial segment"))
         } else if ( initSegComms( Blk( localVars, initSeg))) {
           Left(SemanticAnalyzerError( s"Communications in initial segment"))
         } else if ( initSegGuards( Blk( localVars, initSeg))) {
           Left(SemanticAnalyzerError( s"Communication guards in initial segment"))
-        } else if ( mainSegMultiComms( mainSeg)) {
-          Left(SemanticAnalyzerError( s"Multiple communications (possibly) in the same cycle"))
         } else if ( unguardedComms( new GuardStack(), mainSeg).portsWithErrors.size > 0) {
           Left(SemanticAnalyzerError( s"Unguarded communications"))
         } else {

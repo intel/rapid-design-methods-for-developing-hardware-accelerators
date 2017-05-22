@@ -207,13 +207,7 @@ class ImperativeModule( ast : Process) extends Module {
     case Assignment( _, _) => throw new ImproperLeftHandSideException
     case NBGet( Port( p), Variable( s)) => {
       val (r,v,d) = sT.pget( p)
-      val res_sT = sT.pupdated( p, true.B, v, d).updated( s, d)
-      res_sT.pget( p)._3 match {
-        case v : Vec[UInt] =>
-//          printf( s"nbget assignment: ${p} %d %d %d %d\n", v(0), v(1), v(2), v(3))
-        case _ => ()
-      }
-      res_sT
+      sT.pupdated( p, true.B, v, d).updated( s, d)
     }
     case NBPut( Port( p), e) => {
       val (r,v,d) = sT.pget( p)
@@ -276,12 +270,10 @@ class ImperativeModule( ast : Process) extends Module {
   decl_lst.foreach {
     case PortDecl( Port(p), Inp, _) => {
       val (r,v,d) = sTLast.pget( p)
-//      println( s"${p} r: ${r}")
       io(p).ready := r
     }
     case PortDecl( Port(p), Out, _) => {
       val (r,v,d) = sTLast.pget( p)
-//      println( s"${p} v: ${v} d: ${d}")
       io( p).valid := v
       io( p).bits := d
     }
