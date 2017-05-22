@@ -27,6 +27,12 @@ class PortHisto( private val q : ListMap[Port,Int] = ListMap[Port,Int]()) {
         m.updated( k, scala.math.max( m.getOrElse( k, 0), v))
     })
   }
+  def min( that : PortHisto) : PortHisto = {
+    new PortHisto( q.toList.foldLeft( that.q) { 
+      case ( m, (k,v)) =>
+        m.updated( k, scala.math.min( m.getOrElse( k, 0), v))
+    })
+  }
   def plus( that : PortHisto) : PortHisto = {
     new PortHisto( q.toList.foldLeft( that.q) { 
       case ( m, (k,v)) =>
@@ -49,7 +55,8 @@ object SemanticAnalyzer {
 
   def apply( ast : Process) : Either[CompilationError, Process] = {
     for {
-      ast1 <- pass1( ast).right
+//      ast1 <- pass1( ast).right
+      ast1 <- TransformWaits( ast).right
       ast2 <- loweredCheck( ast1).right
     } yield ast2
   }
@@ -131,6 +138,14 @@ object SemanticAnalyzer {
     case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
   }
 
+  def findUnguardedComms( mainSeg : Command) : Boolean = {
+    val p = unguardedComms( new GuardStack(), mainSeg).portsWithErrors
+    if ( !p.isEmpty) {
+      println( s"Unguarded communications on: ${p}")
+    }
+    !p.isEmpty
+  }
+
   def findWhile( m : Boolean, ast : Command) : Boolean = ast match {
     case Blk( _, seq) => (m /: seq){ findWhile}
     case IfThenElse( b, t, e) => findWhile( findWhile( m, t), e)
@@ -167,16 +182,17 @@ object SemanticAnalyzer {
     ast match {
       case Process( portDeclList, ResetWhileTrueWait( localVars, initSeg, mainSeg)) => {
         mainSegMultiComms( mainSeg)
-        if ( findWhile( false, Blk( localVars, initSeg))) {
-          Left(SemanticAnalyzerError( s"While in initial segment"))
-        } else if ( initSegComms( Blk( localVars, initSeg))) {
-          Left(SemanticAnalyzerError( s"Communications in initial segment"))
-        } else if ( initSegGuards( Blk( localVars, initSeg))) {
-          Left(SemanticAnalyzerError( s"Communication guards in initial segment"))
-        } else if ( unguardedComms( new GuardStack(), mainSeg).portsWithErrors.size > 0) {
-          Left(SemanticAnalyzerError( s"Unguarded communications"))
-        } else {
+        val e = (findWhile( false, Blk( localVars, initSeg)), s"While in initial segment") ::
+                (initSegComms( Blk( localVars, initSeg)), s"Communications in initial segment") ::
+                (initSegGuards( Blk( localVars, initSeg)), s"Communication guards in initial segment") ::
+                (findUnguardedComms( mainSeg), s"Unguarded communications") ::
+                List[(Boolean,String)]()
+        val errors = e.filter{ _._1}
+        if ( errors.isEmpty) {
           Right( ast)
+        } else {
+          val tags = errors.map{ _._2}.mkString("; ")
+          Left(SemanticAnalyzerError( tags))
         }
       }
       case _ => {
@@ -199,6 +215,19 @@ object SemanticAnalyzer {
         }
       case _ => Left(SemanticAnalyzerError("Don't have top level process"))
     }
+  }
+
+  def TransformWaits( ast : Process) : Either[CompilationError, Process] = {
+    println(ast)
+
+    ast match {
+      case Process( portDecls, Blk( decls, seq)) =>
+      case _ => ()
+    }
+
+
+
+    pass1( ast)
   }
 
 }

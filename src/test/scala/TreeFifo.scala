@@ -27,28 +27,29 @@ import compiler._
       |}
     """.stripMargin.trim
  */
-/*
+class Split extends ImperativeModule( 
+  Compiler.run(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
       |  while ( !P?) wait
       |  P?x
-      |  wait //0 (The wait here make it buffered)
+      |  wait
       |  while ( true) {
       |    while ( !Q0!) wait
       |    Q0!x
       |    while ( !P?) wait
       |    P?x
-      |    wait //1 (The wait here make it buffered)
+      |    wait
       |    while ( !Q1!) wait
       |    Q1!x
       |    while ( !P?) wait
       |    P?x
-      |    wait //0 (The wait here make it buffered)
+      |    wait
       |  }
       |}
-    """.stripMargin.trim
- */
+    """.stripMargin.trim))
+
 /* // would like to write it like this
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
@@ -66,6 +67,7 @@ import compiler._
       |}
     """.stripMargin.trim
  */
+/*
 class Split extends ImperativeModule( 
   Compiler.run(
     """
@@ -112,6 +114,7 @@ class Split extends ImperativeModule(
       |  }
       |}
     """.stripMargin.trim))
+ */
 
 /*
 class Split extends ImperativeModule( 
