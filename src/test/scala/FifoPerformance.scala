@@ -209,7 +209,7 @@ class TreeFifoPerformanceTest extends FlatSpec with Matchers {
   behavior of "TreeFifo"
 
   it should "work" in {
-    chisel3.iotesters.Driver( () => new TreeFifo, "verilator") { c =>
+    chisel3.iotesters.Driver( () => new TreeFifo, "vcs") { c =>
       new FifoPerformanceTester(c)
     } should be (true)
   }

@@ -239,15 +239,15 @@ object SemanticAnalyzer {
     case Blk( decls, seq) => seq.foldLeft( LGSeq(List())) { case (x,y) =>
       val lgY = List( genLG( y))
       x match {
-        case LGSeq( hd :: tl) => {
-          (hd::tl).last match {
+        case LGSeq( lst0@(hd::tl)) => {
+          lst0.last match {
             case LGWhileNotProbeWait( g, LGSeq( lst), _) if isPrimOrWait( lgY.head) => {
 //              println( s"Matching and extending ProbeWait: ${lgY.head}")
-              LGSeq( (hd::tl).init ++ List( LGWhileNotProbeWait( g, LGSeq( lst ++ lgY), (0,0))))
+              LGSeq( lst0.init ++ List( LGWhileNotProbeWait( g, LGSeq( lst ++ lgY), (0,0))))
             }
             case _ => {
 //              println( s"Not Matching and extending ProbeWait: ${hd::tl}")
-              LGSeq( (hd::tl) ++ lgY)
+              LGSeq( lst0 ++ lgY)
             }
           }
         }
@@ -263,49 +263,30 @@ object SemanticAnalyzer {
     case _ => { println( s"\tgenLG: Unimplemented command ${cmd}"); LGPrim( cmd)}
   }
 
-  def allLGWhileNotProbeWait( b : Boolean, lg : LabeledGraph) : Boolean = lg match {
-    case LGWhileNotProbeWait( g, LGSeq( lst), _) => lst.foldLeft(b){ noLGWhileNotProbeWait}
-    case _ => false
-  }
-
-  def noLGWhileNotProbeWait( b : Boolean, lg : LabeledGraph) : Boolean = lg match {
-    case LGWhileNotProbeWait( g, LGSeq( lst), _) => false
-    case _ => b
-  }
-
-  def testTL( lg : LabeledGraph) : Boolean = lg match {
-    case LGSeq( Nil) => true
-    case LGSeq( lst) => lst.last match {
-      case LGWhileTrue( LGSeq( lst2)) =>
-        lst2.foldLeft( lst.init.foldLeft( true){ allLGWhileNotProbeWait}){ allLGWhileNotProbeWait}
-      case _ => false
-    }
-    case _ => false
-  }
-
-
   def assignLabels( tup : (Int,LabeledGraph)) : (Int,LabeledGraph) = {
     val ( count, lg) = tup
     lg match {
       case LGSeq( lst) =>
         lst.foldLeft( ( count, LGSeq(List()))){ case ( ( count, LGSeq( lst0)), x) =>
-          val ( count0, x0) = assignLabels( (count, x))
-          ( count0, LGSeq( lst0 ++ List(x0)))
+          x match {
+            case LGWhileTrue( lg0@LGSeq( seq)) => {
+              val (c, LGSeq( lst)) = assignLabels( (count, lg0))
+              val ( count0, x0) = lst.last match {
+                case LGWhileNotProbeWait( g, seq, lbl) => {
+                  val newl = LGSeq( lst.init ++ List( LGWhileNotProbeWait( g, seq, (lbl._1,count))))
+                  ( c, newl)
+                }
+              }
+              ( count0, LGSeq( lst0 ++ List(x0)))
+            }
+            case _ => {
+              val ( count0, x0) = assignLabels( (count, x))
+              ( count0, LGSeq( lst0 ++ List(x0)))
+            }
+          }
         }
       case LGWhileNotProbeWait( g, seq@LGSeq( lst), _) =>
         (count+1, LGWhileNotProbeWait( g, seq, (count,count+1)))
-      case LGWhileTrue( lg0) => {
-        println( s"assignLabels LGWhileTrue: Before ${count} ${lg}")
-        val (c,l) = assignLabels( (count, lg0))
-        println( s"assignLabels LGWhileTrue: After ${c} ${l}")
-        val LGSeq( lst) = l
-        lst.last match {
-          case LGWhileNotProbeWait( g, seq, lbl) => {
-            val newl = LGSeq( lst.init ++ List( LGWhileNotProbeWait( g, seq, (lbl._1,count))))
-            ( c, newl)
-          }
-        }
-      }
       case _ => { println( s"assignLabels: Not expecting ${count} ${lg}"); (count,lg)}
     }
   }
@@ -337,9 +318,29 @@ object SemanticAnalyzer {
         Blk( List(), List())
       )
     }
-    case LGWhileTrue( lg0) => transLG( s, lg0)
     case LGPrim( cmd) => cmd
-    case LGWait() => Wait
+    case LGWhileTrue( lg0) => throw new Exception("Wrong LG form")
+    case LGWait() => throw new Exception("Wrong LG form")
+  }
+
+  def allLGWhileNotProbeWait( b : Boolean, lg : LabeledGraph) : Boolean = lg match {
+    case LGWhileNotProbeWait( g, LGSeq( lst), _) => lst.foldLeft(b){ noLGWhileNotProbeWait}
+    case _ => false
+  }
+
+  def noLGWhileNotProbeWait( b : Boolean, lg : LabeledGraph) : Boolean = lg match {
+    case LGWhileNotProbeWait( g, LGSeq( lst), _) => false
+    case _ => b
+  }
+
+  def testTL( lg : LabeledGraph) : Boolean = lg match {
+    case LGSeq( Nil) => true
+    case LGSeq( lst) => lst.last match {
+      case LGSeq( lst2) =>
+        lst2.foldLeft( lst.init.foldLeft( true){ allLGWhileNotProbeWait}){ allLGWhileNotProbeWait}
+      case _ => false
+    }
+    case _ => false
   }
 
   def TransformWaits( ast : Process) : Either[CompilationError, Process] = {
@@ -347,17 +348,32 @@ object SemanticAnalyzer {
 
     val ast0 = ast match {
       case Process( portDecls, Blk( decls, seq)) => {
-        val (newCount, lg0) = assignLabels( (0, genLG( Blk( decls, seq))))
-        println( s"Labeled graph: ${newCount} ${lg0} testTL: ${testTL( lg0)}")
-        val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg0)
-        val decls0 = decls ++ List( Decl(Variable("s"),UIntType(4)), Decl(Variable("w"),UIntType(1)))
-        val p = Process( portDecls, Blk( decls0, List(While( ConstantTrue, Blk( newDecls, newSeq ++ List(Wait))))))
+        val (count0, lg0) = assignLabels( (0, genLG( Blk( decls, seq))))
+        println( s"Labeled graph: ${lg0} testTL: ${testTL( lg0)}")
+
+// Don't know why I need this, but I do.
+        val lg1 = {
+          val LGSeq( lst0) = lg0
+          val LGSeq( y) = lst0.last
+          LGSeq( lst0.init ++ y.toList)
+        }
+// Need to declare "s" (induction) and initialize to zero
+// Need to declare "w" (combinational) and initialize to zero
+
+// Should check that count0 <= 2^^4        
+
+        val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg1)
+        val decls0 = decls ++ List( Decl(Variable("s"),UIntType(4)))
+        val newDecls0 = newDecls ++ List( Decl(Variable("w"),UIntType(1)))
+        val p = Process( portDecls,
+                  Blk( decls0, List( Assignment(Variable("s"),ConstantInteger(0)), While( ConstantTrue,
+                    Blk( newDecls0,
+                      List( Assignment(Variable("w"),ConstantInteger(0))) ++ newSeq ++ List(Wait))))))
         PrintAST.p( 0, p)
         p
       }
       case _ => throw new Exception("Wrong AST form")
     }
-    throw new Exception("Just Stop Early for Debugging")
     pass1( ast0)
   }
 
@@ -375,48 +391,54 @@ object PrintAST {
   }
   def p( indent : Int, ast : Command) : Unit = ast match {
     case While( b, e) => {
-      println( s"${i(indent)}While")
-      p( indent + 2, b)
+      print( s"${i(indent)}while (")
+      p( 0, b)
+      println( ")")
       p( indent + 2, e)
     }
     case Blk( decls, seq) => {
-      println( s"${i(indent)}Blk")
+      println( s"${i(indent)}{")
       decls.foreach{ x => println( s"${i(indent+2)}${x}")}
       seq.foreach{ x => p( indent + 2, x)}
+      println( s"${i(indent)}}")
     }
-    case NBGet( _, _) => println( s"${i(indent)}${ast}")
-    case NBPut( _, _) => println( s"${i(indent)}${ast}")
-    case Assignment( _, _) => println( s"${i(indent)}${ast}")
-    case Wait => println( s"${i(indent)}${ast}")
+    case NBGet( Port( p), Variable( v)) => println( s"${i(indent)}${p}?${v}")
+    case NBPut( Port( p), Variable( v)) => println( s"${i(indent)}${p}!${v}")
+    case Assignment( Variable( v), e) => {
+      print( s"${i(indent)}${v} = ")
+      p( 0, e)
+      println( "")
+    }
+    case Wait => println( s"${i(indent)}wait")
     case IfThenElse( b, t, e) => {
-      println( s"${i(indent)}If")
+      print( s"${i(indent)}if (")
       p( indent + 2 , b)
-      println( s"${i(indent)}Then")
+      println( s")")
       p( indent + 2, t)
-      println( s"${i(indent)}Else")
+      println( s"${i(indent)}else")
       p( indent + 2, e)
     }
     case _ => throw new Exception(s"Wrong AST form: ${ast}")
   }
   def p( indent : Int, ast : BExpression) : Unit = ast match {
-    case ConstantTrue => println( s"${i(indent)}${ast}")
+    case ConstantTrue => print( s"true")
     case AndBExpression( l, r) => {
-      println( s"${i(indent)}And")
-      p( indent+2, l)
-      p( indent+2, r)
+      p( 0, l)
+      print( s" && ")
+      p( 0, r)
     }
     case EqBExpression( l, r) => {
-      println( s"${i(indent)}Eq")
-      p( indent+2, l)
-      p( indent+2, r)
+      p( 0, l)
+      print( s"==")
+      p( 0, r)
     }
-    case NBCanGet( _) => println( s"${i(indent)}${ast}")
-    case NBCanPut( _) => println( s"${i(indent)}${ast}")
+    case NBCanGet( Port( p)) => print( s"${p}?")
+    case NBCanPut( Port( p)) => print( s"${p}!")
     case _ => throw new Exception(s"Wrong AST form: ${ast}")
   }
   def p( indent : Int, ast : Expression) : Unit = ast match {
-    case ConstantInteger( _) => println( s"${i(indent)}${ast}")
-    case Variable( _) => println( s"${i(indent)}${ast}")
+    case ConstantInteger( i) => print( s"${i}")
+    case Variable( v) => print( s"${v}")
     case _ => throw new Exception(s"Wrong AST form: ${ast}")
   }
 
