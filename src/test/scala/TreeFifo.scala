@@ -156,6 +156,7 @@ class Split extends ImperativeModule(
  */
 
 
+/*
 class Merge extends ImperativeModule( 
   Compiler.run(
     """
@@ -187,6 +188,30 @@ class Merge extends ImperativeModule(
       |        }
       |      }
       |    }
+      |    wait
+      |  }
+      |}
+    """.stripMargin.trim))
+ */
+
+class Merge extends ImperativeModule( 
+  Compiler.runHLS(
+    """
+      |process Merge( P0 : inp UInt(64), P1 : inp UInt(64), Q : out UInt(64)) {
+      |  var x : UInt(64)
+      |  while ( !P0?) wait
+      |  P0?x
+      |  wait
+      |  while ( true) {
+      |    while ( !Q!) wait
+      |    Q!x
+      |    while ( !P1?) wait
+      |    P1?x
+      |    wait
+      |    while ( !Q!) wait
+      |    Q!x
+      |    while ( !P0?) wait
+      |    P0?x
       |    wait
       |  }
       |}

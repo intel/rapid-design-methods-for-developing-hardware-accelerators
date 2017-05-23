@@ -1,5 +1,7 @@
 package imperative
 
+import scala.annotation.tailrec
+
 import compiler._
 import collection.immutable.ListMap
 import collection.immutable.Set
@@ -186,8 +188,9 @@ object SemanticAnalyzer {
   def loweredCheck( ast : Process) : Either[CompilationError, Process] = {
     ast match {
       case Process( portDeclList, ResetWhileTrueWait( localVars, initSeg, mainSeg)) => {
-// Warnings
+// Warning
         mainSegMultiComms( mainSeg)
+// Errors
         val e = findWhile( Blk( localVars, initSeg), "initial segment") ::
                 findWhile( mainSeg, "main segment") ::
                 initSegComms( Blk( localVars, initSeg)) :: 
@@ -346,10 +349,17 @@ object SemanticAnalyzer {
   def TransformWaits( ast : Process) : Either[CompilationError, Process] = {
     println(ast)
 
+    def log2( v : Int) = {
+      @tailrec
+      def log2( k : Int, n : Int, v : Int) : Int = if ( n>=v) k else log2( k+1, 2*n, v)
+      log2( 0, 1, v)
+    }
+
     val ast0 = ast match {
       case Process( portDecls, Blk( decls, seq)) => {
         val (count0, lg0) = assignLabels( (0, genLG( Blk( decls, seq))))
-        println( s"Labeled graph: ${lg0} testTL: ${testTL( lg0)}")
+        val sbits = log2( count0)
+        println( s"Labeled graph: ${count0} ${sbits} ${lg0} testTL: ${testTL( lg0)}")
 
 // Don't know why I need this, but I do.
         val lg1 = {
@@ -357,89 +367,26 @@ object SemanticAnalyzer {
           val LGSeq( y) = lst0.last
           LGSeq( lst0.init ++ y.toList)
         }
-// Need to declare "s" (induction) and initialize to zero
-// Need to declare "w" (combinational) and initialize to zero
-
-// Should check that count0 <= 2^^4        
 
         val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg1)
-        val decls0 = decls ++ List( Decl(Variable("s"),UIntType(4)))
+// Need to declare "s" (induction) and initialize to zero
+        val decls0 = decls ++ List( Decl(Variable("s"),UIntType(sbits)))
+// Need to declare "w" (combinational) and initialize to zero
         val newDecls0 = newDecls ++ List( Decl(Variable("w"),UIntType(1)))
-        val p = Process( portDecls,
-                  Blk( decls0, List( Assignment(Variable("s"),ConstantInteger(0)), While( ConstantTrue,
-                    Blk( newDecls0,
-                      List( Assignment(Variable("w"),ConstantInteger(0))) ++ newSeq ++ List(Wait))))))
+        val seq0 = List( Assignment(Variable("w"),ConstantInteger(0))) ++ newSeq ++ List(Wait)
+        val p =
+          Process( portDecls,
+            Blk( decls0,
+              List(
+                Assignment(Variable("s"),ConstantInteger(0)),
+                While( ConstantTrue, Blk( newDecls0, seq0)))))
+                    
         PrintAST.p( 0, p)
         p
       }
       case _ => throw new Exception("Wrong AST form")
     }
     pass1( ast0)
-  }
-
-}
-
-object PrintAST {
-  def i( n : Int) : String = s"""${(0 until n).map{ x => " "}.mkString("")}"""
-
-  def p( indent : Int, ast : Process) : Unit = ast match {
-    case Process( _, cmd) => {
-      println( s"${i(indent)}Process")
-      p( indent + 2, cmd)
-    }
-    case _ => throw new Exception("Wrong AST form")
-  }
-  def p( indent : Int, ast : Command) : Unit = ast match {
-    case While( b, e) => {
-      print( s"${i(indent)}while (")
-      p( 0, b)
-      println( ")")
-      p( indent + 2, e)
-    }
-    case Blk( decls, seq) => {
-      println( s"${i(indent)}{")
-      decls.foreach{ x => println( s"${i(indent+2)}${x}")}
-      seq.foreach{ x => p( indent + 2, x)}
-      println( s"${i(indent)}}")
-    }
-    case NBGet( Port( p), Variable( v)) => println( s"${i(indent)}${p}?${v}")
-    case NBPut( Port( p), Variable( v)) => println( s"${i(indent)}${p}!${v}")
-    case Assignment( Variable( v), e) => {
-      print( s"${i(indent)}${v} = ")
-      p( 0, e)
-      println( "")
-    }
-    case Wait => println( s"${i(indent)}wait")
-    case IfThenElse( b, t, e) => {
-      print( s"${i(indent)}if (")
-      p( indent + 2 , b)
-      println( s")")
-      p( indent + 2, t)
-      println( s"${i(indent)}else")
-      p( indent + 2, e)
-    }
-    case _ => throw new Exception(s"Wrong AST form: ${ast}")
-  }
-  def p( indent : Int, ast : BExpression) : Unit = ast match {
-    case ConstantTrue => print( s"true")
-    case AndBExpression( l, r) => {
-      p( 0, l)
-      print( s" && ")
-      p( 0, r)
-    }
-    case EqBExpression( l, r) => {
-      p( 0, l)
-      print( s"==")
-      p( 0, r)
-    }
-    case NBCanGet( Port( p)) => print( s"${p}?")
-    case NBCanPut( Port( p)) => print( s"${p}!")
-    case _ => throw new Exception(s"Wrong AST form: ${ast}")
-  }
-  def p( indent : Int, ast : Expression) : Unit = ast match {
-    case ConstantInteger( i) => print( s"${i}")
-    case Variable( v) => print( s"${v}")
-    case _ => throw new Exception(s"Wrong AST form: ${ast}")
   }
 
 }

@@ -82,7 +82,7 @@ class MergeN( n : Int) extends Module {
 
 class TreeFifo extends FifoIfc64 {
 
-  val n = 4
+  val n = 2
 
   val s = Module( new SplitN( n))
   val m = Module( new MergeN( n))
@@ -91,29 +91,6 @@ class TreeFifo extends FifoIfc64 {
   (0 until n).foreach{ i => s.io.outn(i) <> m.io.inpn(i)}
   m.io.out <> io.out
 
-/*
-  val s = Module( new Split)
-  val s0 = Module( new Split)
-  val s1 = Module( new Split)
-
-  val m0 = Module( new Merge)
-  val m1 = Module( new Merge)
-  val m = Module( new Merge)
-
-  io.inp <> s.io("P")
-  s.io("Q0") <> s0.io("P")
-  s.io("Q1") <> s1.io("P")
-
-  s0.io("Q0") <> m0.io("P0")
-  s0.io("Q1") <> m0.io("P1")
-
-  s1.io("Q0") <> m1.io("P0")
-  s1.io("Q1") <> m1.io("P1")
-
-  m0.io("Q") <> m.io("P0")
-  m1.io("Q") <> m.io("P1")
-  m.io("Q") <> io.out
- */
 }
 
 class FifoPerformanceTester[T <: FifoIfc64](c: T) extends PeekPokeTester(c) {
