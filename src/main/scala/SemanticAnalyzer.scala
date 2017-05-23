@@ -51,10 +51,12 @@ class PortHisto( private val q : ListMap[Port,Int] = ListMap[Port,Int]()) {
 
 }
 
-abstract trait LabeledGraph
+class LabeledGraph
 case class LGWait() extends LabeledGraph
 case class LGWhileTrue( lg : LabeledGraph) extends LabeledGraph
-case class LGWhileNotProbeWait( g : BExpression, do_after : LabeledGraph) extends LabeledGraph
+case class LGWhileNotProbeWait( g : BExpression, do_after : LabeledGraph) extends LabeledGraph {
+  var lbl : Int = 0
+}
 case class LGSeq( lgs : Seq[LabeledGraph])  extends LabeledGraph
 case class LGPrim( cmd : Command)  extends LabeledGraph
 
@@ -284,6 +286,28 @@ object SemanticAnalyzer {
   }
 
 
+/*
+  def assignLabels( tup : (Int,LabeledGraph)) : (Int,LabeledGraph) = {
+    val ( count, lg) = tup
+    lg match {
+      case LGSeq( lst) => LGSeq( lst.foldLeft( (count, LGSeq( List()))){ case (c,LGSeq(l)) =>
+        val (nc,nl) = assignLabels( (c,l))
+
+      })
+      case LGWhileNotProbeWait( g, LGSeq( lst), _) => {
+        println( s"${count} assignLabels: ${hd}")
+        assignLabels( (count+1, LGWhileNotProbeWait( g, LGSeq( lst))))
+      }
+      case LGWhileTrue( lg0) => {
+        println( s"${count} assignLabels: ${lg0}")
+        val (c,l) = assignLabels( (count, lg0))
+        ( c, LGWhileTrue( l))
+      }
+      case _ => { println( s"${count} ${lg}"); (count,lg)}
+    }
+  }
+ */
+
   def transLG( s : Command, lg : LabeledGraph) : Command = lg match {
     case LGSeq( Nil) => s
     case LGSeq( hd :: tl) => s match {
@@ -292,15 +316,17 @@ object SemanticAnalyzer {
       case _ => throw new Exception("Wrong LGSeq form")
     }
     case LGWhileNotProbeWait( g, LGSeq( lst)) => {
-      val wAssign = List(LGPrim(Assignment(Variable("w"),ConstantInteger(1))))
+      val lg0 = LGWhileNotProbeWait( g, LGSeq( lst))
+      val wAssignThen = List(LGPrim(Assignment(Variable("w"),ConstantInteger(lg0.lbl+1))))
+      val wAssignElse = List(LGPrim(Assignment(Variable("w"),ConstantInteger(lg0.lbl))))
       val t = if ( !lst.isEmpty && lst.last == LGWait()) {
-        transLG( Blk( List(), List()), LGSeq( lst.init ++ wAssign))
+        transLG( Blk( List(), List()), LGSeq( lst.init ++ wAssignThen))
       } else {
         transLG( Blk( List(), List()), LGSeq( lst))
       }
-      IfThenElse( g, t, transLG( Blk( List(), List()), LGSeq( wAssign)))
+      IfThenElse( g, t, transLG( Blk( List(), List()), LGSeq( wAssignElse)))
     }
-    case LGWhileTrue( LGSeq( lst)) => transLG( s, LGSeq( lst))
+    case LGWhileTrue( lg0) => transLG( s, lg0)
     case LGPrim( cmd) => cmd
     case LGWait() => Wait
   }
@@ -311,8 +337,9 @@ object SemanticAnalyzer {
     val ast0 = ast match {
       case Process( portDecls, Blk( decls, seq)) => {
         val lg = genLG( Blk( decls, seq))
-//        println( s"Labeled graph: ${lg} testTL: ${testTL( lg)}")
-        val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg)
+        val (newCount, lg0) = (0,lg) // assignLabels( (0, lg)) // lg changed
+        println( s"Labeled graph: ${newCount} ${lg0} testTL: ${testTL( lg0)}")
+        val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg0)
         val decls0 = decls ++ List( Decl(Variable("s"),UIntType(4)), Decl(Variable("w"),UIntType(1)))
         val p = Process( portDecls, Blk( decls0, List(While( ConstantTrue, Blk( newDecls, newSeq ++ List(Wait))))))
         PrintAST.p( 0, p)
@@ -320,7 +347,7 @@ object SemanticAnalyzer {
       }
       case _ => throw new Exception("Wrong AST form")
     }
-
+    throw new Exception("Just Stop Early for Debugging")
     pass1( ast0)
   }
 
