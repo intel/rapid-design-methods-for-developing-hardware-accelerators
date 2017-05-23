@@ -54,9 +54,7 @@ class PortHisto( private val q : ListMap[Port,Int] = ListMap[Port,Int]()) {
 class LabeledGraph
 case class LGWait() extends LabeledGraph
 case class LGWhileTrue( lg : LabeledGraph) extends LabeledGraph
-case class LGWhileNotProbeWait( g : BExpression, do_after : LabeledGraph) extends LabeledGraph {
-  var lbl : Int = 0
-}
+case class LGWhileNotProbeWait( g : BExpression, do_after : LabeledGraph, lbl : (Int,Int)) extends LabeledGraph
 case class LGSeq( lgs : Seq[LabeledGraph])  extends LabeledGraph
 case class LGPrim( cmd : Command)  extends LabeledGraph
 
@@ -236,16 +234,16 @@ object SemanticAnalyzer {
   }
 
   def genLG( cmd : Command) : LabeledGraph = cmd match {
-    case While( NotBExpression( g), Wait) => LGWhileNotProbeWait( g, LGSeq( List()))
+    case While( NotBExpression( g), Wait) => LGWhileNotProbeWait( g, LGSeq( List()), (0,0))
     case While( ConstantTrue, e) => LGWhileTrue( genLG( e))
     case Blk( decls, seq) => seq.foldLeft( LGSeq(List())) { case (x,y) =>
       val lgY = List( genLG( y))
       x match {
         case LGSeq( hd :: tl) => {
           (hd::tl).last match {
-            case LGWhileNotProbeWait( g, LGSeq( lst)) if isPrimOrWait( lgY.head) => {
+            case LGWhileNotProbeWait( g, LGSeq( lst), _) if isPrimOrWait( lgY.head) => {
 //              println( s"Matching and extending ProbeWait: ${lgY.head}")
-              LGSeq( (hd::tl).init ++ List( LGWhileNotProbeWait( g, LGSeq( lst ++ lgY))))
+              LGSeq( (hd::tl).init ++ List( LGWhileNotProbeWait( g, LGSeq( lst ++ lgY), (0,0))))
             }
             case _ => {
 //              println( s"Not Matching and extending ProbeWait: ${hd::tl}")
@@ -266,12 +264,12 @@ object SemanticAnalyzer {
   }
 
   def allLGWhileNotProbeWait( b : Boolean, lg : LabeledGraph) : Boolean = lg match {
-    case LGWhileNotProbeWait( g, LGSeq( lst)) => lst.foldLeft(b){ noLGWhileNotProbeWait}
+    case LGWhileNotProbeWait( g, LGSeq( lst), _) => lst.foldLeft(b){ noLGWhileNotProbeWait}
     case _ => false
   }
 
   def noLGWhileNotProbeWait( b : Boolean, lg : LabeledGraph) : Boolean = lg match {
-    case LGWhileNotProbeWait( g, LGSeq( lst)) => false
+    case LGWhileNotProbeWait( g, LGSeq( lst), _) => false
     case _ => b
   }
 
@@ -286,27 +284,31 @@ object SemanticAnalyzer {
   }
 
 
-/*
   def assignLabels( tup : (Int,LabeledGraph)) : (Int,LabeledGraph) = {
     val ( count, lg) = tup
     lg match {
-      case LGSeq( lst) => LGSeq( lst.foldLeft( (count, LGSeq( List()))){ case (c,LGSeq(l)) =>
-        val (nc,nl) = assignLabels( (c,l))
-
-      })
-      case LGWhileNotProbeWait( g, LGSeq( lst), _) => {
-        println( s"${count} assignLabels: ${hd}")
-        assignLabels( (count+1, LGWhileNotProbeWait( g, LGSeq( lst))))
-      }
+      case LGSeq( lst) =>
+        lst.foldLeft( ( count, LGSeq(List()))){ case ( ( count, LGSeq( lst0)), x) =>
+          val ( count0, x0) = assignLabels( (count, x))
+          ( count0, LGSeq( lst0 ++ List(x0)))
+        }
+      case LGWhileNotProbeWait( g, seq@LGSeq( lst), _) =>
+        (count+1, LGWhileNotProbeWait( g, seq, (count,count+1)))
       case LGWhileTrue( lg0) => {
-        println( s"${count} assignLabels: ${lg0}")
+        println( s"assignLabels LGWhileTrue: Before ${count} ${lg}")
         val (c,l) = assignLabels( (count, lg0))
-        ( c, LGWhileTrue( l))
+        println( s"assignLabels LGWhileTrue: After ${c} ${l}")
+        val LGSeq( lst) = l
+        lst.last match {
+          case LGWhileNotProbeWait( g, seq, lbl) => {
+            val newl = LGSeq( lst.init ++ List( LGWhileNotProbeWait( g, seq, (lbl._1,count))))
+            ( c, newl)
+          }
+        }
       }
-      case _ => { println( s"${count} ${lg}"); (count,lg)}
+      case _ => { println( s"assignLabels: Not expecting ${count} ${lg}"); (count,lg)}
     }
   }
- */
 
   def transLG( s : Command, lg : LabeledGraph) : Command = lg match {
     case LGSeq( Nil) => s
@@ -315,16 +317,25 @@ object SemanticAnalyzer {
         transLG( Blk( decls, seq ++ List(transLG( s, hd))), LGSeq( tl))
       case _ => throw new Exception("Wrong LGSeq form")
     }
-    case LGWhileNotProbeWait( g, LGSeq( lst)) => {
-      val lg0 = LGWhileNotProbeWait( g, LGSeq( lst))
-      val wAssignThen = List(LGPrim(Assignment(Variable("w"),ConstantInteger(lg0.lbl+1))))
-      val wAssignElse = List(LGPrim(Assignment(Variable("w"),ConstantInteger(lg0.lbl))))
+    case LGWhileNotProbeWait( g, LGSeq( lst), lbl) => {
+      val wAssignElse = List(LGPrim(Assignment(Variable("w"),ConstantInteger(1))))
+      val sAssignThen = List(LGPrim(Assignment(Variable("s"),ConstantInteger(lbl._2))))
+//      val sAssignElse = List(LGPrim(Assignment(Variable("s"),ConstantInteger(lbl._1))))
+      val sAssignElse = List()
       val t = if ( !lst.isEmpty && lst.last == LGWait()) {
-        transLG( Blk( List(), List()), LGSeq( lst.init ++ wAssignThen))
+        val wAssignThen = List(LGPrim(Assignment(Variable("w"),ConstantInteger(1))))
+        transLG( Blk( List(), List()), LGSeq( lst.init ++ sAssignThen ++ wAssignThen))
       } else {
-        transLG( Blk( List(), List()), LGSeq( lst))
+        transLG( Blk( List(), List()), LGSeq( lst ++ sAssignThen))
       }
-      IfThenElse( g, t, transLG( Blk( List(), List()), LGSeq( wAssignElse)))
+      IfThenElse( 
+        AndBExpression( 
+          EqBExpression( Variable("s"), ConstantInteger(lbl._1)),
+          EqBExpression( Variable("w"), ConstantInteger(0))
+        ),
+        IfThenElse( g, t, transLG( Blk( List(), List()), LGSeq( sAssignElse ++ wAssignElse))),
+        Blk( List(), List())
+      )
     }
     case LGWhileTrue( lg0) => transLG( s, lg0)
     case LGPrim( cmd) => cmd
@@ -336,8 +347,7 @@ object SemanticAnalyzer {
 
     val ast0 = ast match {
       case Process( portDecls, Blk( decls, seq)) => {
-        val lg = genLG( Blk( decls, seq))
-        val (newCount, lg0) = (0,lg) // assignLabels( (0, lg)) // lg changed
+        val (newCount, lg0) = assignLabels( (0, genLG( Blk( decls, seq))))
         println( s"Labeled graph: ${newCount} ${lg0} testTL: ${testTL( lg0)}")
         val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg0)
         val decls0 = decls ++ List( Decl(Variable("s"),UIntType(4)), Decl(Variable("w"),UIntType(1)))
