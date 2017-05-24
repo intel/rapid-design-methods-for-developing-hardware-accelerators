@@ -65,7 +65,6 @@ object SemanticAnalyzer {
   def apply( ast : Process) : Either[CompilationError, Process] = {
     for {
       ast1 <- pass1( ast).right
-//      ast1 <- TransformWaits( ast).right
       ast2 <- loweredCheck( ast1).right
     } yield ast2
   }

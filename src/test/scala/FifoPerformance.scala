@@ -82,13 +82,20 @@ class MergeN( n : Int) extends Module {
 
 class TreeFifo extends FifoIfc64 {
 
-  val n = 2
+  val n = 4
 
   val s = Module( new SplitN( n))
   val m = Module( new MergeN( n))
 
   io.inp <> s.io.inp
-  (0 until n).foreach{ i => s.io.outn(i) <> m.io.inpn(i)}
+  (0 until n).foreach{ i => {
+    s.io.outn(i) <> m.io.inpn(i)
+/*
+    val q = Module( new SquashN( 1))
+    s.io.outn(i) <> q.io.inp
+    q.io.out <> m.io.inpn(i)
+ */
+  }}
   m.io.out <> io.out
 
 }
@@ -186,7 +193,7 @@ class TreeFifoPerformanceTest extends FlatSpec with Matchers {
   behavior of "TreeFifo"
 
   it should "work" in {
-    chisel3.iotesters.Driver( () => new TreeFifo, "vcs") { c =>
+    chisel3.iotesters.Driver( () => new TreeFifo, "firrtl") { c =>
       new FifoPerformanceTester(c)
     } should be (true)
   }
