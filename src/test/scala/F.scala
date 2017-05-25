@@ -7,13 +7,13 @@ import org.scalameter.api._
 import scala.annotation.tailrec
 
 class F
-case class FSeq( lst : List[F]) extends F
+case class FSeq( lst : Seq[F]) extends F
 case class FPrim( x : Int) extends F
 
 object F {
   def e( s : FSeq) = FSeq.unapply( s).get
   def flatten( f : F) : FSeq = f match {
-    case FSeq( lst) => lst.foldLeft( FSeq( List[F]())){ case ( l,x) =>
+    case FSeq( lst) => lst.foldLeft( FSeq( Seq[F]())){ case ( l,x) =>
       FSeq( e( l) ++ e( flatten( x)))
     }
     case FPrim( _) => FSeq( List(f))
@@ -22,12 +22,11 @@ object F {
   def flatten2( f : F) : FSeq = {
     def aux( accum : List[F], f : F) : List[F] = f match {
       case FPrim( _) => f :: accum
-      case FSeq( hd::tl) => aux( aux( accum, hd), FSeq( tl))
-      case FSeq( Nil) => accum
+      case FSeq( seq) if !seq.isEmpty => aux( aux( accum, seq.head), FSeq( seq.tail))
+      case FSeq( seq) if seq.isEmpty => accum
     }
-    FSeq( aux( List(), f).reverse)
+    FSeq( aux( List(), f).reverse.toSeq)
   }
-
 
   def doit( func : F => FSeq) =
     func( FSeq( List( FSeq( List( FSeq( List( FPrim(0))), FPrim(1))), FPrim(2))))
@@ -44,13 +43,13 @@ class FTest extends FreeSpec with Matchers {
     }
     "flatten shouldn't take too much time" in {
       val n = 3000
-      F.flatten( FSeq( (for( i <- 0 until n) yield FSeq( List( FPrim(i)))).toList)) should be (
-         FSeq( (for( i <- 0 until n) yield FPrim( i)).toList))
+      F.flatten( FSeq( (for( i <- 0 until n) yield FSeq( Seq( FPrim(i)))))) should be (
+         FSeq( (for( i <- 0 until n) yield FPrim( i))))
     }
     "flatten2 shouldn't take too much time" in {
       val n = 3000
-      F.flatten2( FSeq( (for( i <- 0 until n) yield FSeq( List( FPrim(i)))).toList)) should be (
-         FSeq( (for( i <- 0 until n) yield FPrim( i)).toList))
+      F.flatten2( FSeq( (for( i <- 0 until n) yield FSeq( Seq( FPrim(i)))))) should be (
+         FSeq( (for( i <- 0 until n) yield FPrim( i))))
     }
   }
 }
