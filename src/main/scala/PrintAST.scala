@@ -38,8 +38,13 @@ object PrintAST {
       p( indent + 2 , b)
       println( s")")
       p( indent + 2, t)
-      println( s"${i(indent)}else")
-      p( indent + 2, e)
+      e match {
+        case Blk( _, Nil) => ()
+        case _ => {
+          println( s"${i(indent)}else")
+          p( indent + 2, e)
+        }
+      }
     }
     case _ => throw new WrongASTFormException( s"${ast}")
   }
@@ -62,6 +67,11 @@ object PrintAST {
   def p( indent : Int, ast : Expression) : Unit = ast match {
     case ConstantInteger( i) => print( s"${i}")
     case Variable( v) => print( s"${v}")
+    case AddExpression( l, r) => {
+      p( 0, l)
+      print( s"+")
+      p( 0, r)
+    }
     case _ => throw new WrongASTFormException( s"${ast}")
   }
 

@@ -35,3 +35,5 @@ case class SUB() extends Token
 case class MUL() extends Token
 case class QUERY() extends Token
 case class BANG() extends Token
+case class QUERYQUERY() extends Token
+case class BANGBANG() extends Token

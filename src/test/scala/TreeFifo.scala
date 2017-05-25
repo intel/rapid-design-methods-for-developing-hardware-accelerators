@@ -14,46 +14,37 @@ class Split extends ImperativeModule(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
-      |  while ( !P?) wait
-      |  P?x
+      |  P??x
       |  wait
       |  while ( true) {
-      |    while ( !Q0!) wait
-      |    Q0!x
-      |    while ( !P?) wait
-      |    P?x
+      |    Q0!!x
+      |    P??x
       |    wait
-      |    while ( !Q1!) wait
-      |    Q1!x
-      |    while ( !P?) wait
-      |    P?x
+      |    Q1!!x
+      |    P??x
       |    wait
       |  }
       |}
     """.stripMargin.trim))
  */
 // this currently adds an extra wait that the end
-class Split1 extends ImperativeModule( 
+class Split extends ImperativeModule( 
   Compiler.runHLS(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
       |  while ( true) {
-      |    while ( !P?) wait
-      |    P?x
+      |    P??x
       |    wait
-      |    while ( !Q0!) wait
-      |    Q0!x
-      |    while ( !P?) wait
-      |    P?x
+      |    Q0!!x
+      |    P??x
       |    wait
-      |    while ( !Q1!) wait
-      |    Q1!x
+      |    Q1!!x
       |  }
       |}
     """.stripMargin.trim))
 
-class Split extends ImperativeModule( 
+class Split1 extends ImperativeModule( 
   Compiler.run(
     """
     process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {

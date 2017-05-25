@@ -40,6 +40,8 @@ object Lexer extends RegexParsers {
       | positioned { "else\\b".r     ^^ (_ => ELSE()) }
       | positioned { "unroll\\b".r   ^^ (_ => UNROLL()) }
       | positioned { "&&"            ^^ (_ => AND()) }
+      | positioned { "??"            ^^ (_ => QUERYQUERY()) }
+      | positioned { "!!"            ^^ (_ => BANGBANG()) }
       | positioned { "{"             ^^ (_ => LBRACE()) }
       | positioned { "}"             ^^ (_ => RBRACE()) }
       | positioned { "("             ^^ (_ => LPAREN()) }

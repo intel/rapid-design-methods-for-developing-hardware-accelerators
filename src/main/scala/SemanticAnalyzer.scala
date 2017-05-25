@@ -8,6 +8,7 @@ import collection.immutable.Set
 
 class NonConstantUnrollParametersException extends Exception
 class InnerResetWhileTrueWaitException extends Exception
+class NotYetImplementedException( tag : String) extends Exception(tag)
 
 // Return communication ports that are unguarded
 class GuardStack( val portsWithErrors : Set[Port] = Set[Port](),
@@ -226,43 +227,55 @@ object SemanticAnalyzer {
     }
   }
 
-// C0; C1; wait; C2; C3; wait => { C0; C1}; wait; { C2; C3}; wait
-// C0; C1; wait; while( B) { C2; C3; wait; C4; C5; wait} => { C0; C1}; wait; while( B) { { C2; C3}; wait; { C4; C5}; wait}
-
   def isPrimOrWait( lg : LabeledGraph) : Boolean = lg match {
     case LGPrim( _) => true
     case LGWait() => true
     case _ => false
   }
 
+  def processBlk( decls : Seq[Decl], seq : Seq[Command]) : LabeledGraph = {
+    if ( !decls.isEmpty) throw new NotYetImplementedException( s"genLG: inner block declarations currently dropped ${decls}")
+    processBlk0( decls, seq)
+  }
+
+  def processBlk0( decls : Seq[Decl], seq : Seq[Command]) : LabeledGraph = {
+      seq.foldLeft( LGSeq(List())) { case (x,y) =>
+// removing the hierarchical blocks
+        val lgY = genLG( y) match {
+          case LGSeq( seq) => seq
+          case yy => List(yy)
+        }
+        x match {
+          case LGSeq( lst0@(hd::tl)) => {
+            lst0.last match {
+              case LGWhileNotProbeWait( g, LGSeq( lst), _) if isPrimOrWait( lgY.head) =>
+                LGSeq( lst0.init ++ List( LGWhileNotProbeWait( g, LGSeq( lst ++ lgY), (0,0))))
+              case _ => LGSeq( lst0 ++ lgY)
+            }
+          }
+          case LGSeq( Nil) => LGSeq( lgY)
+        }
+      }
+  }
+
   def genLG( cmd : Command) : LabeledGraph = cmd match {
     case While( NotBExpression( g), Wait) => LGWhileNotProbeWait( g, LGSeq( List()), (0,0))
     case While( ConstantTrue, e) => LGWhileTrue( genLG( e))
-    case Blk( decls, seq) => seq.foldLeft( LGSeq(List())) { case (x,y) =>
-      val lgY = List( genLG( y))
-      x match {
-        case LGSeq( lst0@(hd::tl)) => {
-          lst0.last match {
-            case LGWhileNotProbeWait( g, LGSeq( lst), _) if isPrimOrWait( lgY.head) => {
-//              println( s"Matching and extending ProbeWait: ${lgY.head}")
-              LGSeq( lst0.init ++ List( LGWhileNotProbeWait( g, LGSeq( lst ++ lgY), (0,0))))
-            }
-            case _ => {
-//              println( s"Not Matching and extending ProbeWait: ${hd::tl}")
-              LGSeq( lst0 ++ lgY)
-            }
-          }
-        }
-        case LGSeq( lst) => {
-//          println( s"Not Matching and extending ProbeWait: ${lst}")
-          LGSeq( lst ++ lgY)
-        }
-      }
-    }
+    case Blk( decls, seq) => processBlk( decls, seq)
     case NBGet( p, v) => LGPrim( cmd)
-    case NBPut( p, v) => LGPrim( cmd)
+    case NBPut( p, e) => LGPrim( cmd)
+    case Assignment( v, e) => LGPrim( cmd)
     case Wait => LGWait()
-    case _ => { println( s"\tgenLG: Unimplemented command ${cmd}"); LGPrim( cmd)}
+    case _ => { println( s"genLG: Unimplemented command ${cmd}"); LGPrim( cmd)}
+  }
+
+  def genLG0( cmd : Command) : LabeledGraph = cmd match {
+    case Blk( decls, seq) => {
+      val lg = processBlk0( decls, seq)
+      println( s"genLG0: ${lg}")
+      lg
+    }
+    case _ => throw new Exception("Wrong toplevel form")
   }
 
   def assignLabels( tup : (Int,LabeledGraph)) : (Int,LabeledGraph) = {
@@ -289,6 +302,8 @@ object SemanticAnalyzer {
         }
       case LGWhileNotProbeWait( g, seq@LGSeq( lst), _) =>
         (count+1, LGWhileNotProbeWait( g, seq, (count,count+1)))
+      case LGPrim( prim) => 
+        assignLabels( (count, LGSeq( List( LGWhileNotProbeWait( ConstantTrue, LGSeq( List( lg)), (0,0))))))
       case _ => { println( s"assignLabels: Not expecting ${count} ${lg}"); (count,lg)}
     }
   }
@@ -356,18 +371,12 @@ object SemanticAnalyzer {
 
     val ast0 = ast match {
       case Process( portDecls, Blk( decls, seq)) => {
-        val (count0, lg0) = assignLabels( (0, genLG( Blk( decls, seq))))
+        val (count0, lg0) = assignLabels( (0, genLG0( Blk( decls, seq))))
         val sbits = log2( count0)
         println( s"Labeled graph: ${count0} ${sbits} ${lg0} testTL: ${testTL( lg0)}")
 
-// Don't know why I need this, but I do.
-        val lg1 = {
-          val LGSeq( lst0) = lg0
-          val LGSeq( y) = lst0.last
-          LGSeq( lst0.init ++ y.toList)
-        }
-
-        val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg1)
+        val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg0)
+        println( s"transLG: ${newDecls} ${newSeq}")
 // Need to declare "s" (induction) and initialize to zero
         val decls0 = decls ++ List( Decl(Variable("s"),UIntType(sbits)))
 // Need to declare "w" (combinational) and initialize to zero
