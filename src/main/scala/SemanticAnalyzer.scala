@@ -283,21 +283,24 @@ object SemanticAnalyzer {
     lg match {
       case LGSeq( lst) =>
         lst.foldLeft( ( count, LGSeq(List()))){ case ( ( count, LGSeq( lst0)), x) =>
-          x match {
+          println( s"Working on ${x} with ${lst0}")
+          val ( count0, x0) = x match {
             case LGWhileTrue( lg0@LGSeq( seq)) => {
               val (c, LGSeq( lst)) = assignLabels( (count, lg0))
-              val ( count0, x0) = lst.last match {
+              assert( !lst.isEmpty)
+              lst.last match {
                 case LGWhileNotProbeWait( g, seq, lbl) => {
                   val newl = LGSeq( lst.init ++ List( LGWhileNotProbeWait( g, seq, (lbl._1,count))))
+                  println( s"Stitch in final lbl ${newl}")
                   ( c, newl)
                 }
               }
-              ( count0, LGSeq( lst0 ++ List(x0)))
             }
-            case _ => {
-              val ( count0, x0) = assignLabels( (count, x))
-              ( count0, LGSeq( lst0 ++ List(x0)))
-            }
+            case _ => assignLabels( (count, x))
+          }
+          x0 match {
+            case LGSeq( l0) => ( count0, LGSeq( lst0 ++ l0))
+            case _ => ( count0, LGSeq( lst0 ++ List( x0)))
           }
         }
       case LGWhileNotProbeWait( g, seq@LGSeq( lst), _) =>
