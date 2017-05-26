@@ -2,7 +2,7 @@ package compiler
 
 import lexer.Lexer
 import parser.Parser
-import imperative.{Process, PortDeclList, Blk, SemanticAnalyzer}
+import imperative.{Process, SemanticAnalyzer, HLS}
 
 object Compiler {
   def apply(code: String): Either[CompilationError, Process] = {
@@ -25,7 +25,7 @@ object Compiler {
     for {
       tokens <- Lexer(code).right
       ast <- Parser(tokens).right
-      ast2 <- SemanticAnalyzer.hls( ast).right
+      ast2 <- HLS( ast).right
     } yield ast2
   }
   def runHLS(code: String): Process = {
