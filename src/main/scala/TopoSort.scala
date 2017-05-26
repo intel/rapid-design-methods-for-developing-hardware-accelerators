@@ -1,11 +1,9 @@
 package imperative
 
 object TopoSort {
-  def genGraph[T]( lst : List[(T,T)]) : Map[T,List[T]] = {
-    val m = lst.foldLeft( Map[T,List[T]]()){ 
-      case ( m, (s,t)) => m.updated( s, List()).updated( t, List())
-    }
-    lst.foldLeft( m){ case ( m, (s,t)) => m.updated( s, t :: m( s))}
+  def genGraph[T]( nodes : List[T], arcs : List[(T,T)]) : Map[T,List[T]] = {
+    val m0 = nodes.foldLeft( Map[T,List[T]]()){ case ( m, s) => m.updated( s, List())}
+    arcs.foldLeft( m0){ case ( m, (s,t)) => m.updated( s, t :: m( s))}
   }
 
   def topo[T]( g : Map[T,List[T]]) : List[T] = {

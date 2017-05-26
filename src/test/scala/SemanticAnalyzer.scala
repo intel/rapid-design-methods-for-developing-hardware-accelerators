@@ -61,4 +61,11 @@ class SemanticAnalyzerTest extends FreeSpec with Matchers {
       SemanticAnalyzer.assignLabels( ( 0, blob2)) should be ( ( 2, blob3))
     }
   }
+  "testTL" - {
+    "empty" in {
+      val g = LGWhileNotProbeWait(ConstantTrue,LGSeq(List(LGPrim(Assignment(Variable("x"),ConstantInteger(0))))),(0,1))
+      val h = LGWhileNotProbeWait(NBCanPut(Port("Q")),LGSeq(List(LGPrim(NBPut(Port("Q"),Variable("x"))), LGPrim(Assignment(Variable("x"),AddExpression(Variable("x"),ConstantInteger(1)))), LGWait())),(1,1))
+      SemanticAnalyzer.testTL( LGSeq(List( g, h))) should be ( true)
+    }
+  }
 }

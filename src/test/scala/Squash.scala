@@ -9,6 +9,7 @@ import chisel3.iotesters._
 import compiler._
 
 class Squash extends ImperativeModule( 
+/*
   Compiler.run(
     """
       |process Squash( P : inp UInt(64), Q : out UInt(64)) {
@@ -28,7 +29,35 @@ class Squash extends ImperativeModule(
       |    wait
       |  }
       |}
-    """.stripMargin.trim))
+    """.stripMargin.trim)
+ */
+/*
+  Compiler.runHLS(
+    """
+      |process Squash( P : inp UInt(64), Q : out UInt(64)) {
+      |  var v : UInt(64)
+      |  P??v
+      |  wait
+      |  while ( true) {
+      |    Q!!v
+      |    P??v
+      |    wait
+      |  }
+      |}
+    """.stripMargin.trim)
+ */
+  Compiler.runHLS(
+    """
+      |process Squash( P : inp UInt(64), Q : out UInt(64)) {
+      |  var v : UInt(64)
+      |  while ( true) {
+      |    P??v
+      |    wait
+      |    Q!!v
+      |  }
+      |}
+    """.stripMargin.trim)
+)
 
 class SquashTester(c:Squash) extends PeekPokeTester(c) {
   poke( c.io("Q").ready, 1)

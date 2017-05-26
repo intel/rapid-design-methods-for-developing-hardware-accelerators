@@ -272,7 +272,7 @@ object SemanticAnalyzer {
   def genLG0( cmd : Command) : LabeledGraph = cmd match {
     case Blk( decls, seq) => {
       val lg = processBlk0( decls, seq)
-      println( s"genLG0: ${lg}")
+//      println( s"genLG0: ${lg}")
       lg
     }
     case _ => throw new Exception("Wrong toplevel form")
@@ -283,15 +283,13 @@ object SemanticAnalyzer {
     lg match {
       case LGSeq( lst) =>
         lst.foldLeft( ( count, LGSeq(List()))){ case ( ( count, LGSeq( lst0)), x) =>
-          println( s"Working on ${x} with ${lst0}")
           val ( count0, x0) = x match {
-            case LGWhileTrue( lg0@LGSeq( seq)) => {
+            case LGWhileTrue( lg0) => {
               val (c, LGSeq( lst)) = assignLabels( (count, lg0))
               assert( !lst.isEmpty)
               lst.last match {
                 case LGWhileNotProbeWait( g, seq, lbl) => {
                   val newl = LGSeq( lst.init ++ List( LGWhileNotProbeWait( g, seq, (lbl._1,count))))
-                  println( s"Stitch in final lbl ${newl}")
                   ( c, newl)
                 }
               }
@@ -307,7 +305,7 @@ object SemanticAnalyzer {
         (count+1, LGWhileNotProbeWait( g, seq, (count,count+1)))
       case LGPrim( prim) => 
         assignLabels( (count, LGSeq( List( LGWhileNotProbeWait( ConstantTrue, LGSeq( List( lg)), (0,0))))))
-      case _ => { println( s"assignLabels: Not expecting ${count} ${lg}"); (count,lg)}
+      case _ => throw new NotYetImplementedException( s"assignLabels: Not expecting ${count} ${lg}")
     }
   }
 
@@ -343,6 +341,56 @@ object SemanticAnalyzer {
     case LGWait() => throw new Exception("Wrong LG form")
   }
 
+
+  def transLG1( lg : LabeledGraph) : Command = {
+    lg match {
+      case LGSeq( lst) => {
+        val lbls = lst.map{ case LGWhileNotProbeWait( g, LGSeq( lst0), lbl) => 
+          ( lst0.isEmpty || lst0.last != LGWait(), lbl)
+        }
+
+        val histo = lbls.foldLeft( Map[Int,Int]()){ case (m,(_,(x,_))) =>
+          m.updated( x, m.getOrElse( x, 0)+1)
+        }
+
+        if ( !histo.filter{ case (k,v) => v > 1}.isEmpty) {
+          throw new Exception( s"transLG1: multi objects with same lower lbl; lbls: ${lbls} histo: ${histo}")
+        }
+
+        def find( i : Int) = {
+          val matches = lst.filter{ case LGWhileNotProbeWait( g, LGSeq( lst0), lbl) => i == lbl._1}
+          if ( matches.isEmpty) throw new Exception( s"transLG1: no match for ${i} in ${lst}")
+          if ( matches.size > 1) throw new Exception( s"transLG1: multiple matches ${matches} for ${i} in ${lst}")
+          matches.head
+        }
+
+        val nodes = for { lbl <- lbls} yield lbl._2._1
+        val arcs = for { lbl <- lbls if lbl._1} yield lbl._2
+
+        val t = TopoSort.topo( TopoSort.genGraph( nodes.toList, arcs.toList))
+
+        transLG( Blk( List(), List()), LGSeq( t.map{ find}))
+      }
+      case _ => throw new Exception("Wrong LG form")
+    }
+  }
+
+  def transLG0( lg : LabeledGraph) : (Command,Command) = {
+
+//    println( s"transLG0: ${lg}")
+
+
+// Handle the special case of combinational initialization
+    lg match {
+      case LGSeq( LGWhileNotProbeWait( ConstantTrue, LGSeq( lst), lbl) :: tl) if lst.isEmpty || lst.last != LGWait => {
+        val initSeg = transLG( Blk( List(), List()), LGSeq( lst))
+        val body = transLG1( LGSeq( tl))
+        ( initSeg, body)
+      }
+      case _ => (Blk( List(), List()), transLG1( lg))
+    }
+  }
+
   def allLGWhileNotProbeWait( b : Boolean, lg : LabeledGraph) : Boolean = lg match {
     case LGWhileNotProbeWait( g, LGSeq( lst), _) => lst.foldLeft(b){ noLGWhileNotProbeWait}
     case _ => false
@@ -353,18 +401,17 @@ object SemanticAnalyzer {
     case _ => b
   }
 
-  def testTL( lg : LabeledGraph) : Boolean = lg match {
-    case LGSeq( Nil) => true
-    case LGSeq( lst) => lst.last match {
-      case LGSeq( lst2) =>
-        lst2.foldLeft( lst.init.foldLeft( true){ allLGWhileNotProbeWait}){ allLGWhileNotProbeWait}
+  def testTL( lg : LabeledGraph) : Boolean = {
+    val result = lg match {
+      case LGSeq( lst) => lst.foldLeft( true){ allLGWhileNotProbeWait}
       case _ => false
     }
-    case _ => false
+    if ( !result) throw new Exception(s"testTL not satisfied: ${lg}")
+    result
   }
 
   def TransformWaits( ast : Process) : Either[CompilationError, Process] = {
-    println(ast)
+//    println(ast)
 
     def log2( v : Int) = {
       @tailrec
@@ -376,10 +423,10 @@ object SemanticAnalyzer {
       case Process( portDecls, Blk( decls, seq)) => {
         val (count0, lg0) = assignLabels( (0, genLG0( Blk( decls, seq))))
         val sbits = log2( count0)
-        println( s"Labeled graph: ${count0} ${sbits} ${lg0} testTL: ${testTL( lg0)}")
 
-        val Blk( newDecls, newSeq) = transLG( Blk( List(), List()), lg0)
-        println( s"transLG: ${newDecls} ${newSeq}")
+        testTL( lg0)
+
+        val (Blk( _, initSeg), Blk( newDecls, newSeq)) = transLG0( lg0)
 // Need to declare "s" (induction) and initialize to zero
         val decls0 = decls ++ List( Decl(Variable("s"),UIntType(sbits)))
 // Need to declare "w" (combinational) and initialize to zero
@@ -388,9 +435,8 @@ object SemanticAnalyzer {
         val p =
           Process( portDecls,
             Blk( decls0,
-              List(
-                Assignment(Variable("s"),ConstantInteger(0)),
-                While( ConstantTrue, Blk( newDecls0, seq0)))))
+              List( Assignment(Variable("s"),ConstantInteger(if (initSeg.isEmpty) 0 else 1))) ++
+                initSeg ++ List( While( ConstantTrue, Blk( newDecls0, seq0)))))
                     
         PrintAST.p( 0, p)
         p

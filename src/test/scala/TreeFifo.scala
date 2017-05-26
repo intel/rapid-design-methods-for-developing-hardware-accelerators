@@ -260,8 +260,24 @@ class MergeFalseCombLoop extends ImperativeModule(
       |}
     """.stripMargin.trim))
 
-/* Last block moved to beginning to avoid the stall */
 class Merge extends ImperativeModule( 
+  Compiler.runHLS(
+    """
+      |process Merge( P0 : inp UInt(64), P1 : inp UInt(64), Q : out UInt(64)) {
+      |  var x : UInt(64)
+      |  while ( true) {
+      |    P0??x
+      |    wait
+      |    Q!!x
+      |    P1??x
+      |    wait
+      |    Q!!x
+      |  }
+      |}
+    """.stripMargin.trim))
+
+/* Last block moved to beginning to avoid the stall */
+class Merge1 extends ImperativeModule( 
   Compiler.run(
     """process Merge( P0 : inp UInt(64), P1 : inp UInt(64), Q : out UInt(64)) {
   var x : UInt(64)
