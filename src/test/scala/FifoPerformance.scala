@@ -6,31 +6,14 @@ import chisel3._
 import chisel3.util._
 import chisel3.iotesters._
 
-class FifoIfc64 extends Module {
-  val io = IO(new Bundle { 
-    val inp = Flipped(Decoupled( UInt( 64.W)))
-    val out = Decoupled( UInt( 64.W))
-  })
-}
+import compiler._
 
-class SquashN( n : Int) extends FifoIfc64 {
-  val fifos = (0 until n).toList.map( _ => Module( new Squash))
-  val ls = io.inp :: fifos.map(_.io("Q"))
-  val rs = fifos.map(_.io("P")) :+ io.out
-  (ls zip rs).foreach { case (l,r) => l <> r}
-}
+class FifoIfc64 extends ImperativeIfc(Compiler.run("process Squash( P : inp UInt(64), Q : out UInt(64))"))
 
-class ChannelN( n : Int) extends FifoIfc64 {
-  val fifos = (0 until n).toList.map( _ => Module( new Channel))
-  val ls = io.inp :: fifos.map(_.io("Q"))
-  val rs = fifos.map(_.io("P")) :+ io.out
-  (ls zip rs).foreach { case (l,r) => l <> r}
-}
-
-class MooreN( n : Int) extends FifoIfc64 {
-  val fifos = (0 until n).toList.map( _ => Module( new Moore))
-  val ls = io.inp :: fifos.map(_.io("Q"))
-  val rs = fifos.map(_.io("P")) :+ io.out
+class FifoN[T <: ImperativeModule]( n : Int, factory : () => T) extends FifoIfc64 {
+  val fifos = (0 until n).toList.map( _ => Module( factory()))
+  val ls = io("P") :: fifos.map(_.io("Q"))
+  val rs = fifos.map(_.io("P")) :+ io("Q")
   (ls zip rs).foreach { case (l,r) => l <> r}
 }
 
@@ -44,9 +27,8 @@ class SplitN( n : Int) extends Module {
     io.inp <> io.outn(0)
   } else {
     val n2a = (n+1)/2
-    val n2b = n - n2a
     val s0 = Module( new SplitN( n2a))
-    val s1 = Module( new SplitN( n2b))
+    val s1 = Module( new SplitN( n-n2a))
     val s = Module( new Split)
     io.inp <> s.io("P")
     s.io("Q0") <> s0.io.inp
@@ -67,9 +49,8 @@ class MergeN( n : Int) extends Module {
     io.out <> io.inpn(0)
   } else {
     val n2a = (n+1)/2
-    val n2b = n - n2a
     val m0 = Module( new MergeN( n2a))
-    val m1 = Module( new MergeN( n2b))
+    val m1 = Module( new MergeN( n-n2a))
     val m = Module( new Merge)
     io.out <> m.io("Q")
     m.io("P0") <> m0.io.out
@@ -87,16 +68,14 @@ class TreeFifo extends FifoIfc64 {
   val s = Module( new SplitN( n))
   val m = Module( new MergeN( n))
 
-  io.inp <> s.io.inp
+  io("P") <> s.io.inp
   (0 until n).foreach{ i => {
     s.io.outn(i) <> m.io.inpn(i)
-/*
-    val q = Module( new SquashN( 1))
-    s.io.outn(i) <> q.io.inp
-    q.io.out <> m.io.inpn(i)
- */
+    val q = Module( new FifoN( 1, () => new Squash))
+    s.io.outn(i) <> q.io("P")
+    q.io("Q") <> m.io.inpn(i)
   }}
-  m.io.out <> io.out
+  m.io.out <> io("Q")
 
 }
 
@@ -107,49 +86,49 @@ class FifoPerformanceTester[T <: FifoIfc64](c: T) extends PeekPokeTester(c) {
   var nsteps = 0
   var nsent = 0
   var nrcvd = 0
-  var inp_v = false
-  var out_r = false
+  var P_v = false
+  var Q_r = false
 
-  var inp_fired = false
-  var out_fired = false
+  var P_fired = false
+  var Q_fired = false
 
   while( nrcvd < max_transfers && nsteps<max_steps) {
 
-     val inp_p = rnd.nextInt(16) < 12 & nsent < max_transfers
-     val out_p = rnd.nextInt(16) < 12
+     val P_p = rnd.nextInt(16) < 12 & nsent < max_transfers
+     val Q_p = rnd.nextInt(16) < 12
 
 // Drive all DUT inputs
-// These are inp.valid, inp.bits, and out.ready
-     inp_v = /*inp_v && !inp_fired ||*/ inp_p
-     val inp_d : BigInt = BigInt(nsent)
-     out_r = /*out_r && !out_fired ||*/ out_p
+// These are P.valid, P.bits, and Q.ready
+     P_v = /*P_v && !P_fired ||*/ P_p
+     val P_d : BigInt = BigInt(nsent)
+     Q_r = /*Q_r && !Q_fired ||*/ Q_p
 
-     poke( c.io.inp.valid, if (inp_v) BigInt(1) else BigInt(0))
-     poke( c.io.inp.bits.asInstanceOf[UInt], inp_d)
-     poke( c.io.out.ready, if (out_r) BigInt(1) else BigInt(0))
+     poke( c.io("P").valid, if (P_v) BigInt(1) else BigInt(0))
+     poke( c.io("P").bits.asInstanceOf[UInt], P_d)
+     poke( c.io("Q").ready, if (Q_r) BigInt(1) else BigInt(0))
 
 // Peek at all Mealy DUT outputs
-// These are inp.ready, out.valid, and out.bits
+// These are P.ready, Q.valid, and out.bits
 
-     val inp_r : Boolean = peek( c.io.inp.ready) != 0
-     val out_v : Boolean = peek( c.io.out.valid) != 0
-     val out_d : BigInt  = peek( c.io.out.bits.asInstanceOf[UInt])
+     val P_r : Boolean = peek( c.io("P").ready) != 0
+     val Q_v : Boolean = peek( c.io("Q").valid) != 0
+     val Q_d : BigInt  = peek( c.io("Q").bits.asInstanceOf[UInt])
 
-     if (out_v & out_r) {
-        println( s"Received $out_d should be $nrcvd at $nsteps")
-        expect( c.io.out.bits.asInstanceOf[UInt], nrcvd)
-        out_fired = true
+     if (Q_v & Q_r) {
+        println( s"Received $Q_d should be $nrcvd at $nsteps")
+        expect( c.io("Q").bits.asInstanceOf[UInt], nrcvd)
+        Q_fired = true
         nrcvd += 1
      } else {
-        out_fired = false
+        Q_fired = false
      }
 
-     if (inp_v & inp_r) {
+     if (P_v & P_r) {
         println( s"Sending $nsent at $nsteps")
-        inp_fired = true
+        P_fired = true
         nsent += 1
      } else {
-        inp_fired = false
+        P_fired = false
      }
 
      step(1)
@@ -163,7 +142,7 @@ class Channel4PerformanceTest extends FlatSpec with Matchers {
   behavior of "Squash4"
 
   it should "work" in {
-    chisel3.iotesters.Driver( () => new ChannelN( 4), "verilator") { c =>
+    chisel3.iotesters.Driver( () => new FifoN( 4, () => new Channel), "verilator") { c =>
       new FifoPerformanceTester(c)
     } should be (true)
   }
@@ -173,7 +152,7 @@ class Squash4PerformanceTest extends FlatSpec with Matchers {
   behavior of "Squash4"
 
   it should "work" in {
-    chisel3.iotesters.Driver( () => new SquashN( 4), "verilator") { c =>
+    chisel3.iotesters.Driver( () => new FifoN( 4, () => new Squash), "verilator") { c =>
       new FifoPerformanceTester(c)
     } should be (true)
   }
@@ -183,7 +162,7 @@ class Moore4PerformanceTest extends FlatSpec with Matchers {
   behavior of "Moore4"
 
   it should "work" in {
-    chisel3.iotesters.Driver( () => new MooreN( 4), "verilator") { c =>
+    chisel3.iotesters.Driver( () => new FifoN( 4, () => new Moore), "verilator") { c =>
       new FifoPerformanceTester(c)
     } should be (true)
   }

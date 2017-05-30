@@ -32,6 +32,13 @@ object PrintAST {
       p( 0, e)
       println( "")
     }
+    case Assignment( VectorIndex( v, idx), e) => {
+      print( s"${i(indent)}${v}(")
+      p( 0, idx)
+      print( s") = ")
+      p( 0, e)
+      println( "")
+    }
     case Wait => println( s"${i(indent)}wait")
     case IfThenElse( b, t, e) => {
       print( s"${i(indent)}if (")
@@ -67,6 +74,11 @@ object PrintAST {
   def p( indent : Int, ast : Expression) : Unit = ast match {
     case ConstantInteger( i) => print( s"${i}")
     case Variable( v) => print( s"${v}")
+    case VectorIndex( v, e) => {
+      print( s"${v}(")
+      p( 0, e)
+      print( s")")
+    }
     case AddExpression( l, r) => {
       p( 0, l)
       print( s"+")

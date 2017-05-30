@@ -170,7 +170,53 @@ object HLS {
         val nodes = for { lbl <- lbls} yield lbl._2._1
         val arcs = for { lbl <- lbls if lbl._1} yield lbl._2
 
-        val t = TopoSort.topo( TopoSort.genGraph( nodes.toList, arcs.toList))
+        val t = try {
+          TopoSort( nodes, arcs)
+        } catch {
+          case e : Exception => {
+            println( s"Cycle in this graph: lg: ${lg} lbls: ${lbls} nodes: ${nodes.toList} ${arcs.toList}")
+
+/*
+          LGSeq(
+            List(
+              LGWhileNotProbeWait(
+                NBCanGet(Port(A)),
+                LGSeq(
+                  List(
+                    LGPrim(NBGet(Port(A),Variable(a)))
+                  )
+                ),
+                (0,1)
+              ),
+              LGWhileNotProbeWait(
+                NBCanGet(Port(B)),
+                LGSeq(
+                  List(
+                    LGPrim(NBGet(Port(B),Variable(b))),
+                    LGWait(),
+                    LGPrim(Assignment(VectorIndex(o,ConstantInteger(0)),AddExpression(VectorIndex(a,ConstantInteger(0)),VectorIndex(b,ConstantInteger(0))))),
+                    LGPrim(Assignment(VectorIndex(o,ConstantInteger(1)),AddExpression(VectorIndex(a,ConstantInteger(1)),VectorIndex(b,ConstantInteger(1)))))
+                  )
+                ),
+                (1,2)
+              ),
+              LGWhileNotProbeWait(
+                NBCanPut(Port(O)),
+                LGSeq(
+                  List(
+                    LGPrim(NBPut(Port(O),Variable(o)))
+                  )
+                ),
+                (2,0)
+              )
+            )
+          )
+          lbls: List((true,(0,1)), (true,(1,2)), (true,(2,0))) nodes: List(0, 1, 2) List((0,1), (1,2), (2,0))
+ */
+
+            throw e
+          }
+        }
 
         transLG( Blk( List(), List()), LGSeq( t.map{ find}))
       }

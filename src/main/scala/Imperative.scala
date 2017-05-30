@@ -15,8 +15,7 @@ class LoweredFormException extends Exception
 class ImproperLeftHandSideException extends Exception
 class NonConstantUnrollBoundsException extends Exception
 
-class ImperativeModule( ast : Process) extends Module {
-
+class ImperativeIfc( ast : Process) extends Module {
   val decl_lst = ast match { case Process( PortDeclList( decl_lst), _) => decl_lst}
 
   val iod_tuples = decl_lst.map{ 
@@ -27,6 +26,11 @@ class ImperativeModule( ast : Process) extends Module {
   }
 
   val io = IO(new CustomDecoupledBundle( iod_tuples: _*))
+
+}
+
+
+class ImperativeModule( ast : Process) extends ImperativeIfc( ast) {
 
   def eval( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
@@ -103,14 +107,16 @@ class ImperativeModule( ast : Process) extends Module {
     case Process( _, ResetWhileTrueWait( seqDeclLst, initSeq, mainBlk)) => {
 
         val sTinit = seqDeclLst.foldLeft(sT.push){
-// Really want this to be uninitialized, but using 47.U instead; Tests don't seem to break unless I do this
-          case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W), init=47.U))
+// These are uninitialized. Tests don't break, if you want them to, use init=47.U
+          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W)/*, init=47.U*/))
+          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, Wire( Vec(n,UInt(w.W))))
         }
 
         val sTinit0 = eval( sTinit, Blk( List(), initSeq))
 
         val sT0 = seqDeclLst.foldLeft(sT.push){
-          case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W)))
+          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W)))
+          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, Wire( Vec(n,UInt(w.W))))
         }
 
         val sT1 = eval( sT0, mainBlk)
