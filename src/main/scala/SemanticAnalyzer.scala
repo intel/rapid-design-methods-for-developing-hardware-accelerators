@@ -6,9 +6,6 @@ import compiler._
 import collection.immutable.ListMap
 import collection.immutable.Set
 
-class NonConstantUnrollParametersException extends Exception
-class InnerResetWhileTrueWaitException extends Exception
-
 // Return communication ports that are unguarded
 class GuardStack( val portsWithErrors : Set[Port] = Set[Port](),
                   val activeGuards : List[Set[Port]] = List[Set[Port]]()) {
@@ -88,8 +85,9 @@ object SemanticAnalyzer {
       val mcmd = getGuards( new PortHisto, cmd)
       m.plus( mcmd.scalarMult( ub-lb))
     }
-    case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
-    case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
+    case Unroll( _, _, _, _) => throw new NonConstantUnrollBoundsException
+    case ResetWhileTrueWait( _, _, _) => throw new LoweredFormException
+    case UntilFinallyBody( _, _, _) => throw new LoweredFormException
   }
 
   def getCommunications( m : PortHisto, ast : Command) : PortHisto = ast match {
@@ -108,8 +106,9 @@ object SemanticAnalyzer {
       val mcmd = getCommunications( new PortHisto, cmd)
       m.plus( mcmd.scalarMult( ub-lb))
     }
-    case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
-    case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
+    case Unroll( _, _, _, _) => throw new NonConstantUnrollBoundsException
+    case ResetWhileTrueWait( _, _, _) => throw new LoweredFormException
+    case UntilFinallyBody( _, _, _) => throw new LoweredFormException
   }
 
   def unguardedComms( m : GuardStack, ast : BExpression) : GuardStack = ast match {
@@ -135,8 +134,9 @@ object SemanticAnalyzer {
     case Assignment( _, _) => m
     case Wait => m
     case Unroll( Variable( v), ConstantInteger( lb), ConstantInteger( ub), cmd) => unguardedComms( m, cmd)
-    case Unroll( _, _, _, _) => throw new NonConstantUnrollParametersException
-    case ResetWhileTrueWait( _, _, _) => throw new InnerResetWhileTrueWaitException
+    case Unroll( _, _, _, _) => throw new NonConstantUnrollBoundsException
+    case ResetWhileTrueWait( _, _, _) => throw new LoweredFormException
+    case UntilFinallyBody( _, _, _) => throw new LoweredFormException
   }
 
   def findUnguardedComms( mainSeg : Command) : Option[String] = {
@@ -170,19 +170,18 @@ object SemanticAnalyzer {
     if ( badPorts.isEmpty) None else Some( s"Multiple communications (possibly) in the same cycle: ${badPorts.toList.mkString}")
   }
 
-  def loweredCheck( ast : Process) : Either[CompilationError, Process] = {
+  def loweredCheck( ast : Process, checkUnguardedComms : Boolean = true) : Either[CompilationError, Process] = {
     ast match {
       case Process( portDeclList, Blk( _, Nil)) => Right( ast) // Only Interface
       case Process( portDeclList, ResetWhileTrueWait( localVars, initSeg, mainSeg)) => {
 // Warning
         mainSegMultiComms( mainSeg)
 // Errors
+        val e0 = if ( checkUnguardedComms) List( findUnguardedComms( mainSeg)) else List()
         val e = findWhile( Blk( localVars, initSeg), "initial segment") ::
                 findWhile( mainSeg, "main segment") ::
                 initSegComms( Blk( localVars, initSeg)) :: 
-                initSegGuards( Blk( localVars, initSeg)) ::
-//                findUnguardedComms( mainSeg) ::
-                List[Option[String]]()
+                initSegGuards( Blk( localVars, initSeg)) :: e0
         val errors = e.flatMap{ identity[Option[String]]}
         if ( errors.isEmpty) {
           Right( ast)

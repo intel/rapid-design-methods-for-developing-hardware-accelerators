@@ -32,7 +32,7 @@ class Squash extends ImperativeModule(
 )
 
 class SquashHLSPrefix extends ImperativeModule( 
-  Compiler.runHLS2(
+  Compiler.runHLS3(
     """
       |process Squash( P : inp UInt(64), Q : out UInt(64)) {
       |  var v : UInt(64)
@@ -48,7 +48,7 @@ class SquashHLSPrefix extends ImperativeModule(
 )
 
 class SquashHLS extends ImperativeModule( 
-  Compiler.runHLS2(
+  Compiler.runHLS3(
     """
       |process Squash( P : inp UInt(64), Q : out UInt(64)) {
       |  var v : UInt(64)

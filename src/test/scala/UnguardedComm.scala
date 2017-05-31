@@ -66,7 +66,7 @@ object UnguardedComm {
       |               Q : out UInt(8))
       |{
       |  while ( true) {
-      |    if ( !!P? && Q!) {
+      |    if ( !(!P?) && Q!) {
       |      var a : UInt(8)
       |      P?a
       |      Q!a

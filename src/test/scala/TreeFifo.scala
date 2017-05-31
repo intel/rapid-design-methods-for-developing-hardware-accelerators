@@ -10,7 +10,7 @@ import compiler._
 
 /*
 class Split extends ImperativeModule( 
-  Compiler.runHLS2(
+  Compiler.runHLS3(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
@@ -29,7 +29,7 @@ class Split extends ImperativeModule(
  */
 // this currently adds an extra wait that the end
 class Split extends ImperativeModule( 
-  Compiler.runHLS2(
+  Compiler.runHLS3(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
@@ -261,7 +261,7 @@ class MergeFalseCombLoop extends ImperativeModule(
     """.stripMargin.trim))
 
 class Merge extends ImperativeModule( 
-  Compiler.runHLS2(
+  Compiler.runHLS3(
     """
       |process Merge( P0 : inp UInt(64), P1 : inp UInt(64), Q : out UInt(64)) {
       |  var x : UInt(64)

@@ -18,7 +18,7 @@ object HLS2 {
     for {
       ast1 <- General( ast).right
       ast2 <- SemanticAnalyzer.pass1( ast1).right
-      ast3 <- SemanticAnalyzer.loweredCheck( ast2).right
+      ast3 <- SemanticAnalyzer.loweredCheck( ast2, false).right
     } yield ast3
   }
 
