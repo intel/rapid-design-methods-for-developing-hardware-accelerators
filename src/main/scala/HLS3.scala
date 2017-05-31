@@ -30,21 +30,24 @@ object HLS3 {
     case _ => true
   }
 
-  @tailrec
-  def split( lst : List[Command], accum : List[Command]): (List[Command],List[Command]) = {
-    lst match {
-      case Nil => (accum.reverse, List())
-      case Wait::tl => ((Wait::accum).reverse, tl)
-      case (hd@Blk( decls, lst0))::tl =>
-        lst0 match {
-          case Nil => split( tl, accum)
-          case hd0::tl0 => split( hd0::Blk(decls,tl0)::tl, accum)
-        }
-      case hd::tl => 
-        if ( waitFree( hd)) split( tl, hd::accum) else (accum.reverse, lst)
+  def split( lst : List[Command]) : (List[Command],List[Command]) = {
+    @tailrec
+    def split( lst : List[Command], accum : List[Command]): (List[Command],List[Command]) = {
+      lst match {
+        case Nil => (accum, List())
+        case Wait::tl => ((Wait::accum), tl)
+        case (hd@Blk( decls, lst0))::tl =>
+          lst0 match {
+            case Nil => split( tl, accum)
+            case hd0::tl0 => split( hd0::Blk(decls,tl0)::tl, accum)
+          }
+        case hd::tl =>
+          if ( waitFree( hd)) split( tl, hd::accum) else (accum, lst)
+      }
     }
+    val (seq0_reversed, seq1) = split( lst, List())
+    ( seq0_reversed.reverse, seq1)
   }
-
 
   def stripWait( cmd : Command) : (List[Command],Boolean) = cmd match {
     case Blk( _, l) if l.isEmpty => (l.toList, false)
@@ -60,7 +63,9 @@ object HLS3 {
   def assignS( s : Int) : Command =
     Assignment( Variable( "s"), ConstantInteger( s))
 
-  def guardS( s : Int, cmd : Command) : Command = 
+  def guardS( s : Int, cmd : Command) : Command = {
+    println( s"guardS: ${s}")
+    PrintAST.p( 0, cmd)
     IfThenElse( 
       AndBExpression(
         EqBExpression( Variable( "s"), ConstantInteger( s)),
@@ -69,8 +74,30 @@ object HLS3 {
       cmd,
       Blk( List(), List())
     )
+  }
 
   def wrapBlk( lst : List[Command]) = Blk( List(), lst)
+
+  def hasBlk( lst : List[Command]) =
+    lst.foldLeft(false){ case (b,cmd) =>
+      cmd match {
+        case Blk( _, _) => true
+        case _ => b
+      }
+    }
+
+  def flattenBlk( lst : List[Command]) : Command = {
+    @tailrec
+    def flattenBlk( lst : List[Command], accum : List[Command]) : List[Command] =
+      lst match {
+        case Nil => accum
+        case (hd@Blk( _, Nil))::tl => flattenBlk( tl, accum)
+        case (hd@Blk( _, hd0::tl0))::tl =>
+          flattenBlk( Blk( List(), tl0)::tl, hd0::accum)
+        case hd::tl => flattenBlk( tl, hd::accum)
+      }
+    Blk( List(), flattenBlk( lst, List()).reverse)
+  }
 
   def expand( st : State, lb : Int, ub : Int, cmd : Command) : State = cmd match {
     case IfThenElse( b, t, e) => {
@@ -93,11 +120,8 @@ object HLS3 {
 
       val st0 = st.upM( lb, 
         guardS( lb, IfThenElse( b, wrapBlk( lst0 ++ List( assignS( ub)) ++ condWait( w0)), wrapBlk( lst1 ++ condWait( w1))))
-      ).upC( (lb,ub))
-      if ( !w0)
-        st0.upC( (lb,ub))
-      else
-        st0
+      )
+      if ( w0) st0 else st0.upC( (lb,ub))
     }
     case Wait => {
       st.upM( lb, 
@@ -109,14 +133,34 @@ object HLS3 {
         guardS( lb, assignS( ub))
       ).upC( lb, ub)
     }
+    case Blk( decls, lst@(hd::tl)) if hasBlk( lst) =>
+      expand( st, lb, ub, flattenBlk( lst))
     case Blk( decls, lst@(hd::tl)) => {
-      val (seq0,seq1) = split( lst, List())
+/*
+      println( s"Blk ...")
+      PrintAST.p( 0, cmd)
+ */
+
+      val (seq0,seq1) = split( lst)
+
       if        (  seq0.isEmpty) {
         hd match {
           case While( NotBExpression( e), b) => {
-            val (seq0,seq1) = split( tl, List())
-            val (s1,g0) = if ( seq1.isEmpty)  (ub, st.g) else  (st.g,st.g+1)
-            val st0 = expand( st, lb, s1, UntilFinallyBody( e, wrapBlk( seq0), b))
+            val (seq0,seq1) = split( tl)
+
+/*
+            println( s"While( NotBExpression ...")
+            PrintAST.p( 0, hd)
+
+            println( s"seq0")
+            PrintAST.p( 0, wrapBlk( seq0))
+
+            println( s"seq1")
+            PrintAST.p( 0, wrapBlk( seq1))
+ */
+
+            val (s1,g0) = if ( seq1.isEmpty) (ub, st.g) else  (st.g,st.g+1)
+            val st0 = expand( st.upG(g0), lb, s1, UntilFinallyBody( e, wrapBlk( seq0), b))
             if ( seq1.isEmpty)
               st0
             else
@@ -162,9 +206,10 @@ object HLS3 {
 
   def General( ast : Process) : Either[CompilationError, Process] = ast match {
     case Process( portDecls, cmd@Blk( decls, lst)) => {
-      val finalCmd = Blk( List(), List())
+      val finalCmd = guardS( 1, wrapBlk( List()))
       val st = expand( State( Map( 1 -> finalCmd), 2, List()), 0, 1, cmd)
       st.m.toSeq.foreach{ case (k,v) => PrintAST.p( 0, v)}
+      println( s"Constraints: ${st.c}")
       val order = TopoSort( st.m.keys.toSeq, st.c)
       val lst = order.map{ idx => st.m(idx)}
       val sbits = log2( st.g)
