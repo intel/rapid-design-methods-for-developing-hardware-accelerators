@@ -9,10 +9,10 @@ import chisel3.iotesters._
 import lexer._
 import compiler._
 
-class HLSVectorAdd2 extends ImperativeModule( 
-  Compiler.runHLS(
+class HLS3VectorAdd2 extends ImperativeModule( 
+  Compiler.runHLS3(
     """
-      |process HLSVectorAdd2 ( A : inp Vec(2,UInt(8)),
+      |process HLS3VectorAdd2 ( A : inp Vec(2,UInt(8)),
       |                        B : inp Vec(2,UInt(8)),
       |                        O : out Vec(2,UInt(8)))
       |{
@@ -31,16 +31,16 @@ class HLSVectorAdd2 extends ImperativeModule(
     """.stripMargin.trim)
 )
 
-class HLSVectorAdd2Tester[T <: ImperativeModule]( c : T) extends PeekPokeTester(c) {
+class HLS3VectorAdd2Tester[T <: ImperativeModule]( c : T) extends PeekPokeTester(c) {
   poke( c.io("O").ready, 1)
 
   poke( c.io("A").valid, 0)
   poke( c.io("B").valid, 0)
 
-// Mealy
-  expect( c.io("O").valid, 0)
-//  expect( c.io("A").ready, 0) // don't care
-//  expect( c.io("B").ready, 0) // don't care
+  expect( c.io("O").valid, 0) // Mealy
+
+//  expect( c.io("A").ready, 1) // Mealy don't care
+//  expect( c.io("B").ready, 0) // Mealy don't care
 
   step(1)
 
@@ -49,24 +49,22 @@ class HLSVectorAdd2Tester[T <: ImperativeModule]( c : T) extends PeekPokeTester(
   poke( c.io("A").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](1,10))
   poke( c.io("B").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](7,2))
 
-// Mealy
-  expect( c.io("A").ready, 1)
-  expect( c.io("B").ready, 1)
+  expect( c.io("A").ready, 1) // Mealy
+  expect( c.io("B").ready, 1) // Mealy
 
   step(1)
 
-// Mealy
-  expect( c.io("O").valid, 1)
-  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](8,12))
+  expect( c.io("O").valid, 1) // Mealy
+  expect( c.io("O").bits.asInstanceOf[Vec[UInt]], IndexedSeq[BigInt](8,12)) // Mealy
 
 
 }
 
-class HLSVectorAdd2Test extends FlatSpec with Matchers {
-  behavior of "HLSVectorAdd2"
+class HLS3VectorAdd2Test extends FlatSpec with Matchers {
+  behavior of "HLS3VectorAdd2"
   it should "work" in {
-    chisel3.iotesters.Driver( () => new HLSVectorAdd2, "firrtl") { c =>
-      new HLSVectorAdd2Tester( c)
+    chisel3.iotesters.Driver( () => new HLS3VectorAdd2, "firrtl") { c =>
+      new HLS3VectorAdd2Tester( c)
     } should be ( true)
   }
 }

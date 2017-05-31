@@ -67,6 +67,10 @@ object PrintAST {
       print( s"==")
       p( 0, r)
     }
+    case NotBExpression( e) => {
+      print( s"!")
+      p( 0, e)
+    }
     case NBCanGet( Port( p)) => print( s"${p}?")
     case NBCanPut( Port( p)) => print( s"${p}!")
     case _ => throw new WrongASTFormException( s"${ast}")

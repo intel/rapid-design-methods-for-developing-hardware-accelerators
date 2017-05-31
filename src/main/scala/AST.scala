@@ -51,4 +51,5 @@ case class ResetWhileTrueWait( decls : Seq[Decl], initSeq : Seq[Command], mainBl
 // High level commands
 
 case class While( cond : BExpression, body : Command) extends Command
+case class UntilFinallyBody( b : BExpression, fin : Command, body : Command) extends Command
 case object Wait extends Command

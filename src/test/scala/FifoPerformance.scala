@@ -8,7 +8,7 @@ import chisel3.iotesters._
 
 import compiler._
 
-class FifoIfc64 extends ImperativeIfc(Compiler.run("process Squash( P : inp UInt(64), Q : out UInt(64))"))
+class FifoIfc64 extends ImperativeIfc(Compiler.run("process Squash( P : inp UInt(64), Q : out UInt(64)){}"))
 
 class FifoN[T <: ImperativeModule]( n : Int, factory : () => T) extends FifoIfc64 {
   val fifos = (0 until n).toList.map( _ => Module( factory()))

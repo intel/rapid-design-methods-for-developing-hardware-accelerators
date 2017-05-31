@@ -172,6 +172,7 @@ object SemanticAnalyzer {
 
   def loweredCheck( ast : Process) : Either[CompilationError, Process] = {
     ast match {
+      case Process( portDeclList, Blk( _, Nil)) => Right( ast) // Only Interface
       case Process( portDeclList, ResetWhileTrueWait( localVars, initSeg, mainSeg)) => {
 // Warning
         mainSegMultiComms( mainSeg)
@@ -180,7 +181,7 @@ object SemanticAnalyzer {
                 findWhile( mainSeg, "main segment") ::
                 initSegComms( Blk( localVars, initSeg)) :: 
                 initSegGuards( Blk( localVars, initSeg)) ::
-                findUnguardedComms( mainSeg) ::
+//                findUnguardedComms( mainSeg) ::
                 List[Option[String]]()
         val errors = e.flatMap{ identity[Option[String]]}
         if ( errors.isEmpty) {
@@ -197,6 +198,7 @@ object SemanticAnalyzer {
 
   def pass1( ast : Process) : Either[CompilationError, Process] = {
     ast match {
+      case Process( portDecls, Blk( decls, Nil)) => Right( ast) // Only interface
       case Process( portDecls, Blk( decls, seq)) if !seq.isEmpty =>
         seq.last match {
           case While( ConstantTrue, Blk( innerDecls, innerSeq)) =>
@@ -207,7 +209,6 @@ object SemanticAnalyzer {
             }
           case _ => Left(SemanticAnalyzerError("Don't have While( ConstantTrue, Blk(...)) combination"))
         }
-      case Process( portDecls, Blk( decls, Nil)) => Left(SemanticAnalyzerError("Empty Sequence"))
       case _ => Left(SemanticAnalyzerError("Don't have top level process"))
     }
   }

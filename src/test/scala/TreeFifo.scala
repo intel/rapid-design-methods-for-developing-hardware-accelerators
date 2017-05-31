@@ -10,7 +10,7 @@ import compiler._
 
 /*
 class Split extends ImperativeModule( 
-  Compiler.runHLS(
+  Compiler.runHLS2(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
@@ -29,7 +29,7 @@ class Split extends ImperativeModule(
  */
 // this currently adds an extra wait that the end
 class Split extends ImperativeModule( 
-  Compiler.runHLS(
+  Compiler.runHLS2(
     """
       |process Split( P : inp UInt(64), Q0 : out UInt(64), Q1 : out UInt(64)) {
       |  var x : UInt(64)
@@ -238,7 +238,7 @@ class Merge extends ImperativeModule(
  */
 
 class MergeFalseCombLoop extends ImperativeModule( 
-  Compiler.runHLS(
+  Compiler.runHLS2(
     """
       |process Merge( P0 : inp UInt(64), P1 : inp UInt(64), Q : out UInt(64)) {
       |  var x : UInt(64)
@@ -261,7 +261,7 @@ class MergeFalseCombLoop extends ImperativeModule(
     """.stripMargin.trim))
 
 class Merge extends ImperativeModule( 
-  Compiler.runHLS(
+  Compiler.runHLS2(
     """
       |process Merge( P0 : inp UInt(64), P1 : inp UInt(64), Q : out UInt(64)) {
       |  var x : UInt(64)
@@ -410,13 +410,14 @@ class TreeFifoTest extends FlatSpec with Matchers {
 
 class MergeTester(c:MergeFalseCombLoop) extends PeekPokeTester(c) {
 
+  poke( c.io("Q").ready, 1)
   poke( c.io("P0").valid, 0)
   poke( c.io("P1").valid, 0)
-  poke( c.io("Q").ready, 1)
 
 //Mealy
-  expect( c.io("P0").ready, 1) // Don't care
-  expect( c.io("P1").ready, 0) // Don't care
+  expect( c.io("Q").valid, 0)
+//  expect( c.io("P0").ready, 1) // Don't care
+//  expect( c.io("P1").ready, 0) // Don't care
 
   step(1)
 
@@ -431,7 +432,7 @@ class MergeTester(c:MergeFalseCombLoop) extends PeekPokeTester(c) {
   expect( c.io("P1").ready, 0)
 
   poke( c.io("P0").valid, 0)
-  expect( c.io("P0").ready, 1)
+//  expect( c.io("P0").ready, 1)
   expect( c.io("P1").ready, 0)
 
   poke( c.io("P0").valid, 1)
@@ -439,7 +440,7 @@ class MergeTester(c:MergeFalseCombLoop) extends PeekPokeTester(c) {
   expect( c.io("P1").ready, 0)
 
   poke( c.io("P1").valid, 0)
-  expect( c.io("P0").ready, 1)
+//  expect( c.io("P0").ready, 1)
   expect( c.io("P1").ready, 0)
 
   poke( c.io("P1").valid, 1)
@@ -455,7 +456,7 @@ class MergeTester(c:MergeFalseCombLoop) extends PeekPokeTester(c) {
   expect( c.io("P1").ready, 1)
 
   poke( c.io("P0").valid, 0)
-  expect( c.io("P0").ready, 0)
+//  expect( c.io("P0").ready, 0)
   expect( c.io("P1").ready, 1)
 
   poke( c.io("P0").valid, 1)
@@ -464,14 +465,14 @@ class MergeTester(c:MergeFalseCombLoop) extends PeekPokeTester(c) {
 
   poke( c.io("P1").valid, 0)
   expect( c.io("P0").ready, 0)
-  expect( c.io("P1").ready, 1)
+//  expect( c.io("P1").ready, 1)
 
   poke( c.io("P1").valid, 1)
   expect( c.io("P0").ready, 0)
   expect( c.io("P1").ready, 1)
 
   poke( c.io("P0").valid, 0)
-  expect( c.io("P0").ready, 0)
+//  expect( c.io("P0").ready, 0)
   expect( c.io("P1").ready, 1)
 
   step(1)
