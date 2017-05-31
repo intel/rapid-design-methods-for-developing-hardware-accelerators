@@ -238,7 +238,7 @@ class Merge extends ImperativeModule(
  */
 
 class MergeFalseCombLoop extends ImperativeModule( 
-  Compiler.runHLS2(
+  Compiler.runHLS3(
     """
       |process Merge( P0 : inp UInt(64), P1 : inp UInt(64), Q : out UInt(64)) {
       |  var x : UInt(64)
@@ -408,7 +408,7 @@ class TreeFifoTest extends FlatSpec with Matchers {
  */
 
 
-class MergeTester(c:MergeFalseCombLoop) extends PeekPokeTester(c) {
+class MergeTester[T <: ImperativeIfc](c: T) extends PeekPokeTester(c) {
 
   poke( c.io("Q").ready, 1)
   poke( c.io("P0").valid, 0)
@@ -509,10 +509,19 @@ class StandaloneMergeP0Tester(c:StandaloneMergeP0) extends PeekPokeTester( c)
 class StandaloneMergeP1Tester(c:StandaloneMergeP1) extends PeekPokeTester( c)
 class StandaloneMergeQTester(c:StandaloneMergeQ) extends PeekPokeTester( c)
 
-class MergeTest extends FlatSpec with Matchers {
+class MergeFalseCombLoopTest extends FlatSpec with Matchers {
   behavior of "TreeFifo"
   it should "work" in {
     chisel3.iotesters.Driver( () => new MergeFalseCombLoop, "firrtl") { c =>
+      new MergeTester( c)
+    } should be ( true)
+  }
+}
+
+class MergeTest extends FlatSpec with Matchers {
+  behavior of "TreeFifo"
+  it should "work" in {
+    chisel3.iotesters.Driver( () => new Merge, "firrtl") { c =>
       new MergeTester( c)
     } should be ( true)
   }

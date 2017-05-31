@@ -46,78 +46,53 @@ object HLS3 {
   }
 
 
+  def stripWait( cmd : Command) : (List[Command],Boolean) = cmd match {
+    case Blk( _, l) if l.isEmpty => (l.toList, false)
+    case Blk( _, l) if l.last == Wait => (l.toList.init, true)
+    case Blk( _, l) => (l.toList, false)
+    case Wait => (List(), true)
+    case _ => (List(cmd), false)
+  }
+
+  def condWait( b : Boolean) : List[Command] =
+    if ( b) List( Assignment( Variable( "w"), ConstantInteger( 1))) else List()
+
+  def assignS( s : Int) : Command =
+    Assignment( Variable( "s"), ConstantInteger( s))
+
+  def guardS( s : Int, cmd : Command) : Command = 
+    IfThenElse( 
+      AndBExpression(
+        EqBExpression( Variable( "s"), ConstantInteger( s)),
+        EqBExpression( Variable( "w"), ConstantInteger( 0))
+      ),
+      cmd,
+      Blk( List(), List())
+    )
+
+  def wrapBlk( lst : List[Command]) = Blk( List(), lst)
+
   def expand( st : State, lb : Int, ub : Int, cmd : Command) : State = cmd match {
     case IfThenElse( b, t, e) => {
       val (s1,s2,g0) = (st.g,st.g+1,st.g+2)
-      val st0 = st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          IfThenElse(
-            b,
-            Assignment( Variable( "s"), ConstantInteger( s1)),
-            Assignment( Variable( "s"), ConstantInteger( s2))
-          ),
-          Blk( List(), List())
-        )
+      val st0 = st.upM( lb,
+        guardS( lb, IfThenElse( b, assignS( s1), assignS( s2)))
       ).upC( (lb,s1)).upC( (lb,s2)).upG( g0)
       expand( expand( st0, s1, ub, t), s2, ub, e)
     }
     case While( b, e) => {
       val (s1,g0) = (st.g,st.g+1)
-      val st0 = st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          IfThenElse(
-            b,
-            Assignment( Variable( "s"), ConstantInteger( s1)),
-            Assignment( Variable( "s"), ConstantInteger( ub))
-          ),
-          Blk( List(), List())
-        )
+      val st0 = st.upM( lb,
+        guardS( lb, IfThenElse( b, assignS( s1), assignS( ub)))
       ).upC( (lb,s1)).upC( (lb,ub)).upG( g0)
       expand( st0, s1, lb, e)
     }
     case UntilFinallyBody( b, fin, body) => {
-      def stripWait( cmd : Command) : (List[Command],Boolean) = cmd match {
-        case Blk( _, l) if l.isEmpty => (l.toList, false)
-        case Blk( _, l) if l.last == Wait => (l.toList.init, true)
-        case Blk( _, l) => (l.toList, false)
-        case Wait => (List(), true)
-        case _ => (List(cmd), false)
-      }
-
-      def condWait( b : Boolean) : List[Command] =
-        if ( b) List( Assignment( Variable( "w"), ConstantInteger( 1))) else List()
-
       val (lst0,w0) = stripWait( fin)
       val (lst1,w1) = stripWait( body)
 
       val st0 = st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          IfThenElse(
-            b,
-            Blk(
-              List(),
-              lst0 ++ List( Assignment( Variable( "s"), ConstantInteger( ub))) ++ condWait( w0)
-
-            ),
-            Blk(
-              List(),
-              lst1 ++ condWait( w1)
-            )
-          ),
-          Blk( List(), List())
-        )
+        guardS( lb, IfThenElse( b, wrapBlk( lst0 ++ List( assignS( ub)) ++ condWait( w0)), wrapBlk( lst1 ++ condWait( w1))))
       ).upC( (lb,ub))
       if ( !w0)
         st0.upC( (lb,ub))
@@ -126,37 +101,12 @@ object HLS3 {
     }
     case Wait => {
       st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          Blk( 
-            List(),
-            List(
-              Assignment( Variable( "s"), ConstantInteger( ub)),
-              Assignment( Variable( "w"), ConstantInteger( 1))
-            )
-          ),
-          Blk( List(), List())
-        )
+        guardS( lb, wrapBlk( List( assignS( ub)) ++ condWait( true)))
       )
     }
     case Blk( decls, Nil) => {
       st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          Blk( 
-            List(),
-            List(
-              Assignment( Variable( "s"), ConstantInteger( ub))
-            )
-          ),
-          Blk( List(), List())
-        )
+        guardS( lb, assignS( ub))
       ).upC( lb, ub)
     }
     case Blk( decls, lst@(hd::tl)) => {
@@ -166,11 +116,11 @@ object HLS3 {
           case While( NotBExpression( e), b) => {
             val (seq0,seq1) = split( tl, List())
             val (s1,g0) = if ( seq1.isEmpty)  (ub, st.g) else  (st.g,st.g+1)
-            val st0 = expand( st, lb, s1, UntilFinallyBody( e, Blk( List(), seq0), b))
+            val st0 = expand( st, lb, s1, UntilFinallyBody( e, wrapBlk( seq0), b))
             if ( seq1.isEmpty)
               st0
             else
-              expand( st0, s1, ub, Blk( List(), seq1))
+              expand( st0, s1, ub, wrapBlk( seq1))
           }
           case While( ConstantTrue, b) => {
             assert( tl.isEmpty)
@@ -190,45 +140,16 @@ object HLS3 {
           if ( !seq0.isEmpty && Wait == seq0.last) (seq0.init,true) else (seq0,false)
 
         val st0 = st.upG( g0).upM( lb,
-          IfThenElse(
-            AndBExpression(
-              EqBExpression( Variable( "s"), ConstantInteger( lb)),
-              EqBExpression( Variable( "w"), ConstantInteger( 0))
-            ),
-            Blk(
-              List(),
-              seq0prime ++ List(
-                Assignment( Variable( "s"), ConstantInteger( s1)),
-                Assignment( Variable( "w"), ConstantInteger( if ( hasWait) 1 else 0))
-              )
-            ),
-            Blk( List(), List())
-          )
+          guardS( lb, wrapBlk( seq0prime ++ List( assignS( s1)) ++ condWait( hasWait)))
         )
         val st1 = if ( hasWait) st0 else st0.upC( lb, s1)
 
-        if ( seq1.isEmpty) 
-          st1
-        else
-          expand( st1, s1, ub, Blk( List(), seq1))
+        if ( seq1.isEmpty) st1 else expand( st1, s1, ub, wrapBlk( seq1))
       }
     }
     case cmd => {
       st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          Blk( 
-            List(),
-            List(
-              cmd,
-              Assignment( Variable( "s"), ConstantInteger( ub))
-            )
-          ),
-          Blk( List(), List())
-        )
+        guardS( lb, wrapBlk( List( cmd, assignS( ub))))
       ).upC( lb, ub)
     }
   }
