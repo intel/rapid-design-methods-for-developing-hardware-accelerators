@@ -132,6 +132,10 @@ class LazyStackNCombTest extends FlatSpec with Matchers {
 class LazyStackNWaitTest extends FlatSpec with Matchers {
   behavior of "LazyStackNWait"
   it should "work" in {
+    chisel3.iotesters.Driver.execute( Array( "--fint-write-vcd", "-fct", "imperative.transform.AnalyzeCircuit", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackWait)) { c =>
+      new LazyStackNTester( c)
+    } should be ( true)
+
     chisel3.iotesters.Driver( () => new LazyStackN(10, () => new LazyStackWait), "firrtl") { c =>
       new LazyStackNTester( c)
     } should be ( true)
@@ -150,7 +154,7 @@ class LazyStackNWait1Test extends FlatSpec with Matchers {
 class LazyStackNWait2Test extends FlatSpec with Matchers {
   behavior of "LazyStackNWait2"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( "--help", "--fr-allow-cycles", "--backend-name", "vcs"), () => new LazyStackN(10, () => new LazyStackWait2)) { c =>
+    chisel3.iotesters.Driver.execute( Array( "-fct", "tutorial.lesson1.AnalyzeCircuit", "--backend-name", "vcs"), () => new LazyStackN(10, () => new LazyStackWait2)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
