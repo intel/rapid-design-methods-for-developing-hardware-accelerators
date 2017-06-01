@@ -48,6 +48,7 @@ object Lexer extends RegexParsers {
       | positioned { ")"             ^^ (_ => RPAREN()) }
       | positioned { ","             ^^ (_ => COMMA()) }
       | positioned { "=="            ^^ (_ => EQ()) }
+      | positioned { "<"             ^^ (_ => LT()) }
       | positioned { "="             ^^ (_ => ASSIGN()) }
       | positioned { ":"             ^^ (_ => COLON()) }
       | positioned { "+"             ^^ (_ => ADD()) }

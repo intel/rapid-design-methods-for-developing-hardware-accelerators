@@ -121,7 +121,10 @@ object Parser extends Parsers {
     val e = expr ~ EQ() ~ expr ^^ { 
       case l ~ _ ~ r => EqBExpression( l, r)
     }
-    t | cg | cp | n | g | e
+    val lt = expr ~ LT() ~ expr ^^ { 
+      case l ~ _ ~ r => LtBExpression( l, r)
+    }
+    t | cg | cp | n | g | e | lt
   }
 
   def expr: Parser[Expression] = positioned {

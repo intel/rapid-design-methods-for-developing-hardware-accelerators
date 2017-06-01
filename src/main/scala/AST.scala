@@ -36,6 +36,7 @@ case class AddExpression( l : Expression, r : Expression) extends Expression
 case class SubExpression( l : Expression, r : Expression) extends Expression
 case class MulExpression( l : Expression, r : Expression) extends Expression
 case class EqBExpression( l : Expression, r : Expression) extends BExpression
+case class LtBExpression( l : Expression, r : Expression) extends BExpression
 case class AndBExpression( l : BExpression, r : BExpression) extends BExpression
 case class NotBExpression( e : BExpression) extends BExpression
 

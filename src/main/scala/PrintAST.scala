@@ -67,9 +67,15 @@ object PrintAST {
       print( s"==")
       p( 0, r)
     }
+    case LtBExpression( l, r) => {
+      p( 0, l)
+      print( s"<")
+      p( 0, r)
+    }
     case NotBExpression( e) => {
-      print( s"!")
+      print( s"!(")
       p( 0, e)
+      print( s")")
     }
     case NBCanGet( Port( p)) => print( s"${p}?")
     case NBCanPut( Port( p)) => print( s"${p}!")
@@ -86,6 +92,16 @@ object PrintAST {
     case AddExpression( l, r) => {
       p( 0, l)
       print( s"+")
+      p( 0, r)
+    }
+    case SubExpression( l, r) => {
+      p( 0, l)
+      print( s"-")
+      p( 0, r)
+    }
+    case MulExpression( l, r) => {
+      p( 0, l)
+      print( s"*")
       p( 0, r)
     }
     case _ => throw new WrongASTFormException( s"${ast}")

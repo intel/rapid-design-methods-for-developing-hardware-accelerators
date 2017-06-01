@@ -139,10 +139,16 @@ object HLS3 {
 
       if        (  seq0.isEmpty) {
         hd match {
-          case While( NotBExpression( e), b) => {
+          case While( e, b) if b == Wait => {
             val (seq0,seq1) = split( tl)
             val (s1,g0) = if ( seq1.isEmpty) (ub, st.g) else  (st.g,st.g+1)
-            val st0 = expand( st.upG(g0), lb, s1, UntilFinallyBody( e, wrapBlk( seq0), b))
+
+            val negatedE = e match {
+              case NotBExpression( e) => e
+              case _ => NotBExpression( e)
+            }
+
+            val st0 = expand( st.upG(g0), lb, s1, UntilFinallyBody( negatedE, wrapBlk( seq0), b))
             if ( seq1.isEmpty)
               st0
             else
@@ -152,7 +158,6 @@ object HLS3 {
             assert( tl.isEmpty)
             expand( st, lb, ub, hd)
           }
-          case While( _, _) => throw new NotYetImplementedException( "Complex while expression")
           case _ => {
             val (s1,g0) = (st.g,st.g+1)
             expand( expand( st.upG(g0),lb,s1,hd), s1, ub, Blk( decls, tl))

@@ -2,8 +2,6 @@ package imperative
 
 import org.scalatest.{ Matchers, FlatSpec, FreeSpec}
 
-import org.scalameter.api._
-
 class HLSTest extends FreeSpec with Matchers {
   "genLG" - {
     "empty" in {

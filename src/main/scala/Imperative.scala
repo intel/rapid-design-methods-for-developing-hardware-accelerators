@@ -35,6 +35,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) {
   def eval( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
     case EqBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] === eval( sT, r).asInstanceOf[UInt]
+    case LtBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] < eval( sT, r).asInstanceOf[UInt]
     case AndBExpression( l, r) => eval( sT, l) && eval( sT, r)
     case NotBExpression( e) => !eval( sT, e)
     case NBCanGet( Port( p)) => sT.pget( p)._2
@@ -44,6 +45,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) {
   def evalWithoutPort( p : Port)( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
     case EqBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] === eval( sT, r).asInstanceOf[UInt]
+    case LtBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] < eval( sT, r).asInstanceOf[UInt]
     case AndBExpression( l, r) => evalWithoutPort( p)( sT, l) && evalWithoutPort( p)( sT, r)
     case NotBExpression( e) => !evalWithoutPort( p)( sT, e)
     case NBCanGet( Port( pp)) if Port( pp) == p => true.B
