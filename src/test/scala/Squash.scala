@@ -114,7 +114,7 @@ class SquashTester[T <: ImperativeIfc](c:T) extends PeekPokeTester(c) {
 class SquashTest extends FlatSpec with Matchers {
   behavior of "Squash"
   it should "work" in {
-    chisel3.iotesters.Driver( () => new Squash, "firrtl") { c =>
+    chisel3.iotesters.Driver.execute( Array( "--fr-allow-cycles", "--backend-name", "vcs"), () => new Squash) { c =>
       new SquashTester( c)
     } should be ( true)
   }

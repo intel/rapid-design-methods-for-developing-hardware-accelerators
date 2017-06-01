@@ -2,6 +2,8 @@ package imperative
 
 import org.scalatest.{ Matchers, FlatSpec, FreeSpec}
 
+import org.scalatest.tagobjects.Slow
+
 import org.scalameter.api._
 
 import scala.annotation.tailrec
@@ -54,6 +56,7 @@ class FTest extends FreeSpec with Matchers {
   }
 }
 
+/*
 object FBenchmark extends Bench.LocalTime {
   val sizes = Gen.exponential("size")( 128, 8*1024, 2)
   val ranges = for {
@@ -68,3 +71,4 @@ object FBenchmark extends Bench.LocalTime {
     }
   }
 }
+ */
