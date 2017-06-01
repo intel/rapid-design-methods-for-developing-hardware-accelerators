@@ -43,9 +43,8 @@ class LazyStackComb extends ImperativeModule(
 
 // Add wait statements to the original
 // This gets translated to the second one
-/*
-class LazyStackWait extends ImperativeModule( 
-  Compiler.run(
+class LazyStackWait1 extends ImperativeModule( 
+  Compiler.runHLS3(
     """
       |process LazyStackWait( In  : inp UInt(8),
       |                       Out : out UInt(8),
@@ -76,11 +75,9 @@ class LazyStackWait extends ImperativeModule(
       |}
     """.stripMargin.trim)
 )
- */
-/* or */
-/*
-class LazyStackWait extends ImperativeModule( 
-  Compiler.run(
+
+class LazyStackWait2 extends ImperativeModule( 
+  Compiler.runHLS3(
     """
       |process LazyStackWait( In  : inp UInt(8),
       |                       Out : out UInt(8),
@@ -92,16 +89,14 @@ class LazyStackWait extends ImperativeModule(
       |  f = 0
       |  while ( true) {
       |    if        ( f==1 ∧ In?) {
-      |      while ( ¬ Put!) wait
-      |      Put!x
+      |      Put!!x
       |      wait
       |      In?x
       |    } else if ( f==0 ∧ In?) {
       |      In?x
       |      f = 1
       |    } else if ( f==0 ∧ Out!) {
-      |      while ( ¬ Get?) wait
-      |      Get?x
+      |      Get??x
       |      wait
       |      Out!x
       |    } else if ( f==1 ∧ Out!) {  
@@ -113,7 +108,6 @@ class LazyStackWait extends ImperativeModule(
       |}
     """.stripMargin.trim)
 )
- */
 
 class LazyStackWait extends ImperativeModule( 
   Compiler.run(

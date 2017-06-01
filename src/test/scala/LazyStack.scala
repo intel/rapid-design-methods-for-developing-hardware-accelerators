@@ -121,7 +121,7 @@ class LazyStackNTester[T <: StackIfc](c:T) extends PeekPokeTester(c) {
 }
 
 class LazyStackNCombTest extends FlatSpec with Matchers {
-  behavior of "LazyStackN"
+  behavior of "LazyStackNComb"
   it should "work" in {
     chisel3.iotesters.Driver( () => new LazyStackN(10, () => new LazyStackComb), "firrtl") { c =>
       new LazyStackNTester( c)
@@ -130,9 +130,27 @@ class LazyStackNCombTest extends FlatSpec with Matchers {
 }
 
 class LazyStackNWaitTest extends FlatSpec with Matchers {
-  behavior of "LazyStackN"
+  behavior of "LazyStackNWait"
   it should "work" in {
     chisel3.iotesters.Driver( () => new LazyStackN(10, () => new LazyStackWait), "firrtl") { c =>
+      new LazyStackNTester( c)
+    } should be ( true)
+  }
+}
+
+class LazyStackNWait1Test extends FlatSpec with Matchers {
+  behavior of "LazyStackNWait1"
+  it should "work" in {
+    chisel3.iotesters.Driver( () => new LazyStackN(10, () => new LazyStackWait1), "firrtl") { c =>
+      new LazyStackNTester( c)
+    } should be ( true)
+  }
+}
+
+class LazyStackNWait2Test extends FlatSpec with Matchers {
+  behavior of "LazyStackNWait2"
+  it should "work" in {
+    chisel3.iotesters.Driver( () => new LazyStackN(10, () => new LazyStackWait2), "firrtl") { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }

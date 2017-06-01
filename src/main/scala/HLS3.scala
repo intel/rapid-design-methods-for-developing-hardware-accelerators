@@ -18,7 +18,7 @@ object HLS3 {
     for {
       ast1 <- General( ast).right
       ast2 <- SemanticAnalyzer.pass1( ast1).right
-      ast3 <- SemanticAnalyzer.loweredCheck( ast2).right
+      ast3 <- SemanticAnalyzer.loweredCheck( ast2, false).right
     } yield ast3
   }
 
@@ -64,8 +64,6 @@ object HLS3 {
     Assignment( Variable( "s"), ConstantInteger( s))
 
   def guardS( s : Int, cmd : Command) : Command = {
-    println( s"guardS: ${s}")
-    PrintAST.p( 0, cmd)
     IfThenElse( 
       AndBExpression(
         EqBExpression( Variable( "s"), ConstantInteger( s)),
@@ -86,14 +84,25 @@ object HLS3 {
       }
     }
 
+/*
   def flattenBlk( lst : List[Command]) : Command = {
     @tailrec
     def flattenBlk( lst : List[Command], accum : List[Command]) : List[Command] =
       lst match {
         case Nil => accum
         case (hd@Blk( _, Nil))::tl => flattenBlk( tl, accum)
-        case (hd@Blk( _, hd0::tl0))::tl =>
+        case (hd@Blk( _, hd0::tl0))::tl => 
           flattenBlk( Blk( List(), tl0)::tl, hd0::accum)
+        case hd::tl => flattenBlk( tl, hd::accum)
+      }
+    Blk( List(), flattenBlk( lst, List()).reverse)
+  }
+ */
+  def flattenBlk( lst : List[Command]) : Command = {
+    def flattenBlk( lst : List[Command], accum : List[Command]) : List[Command] =
+      lst match {
+        case Nil => accum
+        case Blk( _, lst0)::tl => flattenBlk( tl, flattenBlk( lst0.toList, accum))
         case hd::tl => flattenBlk( tl, hd::accum)
       }
     Blk( List(), flattenBlk( lst, List()).reverse)
@@ -117,48 +126,21 @@ object HLS3 {
     case UntilFinallyBody( b, fin, body) => {
       val (lst0,w0) = stripWait( fin)
       val (lst1,w1) = stripWait( body)
-
       val st0 = st.upM( lb, 
         guardS( lb, IfThenElse( b, wrapBlk( lst0 ++ List( assignS( ub)) ++ condWait( w0)), wrapBlk( lst1 ++ condWait( w1))))
       )
       if ( w0) st0 else st0.upC( (lb,ub))
     }
-    case Wait => {
-      st.upM( lb, 
-        guardS( lb, wrapBlk( List( assignS( ub)) ++ condWait( true)))
-      )
-    }
-    case Blk( decls, Nil) => {
-      st.upM( lb, 
-        guardS( lb, assignS( ub))
-      ).upC( lb, ub)
-    }
-    case Blk( decls, lst@(hd::tl)) if hasBlk( lst) =>
-      expand( st, lb, ub, flattenBlk( lst))
+    case Wait => st.upM( lb, guardS( lb, wrapBlk( List( assignS( ub)) ++ condWait( true))))
+    case Blk( decls, Nil) => st.upM( lb, guardS( lb, assignS( ub))).upC( lb, ub)
+    case Blk( decls, lst@(hd::tl)) if hasBlk( lst) => expand( st, lb, ub, flattenBlk( lst))
     case Blk( decls, lst@(hd::tl)) => {
-/*
-      println( s"Blk ...")
-      PrintAST.p( 0, cmd)
- */
-
       val (seq0,seq1) = split( lst)
 
       if        (  seq0.isEmpty) {
         hd match {
           case While( NotBExpression( e), b) => {
             val (seq0,seq1) = split( tl)
-
-/*
-            println( s"While( NotBExpression ...")
-            PrintAST.p( 0, hd)
-
-            println( s"seq0")
-            PrintAST.p( 0, wrapBlk( seq0))
-
-            println( s"seq1")
-            PrintAST.p( 0, wrapBlk( seq1))
- */
-
             val (s1,g0) = if ( seq1.isEmpty) (ub, st.g) else  (st.g,st.g+1)
             val st0 = expand( st.upG(g0), lb, s1, UntilFinallyBody( e, wrapBlk( seq0), b))
             if ( seq1.isEmpty)
@@ -191,11 +173,7 @@ object HLS3 {
         if ( seq1.isEmpty) st1 else expand( st1, s1, ub, wrapBlk( seq1))
       }
     }
-    case cmd => {
-      st.upM( lb, 
-        guardS( lb, wrapBlk( List( cmd, assignS( ub))))
-      ).upC( lb, ub)
-    }
+    case cmd => st.upM( lb, guardS( lb, wrapBlk( List( cmd, assignS( ub))))).upC( lb, ub)
   }
 
   def log2( v : Int) = {

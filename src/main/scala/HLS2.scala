@@ -22,85 +22,50 @@ object HLS2 {
     } yield ast3
   }
 
+  def condWait( b : Boolean) : List[Command] =
+    if ( b) List( Assignment( Variable( "w"), ConstantInteger( 1))) else List()
+
+  def assignS( s : Int) : Command =
+    Assignment( Variable( "s"), ConstantInteger( s))
+
+  def guardS( s : Int, cmd : Command) : Command = {
+    println( s"guardS: ${s}")
+    PrintAST.p( 0, cmd)
+    IfThenElse( 
+      AndBExpression(
+        EqBExpression( Variable( "s"), ConstantInteger( s)),
+        EqBExpression( Variable( "w"), ConstantInteger( 0))
+      ),
+      cmd,
+      Blk( List(), List())
+    )
+  }
+
+  def wrapBlk( lst : List[Command]) = Blk( List(), lst)
+
   def expand( st : State, lb : Int, ub : Int, cmd : Command) : State = cmd match {
     case IfThenElse( b, t, e) => {
       val (s1,s2,g0) = (st.g,st.g+1,st.g+2)
-      val st0 = st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          IfThenElse(
-            b,
-            Assignment( Variable( "s"), ConstantInteger( s1)),
-            Assignment( Variable( "s"), ConstantInteger( s2))
-          ),
-          Blk( List(), List())
-        )
+      val st0 = st.upM( lb,
+        guardS( lb, IfThenElse( b, assignS( s1), assignS( s2)))
       ).upC( (lb,s1)).upC( (lb,s2)).upG( g0)
       expand( expand( st0, s1, ub, t), s2, ub, e)
     }
     case While( b, e) => {
       val (s1,g0) = (st.g,st.g+1)
       val st0 = st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          IfThenElse(
-            b,
-            Assignment( Variable( "s"), ConstantInteger( s1)),
-            Assignment( Variable( "s"), ConstantInteger( ub))
-          ),
-          Blk( List(), List())
-        )
+        guardS( lb, IfThenElse( b, assignS( s1), assignS( ub)))
       ).upC( (lb,s1)).upC( (lb,ub)).upG( g0)
       expand( st0, s1, lb, e)
     }
-    case Wait => {
-      st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          Blk( 
-            List(),
-            List(
-              Assignment( Variable( "s"), ConstantInteger( ub)),
-              Assignment( Variable( "w"), ConstantInteger( 1))
-            )
-          ),
-          Blk( List(), List())
-        )
-      )
-    }
-    case Blk( decls, Nil) => st
+    case Wait => st.upM( lb, guardS( lb, wrapBlk( List( assignS( ub)) ++ condWait( true))))
+    case Blk( decls, Nil) => st.upM( lb, guardS( lb, wrapBlk( List( assignS( ub))))).upC( lb, ub)
     case Blk( decls, hd :: Nil) => expand( st, lb, ub, hd)
     case Blk( decls, hd :: tl) => {
       val (s1,g0) = (st.g,st.g+1)
       expand( expand( st.upG(g0),lb,s1,hd), s1, ub, Blk( decls, tl))
     }
-    case cmd => {
-      st.upM( lb, 
-        IfThenElse( 
-          AndBExpression( 
-            EqBExpression( Variable( "s"), ConstantInteger( lb)),
-            EqBExpression( Variable( "w"), ConstantInteger( 0))
-          ),
-          Blk( 
-            List(),
-            List(
-              cmd,
-              Assignment( Variable( "s"), ConstantInteger( ub))
-            )
-          ),
-          Blk( List(), List())
-        )
-      ).upC( lb, ub)
-    }
+    case cmd => st.upM( lb, guardS( lb, wrapBlk( List( cmd, assignS( ub))))).upC( lb, ub)
   }
 
   def log2( v : Int) = {
