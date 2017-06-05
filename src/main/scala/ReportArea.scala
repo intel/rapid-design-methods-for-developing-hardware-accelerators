@@ -5,10 +5,9 @@ package imperative.transform
 import imperative.{ TopoSort}
 
 // Compiler Infrastructure
-import firrtl.{Transform, LowForm, CircuitState, Utils}
+import firrtl.{Transform, LowForm, CircuitState, Utils, WRef, WSubField, WDefInstance}
 // Firrtl IR classes
 import firrtl.ir.{Circuit, DefModule, DefRegister, Statement, Expression, Mux, UIntLiteral, SIntLiteral, DoPrim, UIntType, SIntType, IntWidth, Connect, Block, EmptyStmt, IsInvalid}
-import firrtl.{ WRef, WSubField, WDefInstance}
 // Map functions
 import firrtl.Mappers._
 // Scala's mutable collections
@@ -29,33 +28,29 @@ sealed abstract class Area()
 case class AreaModule( nm : String) extends Area
 case class AreaMux( w : Int, cConds : Int, cExprs : Int) extends Area
 case class AreaRegister( w : Int) extends Area
-case class AreaOp( nm : String, ninps : Int, w : Int, cExprs : Int) extends Area
+case class AreaOp( nm : String, ninps : List[Int], w : Int, cExprs : Int) extends Area
 
 object ComputeArea {
   val cMux = 8
   val cMaj = 12
   val cXor = 10
   val cReg = 30
-  def cNand( n : Int) : Int = n match {
-    case 0 => 0
-    case 1 => 0
-    case 2 => 4
-    case 3 => 6
-    case _ if n % 2 == 0 => cNand(2) + (n-2)/2*cNand(3)
-    case _ => cNand(3) + (n-3)/2*cNand(3)
-  }
+  val cNand2 = 4
+  val cNand3 = 6
+  def cNand( n : Int) : Int = 
+    if ( n < 2) 0 else if ( n % 2 == 0) cNand2 + (n-2)/2*cNand3 else cNand3 + (n-3)/2*cNand3
 
   def apply( a : Area, tbl : Map[String,Int]) : Int = a match {
-    case AreaOp( "add", 2, w, 0) => w*(cMaj+2*cXor)
-    case AreaOp( "add", 2, w, 1) => w*(cNand( 2)+cXor)
-    case AreaOp( "add", 2, w, 2) => 0
-    case AreaOp( "and", n, w, 0) => w*cNand( n)
-    case AreaOp( "or", n, w, 0) => w*cNand( n)
-    case AreaOp( "eq", 2, w, 0) => w*cXor+cNand(w)
-    case AreaOp( "eq", 2, w, 1) => apply( AreaOp( "and", 2, w, 0),tbl)
-    case AreaOp( "eq", 2, w, 2) => 0
-    case AreaOp( "mul", 2, w, 0) => (w/2)*apply(AreaOp("add", 2, (w/2), 0),tbl)+apply( AreaOp( "add", 2, w, 0),tbl)
-    case AreaOp( "lt", 2, w, c) => apply( AreaOp( "add", 2, w, c),tbl)
+    case AreaOp( "add", List(w0,w1), w, 0) => w*(cMaj+2*cXor)
+    case AreaOp( "add", List(w0,w1), w, 1) => w*(cNand( 2)+cXor)
+    case AreaOp( "add", List(w0,w1), w, 2) => 0
+    case AreaOp( "and", inpSizes, w, 0) => w*cNand( inpSizes.size)
+    case AreaOp( "or", inpSizes, w, 0) => w*cNand( inpSizes.size)
+    case AreaOp( "eq", List(w0,w1), w, 0) => w0*cXor+cNand(w0)
+    case AreaOp( "eq", inpSizes@List(w0,w1), w, 1) => apply( AreaOp( "and", inpSizes, w0, 0),tbl)
+    case AreaOp( "eq", List(w0,w1), w, 2) => 0
+    case AreaOp( "mul", List(w0,w1), w, 0) => w0*apply(AreaOp("add", List(w1,w), w, 0),tbl)+apply( AreaOp( "add", List(w,w), w, 0),tbl)
+    case AreaOp( "lt", List(w0,w1), w, c) => apply( AreaOp( "add", List(w0,w1), w0, c),tbl)
     case AreaOp( "bits", _, _, _) => 0
     case AreaOp( "pad", _, _, _) => 0
     case AreaOp( "tail", _, _, _) => 0
@@ -63,7 +58,7 @@ object ComputeArea {
     case AreaMux( w, 0, 0) => w*cMux
     case AreaMux( w, 1, _) => 0
     case AreaMux( w, 0, 2) => 0
-    case AreaMux( w, 0, 1) => apply( AreaOp( "and", 2, w, 0),tbl)
+    case AreaMux( w, 0, 1) => apply( AreaOp( "and", List(w,w), w, 0),tbl)
     case AreaModule( nm) => tbl(nm)
     case _ => println( s"unknown op ${a}"); 0
   }
@@ -166,8 +161,19 @@ class ReportArea extends Transform {
       case Mux(cond, tval, fval, tpe) => 
         ledger.foundOp( AreaMux( extractWidth(tpe), isConst(cond), isConst(tval)+isConst(fval)))
       case DoPrim( op, inps, _, tpe) =>
+
+        val inpSizes : List[Int] = inps.map{ x => x match {
+          case WRef( _, inpTpe, _, _) => extractWidth(inpTpe)
+          case UIntLiteral( _, IntWidth( w)) => w.toInt
+          case SIntLiteral( _, IntWidth( w)) => w.toInt
+          case _ => {
+            println( s"inputSizes: Unimplemented match ${x}")
+            0
+          }
+        }}.toList
+
         val c = inps.foldLeft( 0){ case (l,r) => l + isConst(r)}
-        ledger.foundOp( AreaOp( s"${op}", inps.size, extractWidth(tpe), c))
+        ledger.foundOp( AreaOp( s"${op}", inpSizes, extractWidth(tpe), c))
       case _ => ()
     }
     e
