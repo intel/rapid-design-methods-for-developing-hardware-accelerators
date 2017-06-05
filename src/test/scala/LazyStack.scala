@@ -123,7 +123,7 @@ class LazyStackNTester[T <: StackIfc](c:T) extends PeekPokeTester(c) {
 class LazyStackNCombTest extends FlatSpec with Matchers {
   behavior of "LazyStackNComb"
   it should "work" in {
-    chisel3.iotesters.Driver( () => new LazyStackN(10, () => new LazyStackComb), "firrtl") { c =>
+    chisel3.iotesters.Driver.execute( Array( /* "--fint-write-vcd", */ "-fct", "imperative.transform.ReportArea", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackComb)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
@@ -132,7 +132,7 @@ class LazyStackNCombTest extends FlatSpec with Matchers {
 class LazyStackNWaitTest extends FlatSpec with Matchers {
   behavior of "LazyStackNWait"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( "--fint-write-vcd", "-fct", "imperative.transform.AnalyzeCircuit", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackWait)) { c =>
+    chisel3.iotesters.Driver.execute( Array( /* "--fint-write-vcd", */ "-fct", "imperative.transform.ReportArea", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackWait)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
 
@@ -154,7 +154,7 @@ class LazyStackNWait1Test extends FlatSpec with Matchers {
 class LazyStackNWait2Test extends FlatSpec with Matchers {
   behavior of "LazyStackNWait2"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( "-fct", "tutorial.lesson1.AnalyzeCircuit", "--backend-name", "vcs"), () => new LazyStackN(10, () => new LazyStackWait2)) { c =>
+    chisel3.iotesters.Driver.execute( Array( "-fct", "imperative.transform.ReportArea", "--backend-name", "vcs"), () => new LazyStackN(10, () => new LazyStackWait2)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }

@@ -128,18 +128,18 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) {
             sT0(k) := sTinit0(k)
             if ( sT0(k) != sT1(k)) {
               if ( sTinit(k) == sTinit0(k)) {
-                println( s"-I- Induction variable ${k} is not initialized but is updated")
+//                println( s"-I- Induction variable ${k} is not initialized but is updated")
                 sT0(k) := RegNext( next=sT1(k))
               } else {
-                println( s"-I- Induction variable ${k} is both initialized and updated")
+//                println( s"-I- Induction variable ${k} is both initialized and updated")
                 sT0(k) := RegNext( next=sT1(k), init=sTinit0(k))
               }
             } else {
               if ( sTinit(k) != sTinit0(k)) {
-                println( s"-I- Induction variable ${k} is initialized but not updated")
+//                println( s"-I- Induction variable ${k} is initialized but not updated")
                 sT0(k) := sTinit0(k)
               } else {
-                println( s"-I- Induction variable ${k} is not initialized and not updated")
+//                println( s"-I- Induction variable ${k} is not initialized and not updated")
               }
             }
           }
