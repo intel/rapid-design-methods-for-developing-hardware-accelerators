@@ -166,10 +166,7 @@ class ReportArea extends Transform {
           case WRef( _, inpTpe, _, _) => extractWidth(inpTpe)
           case UIntLiteral( _, IntWidth( w)) => w.toInt
           case SIntLiteral( _, IntWidth( w)) => w.toInt
-          case _ => {
-            println( s"inputSizes: Unimplemented match ${x}")
-            0
-          }
+          case _ => throw new Exception( s"inputSizes: Unimplemented match ${x}")
         }}.toList
 
         val c = inps.foldLeft( 0){ case (l,r) => l + isConst(r)}

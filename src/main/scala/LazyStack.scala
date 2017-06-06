@@ -6,7 +6,7 @@ import chisel3.util._
 import lexer._
 import compiler._
 
-// ¬  ∨ 
+// ¬ ∨ ∧ 
 
 class LazyStackComb extends ImperativeModule( 
   Compiler.run(
@@ -189,6 +189,16 @@ class LazyStackN[T <: ImperativeIfc]( n : Int, factory : () => T) extends StackI
       l._2 <> r._2
     }
   }
+}
+
+object LazyStackWaitDriver extends App {
+  val extraArgs = Array[String]( "-fct", "imperative.transform.DeadCodeElimination")
+  Driver.execute( args ++ extraArgs, () => new LazyStackWait)
+}
+
+object LazyStackWait1Driver extends App {
+  val extraArgs = Array[String]( "-fct", "imperative.transform.DeadCodeElimination")
+  Driver.execute( args ++ extraArgs, () => new LazyStackWait1)
 }
 
 object LazyStackNWaitDriver extends App {
