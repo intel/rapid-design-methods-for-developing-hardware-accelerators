@@ -21,7 +21,6 @@ class ShannonFactor extends Transform {
   def inputForm = LowForm
   def outputForm = LowForm
 
-  /** Based on LogicNode ins CheckCombLoops, currently kind of faking it */
 //  private type LogicNode = MemoizedHash[WrappedExpression]
   private type LogicNode = WrappedExpression
   private object LogicNode {
@@ -30,15 +29,6 @@ class ShannonFactor extends Transform {
       WrappedExpression(Utils.mergeRef(WRef(moduleName), expr))
     }
     def apply(moduleName: String, name: String): LogicNode = apply(moduleName, WRef(name))
-    def apply(component: ComponentName): LogicNode = {
-      // Currently only leaf nodes are supported TODO implement
-      val loweredName = LowerTypes.loweredName(component.name.split('.'))
-      apply(component.module.name, WRef(loweredName))
-    }
-    /** External Modules are representated as a single node driven by all inputs and driving all
-      * outputs
-      */
-    def apply(ext: ExtModule): LogicNode = LogicNode(ext.name, ext.name)
   }
 
   /** Extract all References and SubFields from a possibly nested Expression */
@@ -58,27 +48,18 @@ class ShannonFactor extends Transform {
   }
 
   // Gets all dependencies and constructs LogicNodes from them
-  private def getDepsImpl(mname: String,
-                          instMap: collection.Map[String, String])
+  private def getDepsImpl(mname: String)
                          (expr: Expression): Seq[LogicNode] =
-    extractRefs(expr).map { e =>
-//      println( s"genDepsImpl: ${e}")
-      if (kind(e) == InstanceKind) {
-        val (inst, tail) = Utils.splitRef(e)
-        LogicNode(instMap(inst.name), tail)
-      } else {
-        LogicNode(mname, e)
-      }
-    }
+    extractRefs(expr).map { e => if (kind(e) == InstanceKind) throwInternalError else LogicNode(mname, e)}
 
 // names of registers
   val regs = mutable.Map[LogicNode,(LogicNode,LogicNode)]()
 
   /** Construct the dependency graph within this module */
-  private def setupDepGraph(depGraph: MutableDiGraph[LogicNode],
-                            instMap: collection.Map[String, String])
+  private def setupDepGraph(depGraph: MutableDiGraph[LogicNode])
                            (mod: Module): Unit = {
-    def getDeps(expr: Expression): Seq[LogicNode] = getDepsImpl(mod.name, instMap)(expr)
+
+    def getDeps(expr: Expression): Seq[LogicNode] = getDepsImpl(mod.name)(expr)
 
     def onStmt(stmt: Statement): Unit = stmt match {
       case DefRegister(_, name, tpe, clock, reset, init) =>
@@ -150,20 +131,11 @@ class ShannonFactor extends Transform {
     onStmt(mod.body)
   }
 
-  private def createDependencyGraph( c: Circuit): MutableDiGraph[LogicNode] = {
-
-    val iGraph = new InstanceGraph(c)
-    val moduleDeps = iGraph.graph.edges.map { case (k,v) =>
-      k.module -> v.map(i => i.name -> i.module).toMap
-    }
+  private def createDependencyGraph( m : Module): DiGraph[LogicNode] = {
 
     val depGraph = new MutableDiGraph[LogicNode]
-    c.modules.foreach {
-      case mod: Module => setupDepGraph(depGraph, moduleDeps(mod.name))(mod)
-      case ext: ExtModule => throw new Exception(s"ExtModule not supported.")
-    }
-
-    depGraph
+    setupDepGraph(depGraph)(m)
+    DiGraph( depGraph)
   }
 
   def allRegs( modName : String)( s : Statement) : Statement = {
@@ -183,7 +155,7 @@ class ShannonFactor extends Transform {
   }
 
 
-  def executePerModule( c : Circuit, m : DefModule): DefModule = {
+  def executePerModule( srcName : String, tgtName : String)( m : DefModule): DefModule = {
 
     regs.clear
 
@@ -192,9 +164,7 @@ class ShannonFactor extends Transform {
         body map allRegs( name)
     }
 
-    println( s"${regs}")
-
-    val depGraph = DiGraph( createDependencyGraph( c))
+    val depGraph = createDependencyGraph( m.asInstanceOf[Module])
 
     println( s"depGraph built.")
 
@@ -271,12 +241,7 @@ class ShannonFactor extends Transform {
         s
       }
 
-      for { mod <- c.modules} {
-        mod match {
-          case Module(info, name, _, body) if name == modName =>
-            body map auxS
-        }
-      }
+      m.asInstanceOf[Module].body map auxS
 
       println( s"Set difference: ${cone -- visitedLogicNodes}")
 
@@ -321,43 +286,50 @@ class ShannonFactor extends Transform {
       }
     }
 
-    // Add all ports as vertices
-    val re_ready = """io_(.*)_ready""".r
-    val re_valid = """io_(.*)_valid""".r
 
-    m.ports.foreach {
-      case p@Port( info, name, Input, tpe : GroundType) => {
-        name match {
-          case re_valid( nm) =>
-            println( s"Input with _valid suffix: ${p}")
-            printCone( m.name, s"io_${nm}_valid", s"io_${nm}_ready")
-            printCone( m.name, s"io_${nm}_bits", s"io_${nm}_ready")
-          case re_ready( nm) =>
-            println( s"Input with _ready suffix: ${p}")
-            printCone( m.name, s"io_${nm}_ready", s"io_${nm}_valid")
-            printCone( m.name, s"io_${nm}_ready", s"io_${nm}_bits")
-          case _ =>
-        }
-      }
-      case p@Port( info, name, Output, tpe : GroundType) => 
-      case other => throwInternalError
-    }
+    printCone( m.name, srcName, tgtName)
 
-    println( s"Finishing ShannonFactor...")
 
-    m 
+    val mx = m // transform m
+
+    mx
   }
 
   def execute(state: CircuitState): CircuitState = {
 
-    println( s"Running ShannonFactor...")
-    val c = state.circuit
 
-    for { mod <- c.modules} {
-      executePerModule( c, mod)
+    state.circuit.modules map { case m : Module =>
+      // Add all ports as vertices
+      val re_ready = """io_(.*)_ready""".r
+      val re_valid = """io_(.*)_valid""".r
+
+      val tuples = 
+        m.ports.flatMap {
+          case p@Port( info, name, Input, tpe : GroundType) => {
+            name match {
+              case re_valid( nm) =>
+                println( s"Input with _valid suffix: ${p}")
+                List( ( s"io_${nm}_valid", s"io_${nm}_ready"))
+              case re_ready( nm) =>
+                println( s"Input with _ready suffix: ${p}")
+                List( ( s"io_${nm}_ready", s"io_${nm}_valid"), ( s"io_${nm}_ready", s"io_${nm}_bits"))
+              case _ =>
+                List()
+            }
+          }
+          case p@Port( info, name, Output, tpe : GroundType) =>
+            List()
+          case other => throwInternalError
+        }
+
+      tuples.foldLeft( m.asInstanceOf[DefModule]){ case (m0, ( srcName, tgtName)) =>
+        println( s"Running ShannonFactor ${srcName} ${tgtName} ...")
+        val m1 = executePerModule( srcName, tgtName)( m0)
+        println( s"Finishing ShannonFactor ${srcName} ${tgtName} ...")
+        m1
+      }
     }
+
     state
   }
-
-
 }
