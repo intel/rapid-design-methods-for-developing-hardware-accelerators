@@ -61,7 +61,7 @@ class SumOfSquaresTester[T <: ImperativeModule](c:T) extends PeekPokeTester(c) {
 class SumOfSquaresTest extends FlatSpec with Matchers {
   behavior of "SumOfSquares"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( /*"--fint-write-vcd",*/ "-fct", "imperative.transform.DeadCodeElimination", "--backend-name", "firrtl"), () => new SumOfSquares) { c =>
+    chisel3.iotesters.Driver.execute( Array( /*"--fint-write-vcd",*/ "-fct", "imperative.transform.ShannonFactor", "--backend-name", "firrtl"), () => new SumOfSquares) { c =>
       new SumOfSquaresTester( c)
     } should be ( true)
   }
