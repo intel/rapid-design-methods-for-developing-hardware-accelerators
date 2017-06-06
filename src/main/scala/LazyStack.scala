@@ -202,9 +202,11 @@ object LazyStackWait1Driver extends App {
 }
 
 object LazyStackNWaitDriver extends App {
-  Driver.execute( args, () => new LazyStackN( 16, () => new LazyStackWait))
+  val extraArgs = Array[String]( "-fct", "imperative.transform.ReportArea")
+  Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait))
 }
 
 object LazyStackNCombDriver extends App {
-  Driver.execute( args, () => new LazyStackN( 16, () => new LazyStackComb))
+  val extraArgs = Array[String]( "-fct", "imperative.transform.ReportArea")
+  Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackComb))
 }

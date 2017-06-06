@@ -2,27 +2,14 @@
 
 package imperative.transform
 
-import imperative.{ TopoSort}
+import imperative.TopoSort
 
-// Compiler Infrastructure
 import firrtl.{Transform, LowForm, CircuitState, Utils, WRef, WSubField, WDefInstance}
-// Firrtl IR classes
 import firrtl.ir.{Circuit, DefModule, DefRegister, Statement, Expression, Mux, UIntLiteral, SIntLiteral, DoPrim, UIntType, SIntType, IntWidth, Connect, Block, EmptyStmt, IsInvalid}
-// Map functions
 import firrtl.Mappers._
-// Scala's mutable collections
-import scala.collection.mutable
 
-/** Ledger tracks [[Circuit]] statistics
-  *
-  * In this lesson, we want to count the number of muxes in each
-  *  module in our design.
-  *
-  * This [[Ledger]] class will be passed along as we walk our
-  *  circuit, and help us count each [[Mux]] we find.
-  *
-  * See [[lesson1.AnalyzeCircuit]]
-  */
+import scala.collection.mutable
+import scala.math.Ordering.Implicits._
 
 sealed abstract class Area()
 case class AreaModule( nm : String) extends Area
@@ -40,7 +27,7 @@ object ComputeArea {
   def cNand( n : Int) : Int = 
     if ( n < 2) 0 else if ( n % 2 == 0) cNand2 + (n-2)/2*cNand3 else cNand3 + (n-3)/2*cNand3
 
-  def apply( a : Area, tbl : Map[String,Int]) : Int = a match {
+  def apply( a : Area, tbl : mutable.Map[String,Int]) : Int = a match {
     case AreaOp( "add", List(w0,w1), w, 0) => w*(cMaj+2*cXor)
     case AreaOp( "add", List(w0,w1), w, 1) => w*(cNand( 2)+cXor)
     case AreaOp( "add", List(w0,w1), w, 2) => 0
@@ -63,7 +50,7 @@ object ComputeArea {
     case _ => println( s"unknown op ${a}"); 0
   }
 
-  def apply( m : Map[Area,Int], tbl : Map[String,Int]) : Int =
+  def apply( m : Map[Area,Int], tbl : mutable.Map[String,Int]) : Int =
     m.toList.foldLeft( 0){ case (s,(k : Area,v : Int)) => s + v * apply(k,tbl)}
 
 }
@@ -92,21 +79,27 @@ class Ledger {
                      (AreaModule(src),_) <- m
     } yield (src,tgt)
 
-    var tbl : Map[String,Int] = Map()
+    val tbl = mutable.Map[String,Int]()
     for{ nm <- TopoSort( moduleOpMap.keys.toSeq, arcs.toSeq)} {
       val area = ComputeArea(moduleOpMap(nm),tbl)
+      val areas = for{ (k,v) <- moduleOpMap(nm)} yield (s"$k", v, ComputeArea(k,tbl))
 
-      println( f"${nm}%-30s     Area    Count   T. Area  Percent")
-      println( f"-------------------------------    ----    -----   -------  -------")
-      for{ (k,v) <- moduleOpMap(nm)} {
-        val larea = ComputeArea(k,tbl)
-        println( f"${k}%-30s ${larea}%8d ${v}%8d ${larea*v}%9d ${larea*v*100.0/area}%8.1f")
+      val sortedAreas = areas.toList.sortWith{ case (x,y) => (-x._2*x._3,x._1) < (-y._2*y._3,y._1)}
+
+      var cumulative : Int = 0
+
+      println( f"${nm}%-30s     Area    Count         Total      Cumulative")
+      println( f"-------------------------------    ----    -----     -------------  ----------")
+      for{ (k,v,larea) <- sortedAreas} {
+        val total = larea*v
+        cumulative += total
+        println( f"${k}%-30s ${larea}%8d ${v}%8d ${total}%9d ${total*100.0/area}%6.1f%%   ${cumulative*100.0/area}%8.1f%%")
       }
-      println( f"-------------------------------    ----    -----   -------  -------")
+      println( f"-------------------------------    ----    -----     -------------  ----------")
       println( f"Sum                                              ${area}%9d")
-      println( f"===================================================================")
+      println( f"==============================================================================")
 
-      tbl = tbl.updated( nm, area)
+      tbl(nm) = area
     }
   }
 

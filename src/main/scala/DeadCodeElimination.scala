@@ -363,6 +363,8 @@ class DeadCodeElimination extends Transform {
 
     def printPrimInCone( modName : String, cone : Set[LogicNode]) : Unit = {
 
+      val visitedLogicNodes = mutable.Set[LogicNode]()
+
       def auxE( e : Expression) : Expression = {
         e map auxE
 
@@ -382,20 +384,19 @@ class DeadCodeElimination extends Transform {
         s match {
           case Block( _) =>
           case EmptyStmt =>
+// DefNode and Connect should contain all driven nets
           case DefNode( info, lhs, rhs) =>
-            if ( cone.contains( LogicNode( modName, lhs)))
+            val lhsNode = LogicNode( modName, lhs)
+            if ( cone.contains( lhsNode)) {
+              visitedLogicNodes += lhsNode
               println( s"auxS: ${s}")
+            }
           case Connect( info, lhs, rhs) =>
             val WRef( lhsName, _, _, _) = lhs
-            if ( cone.contains( LogicNode( modName, lhsName)))
+            val lhsNode = LogicNode( modName, lhsName)
+            if ( cone.contains( lhsNode)) {
+              visitedLogicNodes += lhsNode
               println( s"auxS: ${s}")
-            else {
-              rhs match {
-                case WRef( rhsName, _, _, _) =>
-                  if ( cone.contains( LogicNode( modName, rhsName)))
-                    println( s"auxS (rhs): ${s}")
-                case _ =>
-              }
             }
           case _ =>
         }
@@ -405,10 +406,12 @@ class DeadCodeElimination extends Transform {
 
       for { mod <- c.modules} {
         mod match {
-          case Module(info, name, _, body) =>
+          case Module(info, name, _, body) if name == modName =>
             body map auxS
         }
       }
+
+      println( s"Set difference: ${cone -- visitedLogicNodes}")
 
     }
 
