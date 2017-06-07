@@ -50,13 +50,17 @@ class ShannonFactor extends Transform {
   // Gets all dependencies and constructs LogicNodes from them
   private def getDepsImpl(mname: String)
                          (expr: Expression): Seq[LogicNode] =
-    extractRefs(expr).map { e => if (kind(e) == InstanceKind) throwInternalError else LogicNode(mname, e)}
-
-// names of registers
-  val regs = mutable.Map[LogicNode,(LogicNode,LogicNode)]()
+    extractRefs(expr).map { e =>
+      if (kind(e) == InstanceKind) {
+        println( s"getDepsImpl: ${e}")
+        throwInternalError
+      } else
+        LogicNode(mname, e)
+    }
 
   /** Construct the dependency graph within this module */
-  private def setupDepGraph(depGraph: MutableDiGraph[LogicNode])
+  private def setupDepGraph( regs : mutable.Map[LogicNode,(LogicNode,LogicNode)],
+                             depGraph: MutableDiGraph[LogicNode])
                            (mod: Module): Unit = {
 
     def getDeps(expr: Expression): Seq[LogicNode] = getDepsImpl(mod.name)(expr)
@@ -131,15 +135,18 @@ class ShannonFactor extends Transform {
     onStmt(mod.body)
   }
 
-  private def createDependencyGraph( m : Module): DiGraph[LogicNode] = {
+  private def createDependencyGraph( regs : mutable.Map[LogicNode,(LogicNode,LogicNode)])
+                                   ( m : Module): DiGraph[LogicNode] = {
 
     val depGraph = new MutableDiGraph[LogicNode]
-    setupDepGraph(depGraph)(m)
+    setupDepGraph(regs, depGraph)(m)
     DiGraph( depGraph)
   }
 
-  def allRegs( modName : String)( s : Statement) : Statement = {
-    s map allRegs( modName)
+  def allRegs( regs : mutable.Map[LogicNode,(LogicNode,LogicNode)],
+               modName : String)
+             ( s : Statement) : Statement = {
+    s map allRegs( regs, modName)
 
     s match {
       case DefRegister(_, name, tpe, clock, reset, init) =>
@@ -155,18 +162,16 @@ class ShannonFactor extends Transform {
   }
 
 
-  def executePerModule( srcName : String, tgtName : String)( m : DefModule): DefModule = {
+  def executePerModule( ns : Namespace, srcName : String, tgtName : String)( m : DefModule): DefModule = {
 
-    regs.clear
+    val regs = mutable.Map[LogicNode,(LogicNode,LogicNode)]()
 
     m match {
       case Module(info, name, _, body) =>
-        body map allRegs( name)
+        body map allRegs( regs, name)
     }
 
-    val depGraph = createDependencyGraph( m.asInstanceOf[Module])
-
-    println( s"depGraph built.")
+    val depGraph = createDependencyGraph( regs)( m.asInstanceOf[Module])
 
     val reverseDepGraph = {
       val reverseDepGraph = new MutableDiGraph[LogicNode]
@@ -181,124 +186,163 @@ class ShannonFactor extends Transform {
       DiGraph( reverseDepGraph)
     }
 
-    val forwardOrder = reverseDepGraph.linearize
-
-
-    def printPrimInCone( modName : String, cone : Set[LogicNode]) : Unit = {
+    def transformCone( modName : String, srcName : String, tgtName : String, cone : Set[LogicNode])( m : DefModule) : DefModule = {
 
       val visitedLogicNodes = mutable.Set[LogicNode]()
 
-      def auxE( e : Expression) : Expression = {
-        e map auxE
+      val newNameMap = mutable.Map[LogicNode,String]()
 
-        e match {
-          case Mux( cond, tval, fval, tpe) =>
-          case DoPrim( op, inps, _, tpe) =>
-//            println( s"auxE: ${inps} ${tpe}")
-          case _ =>
+      def upNm( nm : String) : Unit = {
+        val n = LogicNode( modName, nm)
+        if ( cone.contains( n)) {
+          if ( !newNameMap.contains( n)) {
+            newNameMap(n) = ns.newName( "_SHANNON")
+//            println( s"Generating new name: ${n} ${newNameMap(n)}")
+          }
         }
+      }
 
-        e
+      def auxE( e : Expression) : Expression = {
+        val ex = e map auxE
+
+        ex match {
+          case WRef( nm, tpe, knd, gender) => 
+            if ( nm == srcName) {
+              UIntLiteral(1,IntWidth(1))
+            } else {
+              upNm( nm)
+              val n = LogicNode( modName, nm)
+              if ( cone.contains( n)) {
+                WRef( newNameMap(n), tpe, knd, gender)
+              } else {
+                ex
+              }
+            }
+          case (_ : Mux | _ : DoPrim | _ : UIntLiteral | _ : SIntLiteral) => ex
+          case _ => 
+            println( s"Not Yet Implemented Expressions: ${ex}")
+            throwInternalError
+        }
       }
 
       def auxS( s : Statement) : Statement = {
-        s map auxS map auxE
+        val sx = s
 
-        s match {
-          case Block( _) =>
-          case EmptyStmt =>
+        sx match {
+          case Block( lst) => Block( lst.map{ auxS})
+          case EmptyStmt => sx
 // DefNode and Connect should contain all driven nets
           case DefNode( info, lhs, rhs) =>
             val lhsNode = LogicNode( modName, lhs)
+//            println( s"auxS: ${lhs}")
             if ( cone.contains( lhsNode)) {
-              rhs match {
-                case m : Mux =>
-                // println( s"Need to duplicate ${lhs} <= ${m}")
-                case p : DoPrim =>
-                // println( s"Need to duplicate ${lhs} <= ${p}")
-                case _ => println( s"-E- Need to duplicate unknown ${lhs} <= ${rhs}")
-              }
               visitedLogicNodes += lhsNode
+              upNm( lhs)
+              rhs match {
+                case ( _ : Mux | _ : DoPrim) =>
+                  val rhs0 = auxE( rhs)
+//                  println( s"Duplicating ${lhs} <= ${rhs}")
+//                  println( s"         as ${newNameMap(lhsNode)} <= ${rhs0}")
+                  Block( List( sx, DefNode( info, newNameMap(lhsNode), rhs0)))
+                case _ =>
+                  println( s"-E- Need to duplicate unknown ${lhs} <= ${rhs}")
+                  sx
+              }
+            } else {
+              sx
             }
           case Connect( info, lhsRef, rhsRef) =>
-            val WRef( lhs, _, _, _) = lhsRef
+            val WRef( lhs, tpe_l, knd_l, gnd_l) = lhsRef
             val lhsNode = LogicNode( modName, lhs)
             if ( cone.contains( lhsNode)) {
-              rhsRef match {
-                case w@WRef( rhs, tpe, knd, gnd) => {
-//                  println( s"Need to duplicate ${lhs} <= ${w}")
-                  if ( !cone.contains( LogicNode( modName, rhs))) {
-                    println( s"-E- Expected rhs of connect to be in cone: ${rhs}")
-                  }
-                }
-                case _ => println( s"-E- Need to duplicate unknown ${lhs} <= ${rhsRef}")
-              }
               visitedLogicNodes += lhsNode
+              if ( lhs == tgtName) {
+                rhsRef match {
+                  case w@WRef( rhs, tpe, knd, gnd) =>
+                    val rhs0 = auxE( rhsRef)
+                    if ( !cone.contains( LogicNode( modName, rhs))) {
+                      println( s"-E- Expected rhs of connect to be in cone: ${rhs}")
+                    }
+                    Connect( info, lhsRef, rhs0)
+                  case _ =>
+                    println( s"-E- Need to duplicate unknown ${lhs} <= ${rhsRef}")
+                    sx
+                }
+              } else {
+                upNm( lhs)
+                rhsRef match {
+                  case w@WRef( rhs, tpe_r, knd_r, gnd_r) =>
+//                    println( s"Duplicating ${lhsRef} <= ${rhsRef}")
+                    val rhs0 = auxE( rhsRef)
+                    if ( !cone.contains( LogicNode( modName, rhs))) {
+                      println( s"-E- Expected rhs of connect to be in cone: ${rhs}")
+                    }
+                    val lhs0 = WRef( newNameMap(lhsNode), tpe_l, knd_l, gnd_l)
+//                    println( s"         as ${lhs0} <= ${rhs0}")
+                    Block( List( sx, Connect( info, lhs0, rhs0)))
+                  case _ =>
+                    println( s"-E- Need to duplicate unknown ${lhs} <= ${rhsRef}")
+                    sx
+                }
+              }
+            } else {
+              sx
+            }
+          case _ : DefRegister => sx
+          case IsInvalid( info, WRef( lhs, tpe, knd, gnd)) => 
+            val lhsNode = LogicNode( modName, lhs)
+            if ( cone.contains( lhsNode)) {
+              println( s"-E- Unimplemented statement in logic cone ${sx}")
+              sx
+            } else {
+              sx
+            }
+          case DefWire( info, lhs, tpe) => 
+            val lhsNode = LogicNode( modName, lhs)
+            if ( cone.contains( lhsNode)) {
+              upNm( lhs)
+//              println( s"Duplicating DefWire ${lhs}")
+//              println( s"         as DefWire ${newNameMap( lhsNode)}")
+              Block( List( sx, DefWire( info, newNameMap( lhsNode), tpe)))
+            } else {
+              sx
             }
           case _ =>
+            println( s"-E- Unknown statement: ${sx}")
+            sx
         }
-
-        s
       }
 
-      m.asInstanceOf[Module].body map auxS
+      val mx = m map auxS
 
       println( s"Set difference: ${cone -- visitedLogicNodes}")
 
+      mx
     }
 
 
-    def printCone( modName : String, srcName : String, tgtName : String) : Unit = {
+    val srcNode = LogicNode( m.name, srcName)
+    val fromInReachableNodes = reverseDepGraph.reachableFrom( srcNode) + srcNode
+    val tgtNode = LogicNode( m.name, tgtName)
+    val toOutReachableNodes = depGraph.reachableFrom( tgtNode) + tgtNode
 
-      val tgtNode = LogicNode( modName, tgtName)
-      val toOutReachableNodes = depGraph.reachableFrom( tgtNode) + tgtNode
+    val cone = toOutReachableNodes intersect fromInReachableNodes
 
-/*
-      {
-        println( s"Reachable from ${tgtName}")
-        for { v <- toOutReachableNodes} {
-          println( s"\t${v}")
-        }
-      }
- */
-
-      val srcNode = LogicNode( modName, srcName)
-      val fromInReachableNodes = reverseDepGraph.reachableFrom( srcNode) + srcNode
-
-/*
-      {
-        println( s"Reachable from ${srcName} (reverse graph)")
-        for { v <- fromInReachableNodes} {
-          println( s"\t${v}")
-        }
-      }
- */
-
-      val cone = toOutReachableNodes intersect fromInReachableNodes
-
-      printPrimInCone( modName, cone)
-
-      {
-        println( s"Between ${srcName} and ${tgtName}")
-        for { v <- forwardOrder if cone.contains(v) } {
-          println( s"\t${v}")
-        }
+    {
+      println( s"Between ${srcName} and ${tgtName}")
+      for { v <- reverseDepGraph.linearize if cone.contains(v) } {
+        println( s"\t${v}")
       }
     }
 
-
-    printCone( m.name, srcName, tgtName)
-
-
-    val mx = m // transform m
-
-    mx
+    transformCone( m.name, srcName, tgtName, cone)( m.asInstanceOf[Module])
   }
 
-  def execute(state: CircuitState): CircuitState = {
+  def execute0(state: CircuitState): CircuitState = {
 
+    println( s"Running ShannonFactor ...")
 
-    state.circuit.modules map { case m : Module =>
+    val mods = state.circuit.modules map { case m : Module =>
       // Add all ports as vertices
       val re_ready = """io_(.*)_ready""".r
       val re_valid = """io_(.*)_valid""".r
@@ -306,6 +350,7 @@ class ShannonFactor extends Transform {
       val tuples = 
         m.ports.flatMap {
           case p@Port( info, name, Input, tpe : GroundType) => {
+            println( s"Ground Input: ${p}")
             name match {
               case re_valid( nm) =>
                 println( s"Input with _valid suffix: ${p}")
@@ -318,18 +363,42 @@ class ShannonFactor extends Transform {
             }
           }
           case p@Port( info, name, Output, tpe : GroundType) =>
+            println( s"Ground Output: ${p}")
             List()
-          case other => throwInternalError
+          case p@Port( info, name, _, tpe : BundleType) =>
+            println( s"Bundle: ${p}")
+            List()
+          case other => 
+            println( s"${other}")
+            throwInternalError
         }
 
-      tuples.foldLeft( m.asInstanceOf[DefModule]){ case (m0, ( srcName, tgtName)) =>
-        println( s"Running ShannonFactor ${srcName} ${tgtName} ...")
-        val m1 = executePerModule( srcName, tgtName)( m0)
-        println( s"Finishing ShannonFactor ${srcName} ${tgtName} ...")
-        m1
-      }
+      println( s"${m.name} ${tuples}")
+
+      val mx =
+        if ( m.name == "LazyStackN") {
+          m.asInstanceOf[DefModule]
+        } else {
+          val ns = Namespace( m)
+          tuples.foldLeft( m.asInstanceOf[DefModule]){ case (m0, ( srcName, tgtName)) =>
+            println( s"Running ShannonFactor ${m0.name} ${srcName} ${tgtName} ...")
+            val m1 = executePerModule( ns, srcName, tgtName)( m0)
+            println( s"Finishing ShannonFactor ${srcName} ${tgtName} ...")
+            m1
+          }
+        }
+
+      mx
     }
 
-    state
+    println( s"Finishing ShannonFactor ...")
+
+    state.copy( circuit = state.circuit.copy( modules = mods))
+  }
+
+  def execute(state: CircuitState): CircuitState = {
+    val state0 = execute0(state)
+    val state1 = execute0(state0)
+    state0
   }
 }
