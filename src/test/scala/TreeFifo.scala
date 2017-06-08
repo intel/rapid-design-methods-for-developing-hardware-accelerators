@@ -560,7 +560,7 @@ class StandaloneMergeQTest extends FreeSpec with Matchers {
 }
 
 class StandaloneSplitP extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle { val dummy = Input(Bool())})
   val m = Module( new Split)
   m.io("P").valid := m.io("P").ready
 }
@@ -584,11 +584,11 @@ class StandaloneSplitQ1Tester(c:StandaloneSplitQ1) extends PeekPokeTester( c)
 class StandaloneSplitPTest extends FreeSpec with Matchers {
   "Split input has a (false) combinational path" - {
     "StandaloneSplitP (wire connecting P.ready to P.valid) should fail" in {
-      a [firrtl_interpreter.InterpreterException] should be thrownBy {
-        chisel3.iotesters.Driver( () => new StandaloneSplitP, "firrtl") { c =>
+//      a [firrtl_interpreter.InterpreterException] should be thrownBy {
+        chisel3.iotesters.Driver.execute( Array( "-fct", "imperative.transform.ShannonFactor", "--backend-name", "verilator"), () => new StandaloneSplitP) { c =>
           new StandaloneSplitPTester( c)
         }
-      }
+//      }
     }
   }
 }
@@ -596,7 +596,7 @@ class StandaloneSplitQ0Test extends FreeSpec with Matchers {
   "Split outputs should not have combinational paths" - {
     "StandaloneSplitQ0 (wire connecting Q0.valid to Q0.ready) should not fail" in {
 //      a [firrtl_interpreter.InterpreterException] should be thrownBy {
-        chisel3.iotesters.Driver( () => new StandaloneSplitQ0, "firrtl") { c =>
+        chisel3.iotesters.Driver.execute( Array( "-fct", "imperative.transform.ShannonFactor", "--backend-name", "verilator"), () => new StandaloneSplitQ0) { c =>
           new StandaloneSplitQ0Tester( c)
         }
 //      }
@@ -607,7 +607,7 @@ class StandaloneSplitQ1Test extends FreeSpec with Matchers {
   "Split outputs should not have combinational paths" - {
     "StandaloneSplitQ1 (wire connecting Q1.valid to Q1.ready) should not fail" in {
 //      a [firrtl_interpreter.InterpreterException] should be thrownBy {
-        chisel3.iotesters.Driver( () => new StandaloneSplitQ1, "firrtl") { c =>
+        chisel3.iotesters.Driver.execute( Array( "-fct", "imperative.transform.ShannonFactor", "--backend-name", "verilator"), () => new StandaloneSplitQ1) { c =>
           new StandaloneSplitQ1Tester( c)
         }
 //      }

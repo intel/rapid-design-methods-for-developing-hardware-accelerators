@@ -103,7 +103,7 @@ class ShannonFactor extends Transform {
 // only one loc; zero (constant) or one expr
         val node0 =
           if ( regs.contains( node)) {
-            println( s"Left-hand side reg: ${node}")
+//            println( s"Left-hand side reg: ${node}")
             regs(node)._2
           } else {
             node
@@ -111,7 +111,7 @@ class ShannonFactor extends Transform {
         getDeps(expr).foreach{ ref =>
           val ref0 =
             if ( regs.contains( ref)) {
-              println( s"Right-hand side reg: ${ref}")
+//              println( s"Right-hand side reg: ${ref}")
               regs(ref)._1
             } else {
               ref
@@ -136,10 +136,13 @@ class ShannonFactor extends Transform {
   }
 
   private def createDependencyGraph( regs : mutable.Map[LogicNode,(LogicNode,LogicNode)])
-                                   ( m : Module): DiGraph[LogicNode] = {
+                                   ( m : DefModule): DiGraph[LogicNode] = {
 
     val depGraph = new MutableDiGraph[LogicNode]
-    setupDepGraph(regs, depGraph)(m)
+    m match {
+      case mod : Module => setupDepGraph(regs, depGraph)(mod)
+      case _ => throwInternalError
+    }
     DiGraph( depGraph)
   }
 
@@ -171,7 +174,7 @@ class ShannonFactor extends Transform {
         body map allRegs( regs, name)
     }
 
-    val depGraph = createDependencyGraph( regs)( m.asInstanceOf[Module])
+    val depGraph = createDependencyGraph( regs)( m)
 
     val reverseDepGraph = {
       val reverseDepGraph = new MutableDiGraph[LogicNode]
@@ -225,12 +228,11 @@ class ShannonFactor extends Transform {
         }
       }
 
-      def auxS( s : Statement) : Statement = {
-        val sx = s
-
+      def auxS( sx : Statement) : Statement = {
         sx match {
-          case Block( lst) => Block( lst.map{ auxS})
+          case _ : Block => sx map auxS
           case EmptyStmt => sx
+          case _ : DefRegister => sx
 // DefNode and Connect should contain all driven nets
           case DefNode( info, lhs, rhs) =>
             val lhsNode = LogicNode( modName, lhs)
@@ -288,15 +290,12 @@ class ShannonFactor extends Transform {
             } else {
               sx
             }
-          case _ : DefRegister => sx
           case IsInvalid( info, WRef( lhs, tpe, knd, gnd)) => 
             val lhsNode = LogicNode( modName, lhs)
             if ( cone.contains( lhsNode)) {
               println( s"-E- Unimplemented statement in logic cone ${sx}")
-              sx
-            } else {
-              sx
             }
+            sx
           case DefWire( info, lhs, tpe) => 
             val lhsNode = LogicNode( modName, lhs)
             if ( cone.contains( lhsNode)) {
@@ -328,66 +327,91 @@ class ShannonFactor extends Transform {
 
     val cone = toOutReachableNodes intersect fromInReachableNodes
 
+/*
     {
       println( s"Between ${srcName} and ${tgtName}")
       for { v <- reverseDepGraph.linearize if cone.contains(v) } {
         println( s"\t${v}")
       }
     }
+ */
 
-    transformCone( m.name, srcName, tgtName, cone)( m.asInstanceOf[Module])
+    transformCone( m.name, srcName, tgtName, cone)( m)
+  }
+
+  def hasDefInstance( m : DefModule) : Boolean = {
+    println( s"Trying to find instances in ${m.name}")
+
+    class Flag { var value = false}
+
+    def onStmt( f : Flag)( s : Statement) : Statement = {
+      s map onStmt( f)
+      s match {
+        case _ : Block =>
+        case _ : Connect =>
+        case WDefInstance( info, instanceName, templateName, _) =>
+          println( s"\tfound ${instanceName} ${templateName}")
+          f.value = true
+        case _ =>
+      }
+      s
+    }
+
+    val f = new Flag
+    m map onStmt( f)
+    f.value
   }
 
   def execute0(state: CircuitState): CircuitState = {
 
     println( s"Running ShannonFactor ...")
 
-    val mods = state.circuit.modules map { case m : Module =>
-      // Add all ports as vertices
-      val re_ready = """io_(.*)_ready""".r
-      val re_valid = """io_(.*)_valid""".r
-
-      val tuples = 
-        m.ports.flatMap {
-          case p@Port( info, name, Input, tpe : GroundType) => {
-            println( s"Ground Input: ${p}")
-            name match {
-              case re_valid( nm) =>
-                println( s"Input with _valid suffix: ${p}")
-                List( ( s"io_${nm}_valid", s"io_${nm}_ready"))
-              case re_ready( nm) =>
-                println( s"Input with _ready suffix: ${p}")
-                List( ( s"io_${nm}_ready", s"io_${nm}_valid"), ( s"io_${nm}_ready", s"io_${nm}_bits"))
-              case _ =>
-                List()
-            }
-          }
-          case p@Port( info, name, Output, tpe : GroundType) =>
-            println( s"Ground Output: ${p}")
-            List()
-          case p@Port( info, name, _, tpe : BundleType) =>
-            println( s"Bundle: ${p}")
-            List()
-          case other => 
-            println( s"${other}")
-            throwInternalError
-        }
-
-      println( s"${m.name} ${tuples}")
-
+    val mods = state.circuit.modules map { case m : DefModule =>
       val mx =
-        if ( m.name == "LazyStackN") {
-          m.asInstanceOf[DefModule]
+        if ( hasDefInstance( m)) {
+          println( s"Skipping processing on hierarchical module ${m.name}...")
+          m
         } else {
+          // Add all ports as vertices
+          val re_ready = """io_(.*)_ready""".r
+          val re_valid = """io_(.*)_valid""".r
+
+          val tuples =
+            m.ports.flatMap {
+              case p@Port( info, name, Input, tpe : GroundType) => {
+//                println( s"Ground Input: ${p}")
+                name match {
+                  case re_valid( nm) =>
+                    println( s"Input with _valid suffix: ${p}")
+                    List( ( s"io_${nm}_valid", s"io_${nm}_ready"))
+                  case re_ready( nm) =>
+                    println( s"Input with _ready suffix: ${p}")
+                    List( ( s"io_${nm}_ready", s"io_${nm}_valid"), ( s"io_${nm}_ready", s"io_${nm}_bits"))
+                  case _ =>
+                    List()
+                }
+              }
+              case p@Port( info, name, Output, tpe : GroundType) =>
+//                println( s"Ground Output: ${p}")
+                List()
+              case p@Port( info, name, _, tpe : BundleType) =>
+//                println( s"Bundle: ${p}")
+                List()
+              case other =>
+                println( s"${other}")
+                throwInternalError
+            }
+
+          println( s"${m.name} ${tuples}")
+
           val ns = Namespace( m)
-          tuples.foldLeft( m.asInstanceOf[DefModule]){ case (m0, ( srcName, tgtName)) =>
+          tuples.foldLeft( m){ case (m0, ( srcName, tgtName)) =>
             println( s"Running ShannonFactor ${m0.name} ${srcName} ${tgtName} ...")
             val m1 = executePerModule( ns, srcName, tgtName)( m0)
             println( s"Finishing ShannonFactor ${srcName} ${tgtName} ...")
             m1
           }
         }
-
       mx
     }
 
@@ -398,6 +422,8 @@ class ShannonFactor extends Transform {
 
   def execute(state: CircuitState): CircuitState = {
     val state0 = execute0(state)
+// This just runs it again to make sure that the cycles were removed
+// We throw the result away.
     val state1 = execute0(state0)
     state0
   }
