@@ -1,7 +1,7 @@
 
 package imperative.transform
 
-import firrtl.transforms.{ DontTouchAnnotation, OptimizableExtModuleAnnotation}
+//import firrtl.transforms.{ DontTouchAnnotation, OptimizableExtModuleAnnotation}
 
 import firrtl._
 import firrtl.ir._
@@ -314,7 +314,9 @@ class ShannonFactor extends Transform {
 
       val mx = m map auxS
 
-      println( s"Set difference: ${cone -- visitedLogicNodes}")
+      println( s"-I- ShannonFactor: cone size ${cone.size}")
+
+//      println( s"Set difference: ${cone -- visitedLogicNodes}")
 
       mx
     }
@@ -340,7 +342,7 @@ class ShannonFactor extends Transform {
   }
 
   def hasDefInstance( m : DefModule) : Boolean = {
-    println( s"Trying to find instances in ${m.name}")
+//    println( s"Trying to find instances in ${m.name}")
 
     class Flag { var value = false}
 
@@ -362,14 +364,17 @@ class ShannonFactor extends Transform {
     f.value
   }
 
-  def execute0(state: CircuitState): CircuitState = {
+  def execute0( modNames : Set[String])(state: CircuitState): CircuitState = {
 
     println( s"Running ShannonFactor ...")
 
     val mods = state.circuit.modules map { case m : DefModule =>
       val mx =
-        if ( hasDefInstance( m)) {
-          println( s"Skipping processing on hierarchical module ${m.name}...")
+        if ( !modNames.contains( m.name)) {
+          println( s"-I- ShannonFactor: Skipping processing because module name ${m.name} not annotated. ${modNames}")
+          m
+        } else if ( hasDefInstance( m)) {
+          println( s"-W- ShannonFactor: Skipping processing on hierarchical module ${m.name}... (shouldn't be annotated)")
           m
         } else {
           // Add all ports as vertices
@@ -382,10 +387,10 @@ class ShannonFactor extends Transform {
 //                println( s"Ground Input: ${p}")
                 name match {
                   case re_valid( nm) =>
-                    println( s"Input with _valid suffix: ${p}")
+//                    println( s"Input with _valid suffix: ${p}")
                     List( ( s"io_${nm}_valid", s"io_${nm}_ready"))
                   case re_ready( nm) =>
-                    println( s"Input with _ready suffix: ${p}")
+//                    println( s"Input with _ready suffix: ${p}")
                     List( ( s"io_${nm}_ready", s"io_${nm}_valid"), ( s"io_${nm}_ready", s"io_${nm}_bits"))
                   case _ =>
                     List()
@@ -402,13 +407,13 @@ class ShannonFactor extends Transform {
                 throwInternalError
             }
 
-          println( s"${m.name} ${tuples}")
+          println( s"-I- ShannonFactor: Found ${tuples.size} decoupledIO dependencies in ${m.name}: ${tuples}")
 
           val ns = Namespace( m)
           tuples.foldLeft( m){ case (m0, ( srcName, tgtName)) =>
-            println( s"Running ShannonFactor ${m0.name} ${srcName} ${tgtName} ...")
+//            println( s"Running ShannonFactor ${m0.name} ${srcName} ${tgtName} ...")
             val m1 = executePerModule( ns, srcName, tgtName)( m0)
-            println( s"Finishing ShannonFactor ${srcName} ${tgtName} ...")
+//            println( s"Finishing ShannonFactor ${srcName} ${tgtName} ...")
             m1
           }
         }
@@ -422,33 +427,33 @@ class ShannonFactor extends Transform {
 
   val inlineDelim = "$"
 
-  private def collectAnns(circuit: Circuit, anns: Iterable[Annotation]): (Set[ModuleName], Set[ComponentName]) =
-    anns.foldLeft(Set.empty[ModuleName], Set.empty[ComponentName]) {
-      case ((modNames, instNames), ann) => ann match {
-        case InlineAnnotation(CircuitName(c)) =>
-          (circuit.modules.collect {
-            case Module(_, name, _, _) if name != circuit.main => ModuleName(name, CircuitName(c))
-          }.toSet, instNames)
-        case InlineAnnotation(ModuleName(mod, cir)) => (modNames + ModuleName(mod, cir), instNames)
-        case InlineAnnotation(ComponentName(com, mod)) => (modNames, instNames + ComponentName(com, mod))
+  private def collectAnns(circuit: Circuit, anns: Iterable[Annotation]): Set[String] =
+    anns.foldLeft(Set.empty[String]) {
+      case ( modNames, ann) => ann match {
+        case Annotation( ModuleName(modName,CircuitName(circName)), transformClass, "RunShannonFactor") =>
+//          println( s"Found transformation: ${ann} ${modName} ${circName}")
+          modNames + modName
         case _ =>
-          println( s"${ann}")
-          (modNames, instNames)
+          modNames
       }
     }
 
   def execute(state: CircuitState): CircuitState = {
-    getMyAnnotations(state) match {
-      case Nil => println( s"No annotations")
-      case myAnnonations =>
-        val (modNames, instNames) = collectAnns( state.circuit, myAnnonations)
-        println( s"Annotations: ${modNames} ${instNames}")
-    }
+    val modNames =
+      getMyAnnotations(state) match {
+        case Nil =>
+//          println( s"No annotations")
+          Set.empty[String]
+        case anns =>
+          val modNames = collectAnns( state.circuit, anns)
+//          println( s"Annotations: ${modNames}")
+          modNames
+      }
 
-    val state0 = execute0(state)
+    val state0 = execute0(modNames)(state)
 // This just runs it again to make sure that the cycles were removed
 // We throw the result away.
-    val state1 = execute0(state0)
+    val state1 = execute0(modNames)(state0)
     state0
   }
 }

@@ -12,7 +12,7 @@ import firrtl.annotations.{Annotation}
 
 trait ShannonFactorAnnotator {
   self: Module =>
-     annotate(ChiselAnnotation( self, classOf[ShannonFactor], ""))
+     annotate(ChiselAnnotation( self, classOf[ShannonFactor], "RunShannonFactor"))
 }
 
 class CustomDecoupledBundle(elts: (String, DecoupledIO[Data], Type)*) extends Record {
@@ -26,7 +26,7 @@ class LoweredFormException extends Exception
 class ImproperLeftHandSideException extends Exception
 class NonConstantUnrollBoundsException extends Exception
 
-class ImperativeIfc( ast : Process) extends Module with ShannonFactorAnnotator {
+class ImperativeIfc( ast : Process) extends Module {
   val decl_lst = ast match { case Process( PortDeclList( decl_lst), _) => decl_lst}
 
   val iod_tuples = decl_lst.map{ 
@@ -41,7 +41,7 @@ class ImperativeIfc( ast : Process) extends Module with ShannonFactorAnnotator {
 }
 
 
-class ImperativeModule( ast : Process) extends ImperativeIfc( ast) {
+class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonFactorAnnotator {
 
   def eval( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
@@ -249,7 +249,9 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) {
       }
 
       sT.pkeys.foldLeft(new_sT){ (s,p) => {
-        val bbb = evalWithoutPort( Port( p))( sT, b)
+// Performing the fix in a FIRRTL transform
+//        val bbb = evalWithoutPort( Port( p))( sT, b)
+        val bbb = bb
 
         val (pr,pv,pd) = sT.pget( p) // previous
         val (tr,tv,td) = tST.pget( p)
