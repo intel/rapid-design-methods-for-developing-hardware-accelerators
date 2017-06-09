@@ -420,7 +420,31 @@ class ShannonFactor extends Transform {
     state.copy( circuit = state.circuit.copy( modules = mods))
   }
 
+  val inlineDelim = "$"
+
+  private def collectAnns(circuit: Circuit, anns: Iterable[Annotation]): (Set[ModuleName], Set[ComponentName]) =
+    anns.foldLeft(Set.empty[ModuleName], Set.empty[ComponentName]) {
+      case ((modNames, instNames), ann) => ann match {
+        case InlineAnnotation(CircuitName(c)) =>
+          (circuit.modules.collect {
+            case Module(_, name, _, _) if name != circuit.main => ModuleName(name, CircuitName(c))
+          }.toSet, instNames)
+        case InlineAnnotation(ModuleName(mod, cir)) => (modNames + ModuleName(mod, cir), instNames)
+        case InlineAnnotation(ComponentName(com, mod)) => (modNames, instNames + ComponentName(com, mod))
+        case _ =>
+          println( s"${ann}")
+          (modNames, instNames)
+      }
+    }
+
   def execute(state: CircuitState): CircuitState = {
+    getMyAnnotations(state) match {
+      case Nil => println( s"No annotations")
+      case myAnnonations =>
+        val (modNames, instNames) = collectAnns( state.circuit, myAnnonations)
+        println( s"Annotations: ${modNames} ${instNames}")
+    }
+
     val state0 = execute0(state)
 // This just runs it again to make sure that the cycles were removed
 // We throw the result away.

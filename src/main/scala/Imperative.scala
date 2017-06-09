@@ -1,8 +1,19 @@
 package imperative
 
+import transform.{ShannonFactor}
+
 import chisel3._
 import chisel3.util._
 import collection.immutable.ListMap
+
+import chisel3.experimental.ChiselAnnotation
+
+import firrtl.annotations.{Annotation}
+
+trait ShannonFactorAnnotator {
+  self: Module =>
+     annotate(ChiselAnnotation( self, classOf[ShannonFactor], ""))
+}
 
 class CustomDecoupledBundle(elts: (String, DecoupledIO[Data], Type)*) extends Record {
   val elements = ListMap(elts map { case (field, elt, ty) => field -> elt.chiselCloneType }: _*)
@@ -15,7 +26,7 @@ class LoweredFormException extends Exception
 class ImproperLeftHandSideException extends Exception
 class NonConstantUnrollBoundsException extends Exception
 
-class ImperativeIfc( ast : Process) extends Module {
+class ImperativeIfc( ast : Process) extends Module with ShannonFactorAnnotator {
   val decl_lst = ast match { case Process( PortDeclList( decl_lst), _) => decl_lst}
 
   val iod_tuples = decl_lst.map{ 
