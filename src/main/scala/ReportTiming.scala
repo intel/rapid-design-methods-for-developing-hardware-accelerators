@@ -1,7 +1,7 @@
 
 package imperative.transform
 
-//import firrtl.transforms.{ DontTouchAnnotation, OptimizableExtModuleAnnotation}
+import scala.annotation.tailrec
 
 import firrtl._
 import firrtl.ir._
@@ -165,6 +165,24 @@ class ReportTiming extends Transform {
   }
 
 
+  def constructTimingArcsExpression
+    ( tas : mutable.Map[(LogicNode,LogicNode),Int])
+    ( e : Expression): Expression = {
+    e map constructTimingArcsExpression(tas)
+  }
+
+  def constructTimingArcsStatement
+    ( tas : mutable.Map[(LogicNode,LogicNode),Int])
+    ( s : Statement): Statement = {
+    s map constructTimingArcsStatement(tas) map constructTimingArcsExpression(tas)
+  }
+
+  def constructTimingArcs
+    ( tas : mutable.Map[(LogicNode,LogicNode),Int])
+    ( m : DefModule): DefModule = {
+    m map constructTimingArcsStatement( tas)
+  }
+
   def executePerModule(m : DefModule): DefModule = {
 
     val regs = mutable.Map[LogicNode,(LogicNode,LogicNode)]()
@@ -189,12 +207,20 @@ class ReportTiming extends Transform {
       DiGraph( reverseDepGraph)
     }
 
+    val tas = mutable.Map.empty[(LogicNode,LogicNode),Int]
+
+    constructTimingArcs( tas)( m)
+
     val topoOrder = reverseDepGraph.linearize
 
     val arrivalTimes = mutable.Map.empty[LogicNode,Option[Int]]
 
+    val arrivalTraces = mutable.Map.empty[LogicNode,Option[LogicNode]]
+
+
     for { v <- topoOrder} {
       arrivalTimes(v) = None
+      arrivalTraces(v) = None
 
       if ( depGraph.getEdges( v).isEmpty) {
         arrivalTimes(v) = Some(0)
@@ -205,17 +231,44 @@ class ReportTiming extends Transform {
     for { v <- topoOrder} {
       for { e <- depGraph.getEdges( v)
             a <- arrivalTimes( e)} {
-        arrivalTimes( v) = arrivalTimes(v) match {
-          case None => Some( a + 1)
-          case Some( b) => Some( math.max( b, a + 1))
+        arrivalTimes(v) match {
+          case None =>
+            arrivalTimes(v) = Some( a+1)
+            arrivalTraces(v) = Some( e)
+          case Some( b) =>
+            if ( b < a+1) {
+              arrivalTimes(v) = Some( a+1)
+              arrivalTraces(v) = Some( e)
+            }
         }
       }
     }
 
 
+/*
     {
       for { v <- topoOrder} {
-        println( s"\t${v} ${arrivalTimes(v)}")
+        println( s"\t${v} ${arrivalTimes(v)} ${arrivalTraces(v)}")
+      }
+    }
+ */
+
+    println( s"Sinks:")
+
+    {
+      @tailrec
+      def backTrace( accum : List[LogicNode], n : Option[LogicNode]) : List[LogicNode] =
+        n match {
+          case None => accum
+          case Some( nn) => backTrace( nn :: accum, arrivalTraces(nn))
+        }
+
+      for { v <- topoOrder
+            if reverseDepGraph.getEdges( v).isEmpty} {
+        for { u <- backTrace( List.empty[LogicNode], Some(v))} {
+          println( s"\t${u} ${arrivalTimes(u)}")
+        }
+        println( s"===========================")
       }
     }
 
