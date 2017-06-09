@@ -192,12 +192,12 @@ class LazyStackN[T <: ImperativeIfc]( n : Int, factory : () => T) extends StackI
 }
 
 object LazyStackWaitDriver extends App {
-  val extraArgs = Array[String]( "-fct", "imperative.transform.ShannonFactor")
+  val extraArgs = Array[String]()
   Driver.execute( args ++ extraArgs, () => new LazyStackWait)
 }
 
 object LazyStackWait1Driver extends App {
-  val extraArgs = Array[String]( "-fct", "imperative.transform.ShannonFactor")
+  val extraArgs = Array[String]()
   Driver.execute( args ++ extraArgs, () => new LazyStackWait1)
 }
 
@@ -207,7 +207,7 @@ object LazyStackNWaitDriver extends App {
 }
 
 object LazyStackNWait1Driver extends App {
-  val extraArgs = Array[String]( "-fct", "imperative.transform.ShannonFactor")
+  val extraArgs = Array[String]( "-fct", "imperative.transform.ReportTiming")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait1))
 }
 
