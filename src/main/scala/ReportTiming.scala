@@ -165,22 +165,58 @@ class ReportTiming extends Transform {
   }
 
 
-  def constructTimingArcsExpression
-    ( tas : mutable.Map[(LogicNode,LogicNode),Int])
-    ( e : Expression): Expression = {
-    e map constructTimingArcsExpression(tas)
-  }
-
-  def constructTimingArcsStatement
-    ( tas : mutable.Map[(LogicNode,LogicNode),Int])
-    ( s : Statement): Statement = {
-    s map constructTimingArcsStatement(tas) map constructTimingArcsExpression(tas)
-  }
-
   def constructTimingArcs
     ( tas : mutable.Map[(LogicNode,LogicNode),Int])
     ( m : DefModule): DefModule = {
-    m map constructTimingArcsStatement( tas)
+
+    def constructTimingArcsStatement( s : Statement): Statement = {
+
+      def inSignals( inp : Seq[Expression]) : List[String] =
+        inp.toList flatMap {
+          case WRef( nm, tpe, knd, gnrd) => List(nm)
+          case UIntLiteral( lit, width) => List()
+          case SIntLiteral( lit, width) => List()
+          case x@DoPrim( pad, lst, _, _) =>
+            println( s"Recursive call: ${x}")
+            inSignals( lst)
+          case x =>
+            println( s"Not Yet Implemented: ${x}")
+            List()
+        }
+
+      s match {
+        case _ : Block =>
+          s map constructTimingArcsStatement
+          ()
+        case _ : Connect =>
+        case EmptyStmt =>
+        case _ : DefRegister =>
+        case _ : DefWire =>
+        case DefNode( info, lhs, rhs) =>
+          val lst = rhs match {
+            case Mux( cond, te, fe, tpe) =>
+              inSignals(List(cond,te,fe))
+            case DoPrim( op, inps, _, tpe) =>
+              inSignals(inps)
+            case _ =>
+              println( s"Not Yet Implemented: ${s}")
+              List()
+          }
+          for { f <- lst} {
+            println( s"Adding TA: ${f} -> ${lhs}")
+            tas( (LogicNode(m.name,f),LogicNode(m.name,lhs))) = 1
+          }
+          println( s"${lhs} ${lst}")
+        case _ : IsInvalid =>
+        case _ =>
+          println( s"${s}")
+      }
+
+      s
+    }
+
+    println( s"constructTimingArcs: ${m.name}")
+    m map constructTimingArcsStatement
   }
 
   def executePerModule(m : DefModule): DefModule = {
@@ -213,6 +249,12 @@ class ReportTiming extends Transform {
 
     val topoOrder = reverseDepGraph.linearize
 
+    class Arrival {
+      var time : Option[Int] = None
+      var u : Option[LogicNode] = None
+      var op : Option[String] = None
+    }
+
     val arrivalTimes = mutable.Map.empty[LogicNode,Option[Int]]
 
     val arrivalTraces = mutable.Map.empty[LogicNode,Option[LogicNode]]
@@ -231,13 +273,17 @@ class ReportTiming extends Transform {
     for { v <- topoOrder} {
       for { e <- depGraph.getEdges( v)
             a <- arrivalTimes( e)} {
+
+        val delay = tas.getOrElse( ( e, v), 0)
+        val newA = a + delay
+
         arrivalTimes(v) match {
           case None =>
-            arrivalTimes(v) = Some( a+1)
+            arrivalTimes(v) = Some( newA)
             arrivalTraces(v) = Some( e)
           case Some( b) =>
-            if ( b < a+1) {
-              arrivalTimes(v) = Some( a+1)
+            if ( b < newA) {
+              arrivalTimes(v) = Some( newA)
               arrivalTraces(v) = Some( e)
             }
         }
