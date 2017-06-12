@@ -1,4 +1,3 @@
-
 package imperative.transform
 
 import scala.annotation.tailrec
@@ -72,7 +71,7 @@ class ReportTiming extends Transform {
         val (ps,ns) = regs(node)
         depGraph.addVertex(ps)
         depGraph.addVertex(ns)
-        Seq(clock, reset, init).flatMap(getDeps(_)).foreach(ref => depGraph.addEdge(ps, ref))
+        Seq( reset, init).flatMap(getDeps(_)).foreach(ref => depGraph.addEdge(ns, ref))
       case DefNode(_, name, value) =>
         val node = LogicNode(mod.name, name)
         depGraph.addVertex(node)
@@ -166,17 +165,27 @@ class ReportTiming extends Transform {
 
 
   def constructTimingArcs
-    ( tas : mutable.Map[(LogicNode,LogicNode),Int])
+    ( tas : mutable.Map[(LogicNode,LogicNode),(Int,String)],
+      regs : mutable.Map[LogicNode,(LogicNode,LogicNode)])
     ( m : DefModule): DefModule = {
 
     def constructTimingArcsStatement( s : Statement): Statement = {
 
-      def inSignals( inp : Seq[Expression]) : List[String] =
+      def extractWidth( x : Any) : Int = x match {
+        case UIntType(IntWidth(w)) => w.toInt
+        case SIntType(IntWidth(w)) => w.toInt
+        case _ => -1
+      }
+
+      def inSignals( inp : Seq[Expression]) : List[(LogicNode,Int)] =
         inp.toList flatMap {
-          case WRef( nm, tpe, knd, gnrd) => List(nm)
+          case WRef( nm, tpe, knd, gnrd) => 
+            val rhsNode = LogicNode( m.name, nm)
+            val rhsNode0 = if ( regs.contains( rhsNode)) regs(rhsNode)._1 else rhsNode
+            List((rhsNode0,extractWidth(tpe)))
           case UIntLiteral( lit, width) => List()
           case SIntLiteral( lit, width) => List()
-          case x@DoPrim( pad, lst, _, _) =>
+          case x@DoPrim( padOrBits, lst, _, _) =>
             println( s"Recursive call: ${x}")
             inSignals( lst)
           case x =>
@@ -188,28 +197,50 @@ class ReportTiming extends Transform {
         case _ : Block =>
           s map constructTimingArcsStatement
           ()
-        case _ : Connect =>
+        case Connect( info, lhsRef, rhsRef) =>
+//          println( s"$s")
+          lhsRef match {
+            case WRef( lhs, l_tpe, l_knd, l_gndr) =>
+              val lhsNode = LogicNode( m.name, lhs)
+              val lhsNode0 = if ( regs.contains( lhsNode)) regs(lhsNode)._2 else lhsNode
+
+              for ( (rhsNode0,width) <- inSignals( List(rhsRef))) {
+                tas( ( rhsNode0, lhsNode0)) = (0,"connect")
+              }
+          }
         case EmptyStmt =>
-        case _ : DefRegister =>
-        case _ : DefWire =>
+        case _ : DefRegister => //println( s"$s")
+        case _ : DefWire => //println( s"$s")
         case DefNode( info, lhs, rhs) =>
-          val lst = rhs match {
+          val (o,lst) = rhs match {
             case Mux( cond, te, fe, tpe) =>
-              inSignals(List(cond,te,fe))
+              ("mux",inSignals(List(cond,te,fe)))
             case DoPrim( op, inps, _, tpe) =>
-              inSignals(inps)
+              val opStr = s"${op}"
+              ( opStr, inSignals(inps))
             case _ =>
               println( s"Not Yet Implemented: ${s}")
-              List()
+              ("nyi",List())
           }
-          for { f <- lst} {
-            println( s"Adding TA: ${f} -> ${lhs}")
-            tas( (LogicNode(m.name,f),LogicNode(m.name,lhs))) = 1
+          
+          val widths = lst.map( _._2).mkString(",")
+          val oo = s"${o},(${widths})"
+          val delay =
+            o match {
+              case "pad" => 0
+              case "tail" => 0
+              case "bits" => 0
+              case "add" => 3
+              case "mul" => 10
+              case "mux" => if ( widths == "(1)") 0 else 1
+              case _ => 1
+            }
+          for { (f,width) <- lst} {
+            tas( (f,LogicNode(m.name,lhs))) = (delay,oo)
           }
-          println( s"${lhs} ${lst}")
         case _ : IsInvalid =>
         case _ =>
-          println( s"${s}")
+          println( s"Not Yet Implemented: ${s}")
       }
 
       s
@@ -243,9 +274,9 @@ class ReportTiming extends Transform {
       DiGraph( reverseDepGraph)
     }
 
-    val tas = mutable.Map.empty[(LogicNode,LogicNode),Int]
+    val tas = mutable.Map.empty[(LogicNode,LogicNode),(Int,String)]
 
-    constructTimingArcs( tas)( m)
+    constructTimingArcs( tas, regs)( m)
 
     val topoOrder = reverseDepGraph.linearize
 
@@ -255,49 +286,41 @@ class ReportTiming extends Transform {
       var op : Option[String] = None
     }
 
-    val arrivalTimes = mutable.Map.empty[LogicNode,Option[Int]]
-
-    val arrivalTraces = mutable.Map.empty[LogicNode,Option[LogicNode]]
-
+    val arrivals = mutable.Map.empty[LogicNode,Arrival]
 
     for { v <- topoOrder} {
-      arrivalTimes(v) = None
-      arrivalTraces(v) = None
+      arrivals(v) = new Arrival
 
       if ( depGraph.getEdges( v).isEmpty) {
-        arrivalTimes(v) = Some(0)
+        println( s"Setting arrival to zero on vertex: ${v}")
+        arrivals(v).time = Some(0)
+        arrivals(v).op = Some("No incoming edges")
       }
     }
 
 // backward
     for { v <- topoOrder} {
       for { e <- depGraph.getEdges( v)
-            a <- arrivalTimes( e)} {
+            a <- arrivals( e).time} {
 
-        val delay = tas.getOrElse( ( e, v), 0)
+        val (delay,op) = tas.getOrElse( ( e, v), (0,"unknown"))
         val newA = a + delay
 
-        arrivalTimes(v) match {
+        arrivals(v).time match {
           case None =>
-            arrivalTimes(v) = Some( newA)
-            arrivalTraces(v) = Some( e)
+            arrivals(v).time = Some( newA)
+            arrivals(v).u = Some( e)
+            arrivals(v).op = Some( op)
           case Some( b) =>
             if ( b < newA) {
-              arrivalTimes(v) = Some( newA)
-              arrivalTraces(v) = Some( e)
+              arrivals(v).time = Some( newA)
+              arrivals(v).u = Some( e)
+              arrivals(v).op = Some( op)
             }
         }
       }
     }
 
-
-/*
-    {
-      for { v <- topoOrder} {
-        println( s"\t${v} ${arrivalTimes(v)} ${arrivalTraces(v)}")
-      }
-    }
- */
 
     println( s"Sinks:")
 
@@ -306,13 +329,19 @@ class ReportTiming extends Transform {
       def backTrace( accum : List[LogicNode], n : Option[LogicNode]) : List[LogicNode] =
         n match {
           case None => accum
-          case Some( nn) => backTrace( nn :: accum, arrivalTraces(nn))
+          case Some( nn) => backTrace( nn :: accum, arrivals(nn).u)
         }
 
-      for { v <- topoOrder
-            if reverseDepGraph.getEdges( v).isEmpty} {
+      val sinks =
+        for { v <- topoOrder
+              if reverseDepGraph.getEdges( v).isEmpty
+              t <- arrivals(v).time
+            } yield (v,t)
+      val sortedSinks = sinks.sortBy{ case (v,t) => t}
+
+      for { (v,t) <- sortedSinks} {
         for { u <- backTrace( List.empty[LogicNode], Some(v))} {
-          println( s"\t${u} ${arrivalTimes(u)}")
+          println( s"\t${u} ${arrivals(u).time} ${arrivals(u).op} ${arrivals(u).u}")
         }
         println( s"===========================")
       }
