@@ -1,5 +1,7 @@
 package imperative
 
+import reporters._
+
 import chisel3._
 import chisel3.util._
 
@@ -202,16 +204,16 @@ object LazyStackWait1Driver extends App {
 }
 
 object LazyStackNWaitDriver extends App {
-  val extraArgs = Array[String]( "-fct", "imperative.transform.ReportArea")
+  val extraArgs = Array[String]( "-fct", "reporters.ReportArea")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait))
 }
 
 object LazyStackNWait1Driver extends App {
-  val extraArgs = Array[String]( "-fct", "imperative.transform.ReportTiming")
+  val extraArgs = Array[String]( "-fct", "reporters.ReportTiming")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait1))
 }
 
 object LazyStackNCombDriver extends App {
-  val extraArgs = Array[String]( "-fct", "imperative.transform.ReportArea")
+  val extraArgs = Array[String]( "-fct", "reporters.ReportArea")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackComb))
 }
