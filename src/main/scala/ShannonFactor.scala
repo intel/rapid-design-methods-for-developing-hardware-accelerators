@@ -425,7 +425,7 @@ class ShannonFactor extends Transform {
     state.copy( circuit = state.circuit.copy( modules = mods))
   }
 
-  val inlineDelim = "$"
+//  val inlineDelim = "$"
 
   private def collectAnns(circuit: Circuit, anns: Iterable[Annotation]): Set[String] =
     anns.foldLeft(Set.empty[String]) {
