@@ -1,8 +1,19 @@
 package imperative
 
+import transform.{ShannonFactor}
+
 import chisel3._
 import chisel3.util._
 import collection.immutable.ListMap
+
+import chisel3.experimental.ChiselAnnotation
+
+import firrtl.annotations.{Annotation}
+
+trait ShannonFactorAnnotator {
+  self: Module =>
+     annotate(ChiselAnnotation( self, classOf[ShannonFactor], "RunShannonFactor"))
+}
 
 class CustomDecoupledBundle(elts: (String, DecoupledIO[Data], Type)*) extends Record {
   val elements = ListMap(elts map { case (field, elt, ty) => field -> elt.chiselCloneType }: _*)
@@ -11,16 +22,11 @@ class CustomDecoupledBundle(elts: (String, DecoupledIO[Data], Type)*) extends Re
   override def cloneType = (new CustomDecoupledBundle(elts.toList: _*)).asInstanceOf[this.type]
 }
 
-class InitialSegmentContainsCommunicationException extends Exception
-class WaitOccursNotAtEndOfSingleWhileLoopException extends Exception
-class FinalCommandNotWhileTrueException extends Exception
-class WhileUsedIncorrectlyException extends Exception
-class BadTopLevelMatchException extends Exception
+class LoweredFormException extends Exception
 class ImproperLeftHandSideException extends Exception
 class NonConstantUnrollBoundsException extends Exception
 
-class ImperativeModule( ast : Process) extends Module {
-
+class ImperativeIfc( ast : Process) extends Module {
   val decl_lst = ast match { case Process( PortDeclList( decl_lst), _) => decl_lst}
 
   val iod_tuples = decl_lst.map{ 
@@ -32,33 +38,15 @@ class ImperativeModule( ast : Process) extends Module {
 
   val io = IO(new CustomDecoupledBundle( iod_tuples: _*))
 
-  def containsCommunication( found : Boolean, ast : Expression) : Boolean = found
+}
 
-  def containsCommunication( found : Boolean, ast : BExpression) : Boolean = ast match {
-    case NBCanGet( _) => true
-    case NBCanPut( _) => true
-    case _ => found
-  }
-  def containsCommunication( found : Boolean, ast : Command) : Boolean = ast match {
-    case Blk( _, seq) => (found /: seq){ containsCommunication}
-    case NBGet( _, _) => true
-    case NBPut( _, _) => true
-    case IfThenElse( b, t, e) => {
-      containsCommunication( found, b) ||
-      containsCommunication( found, t) ||
-      containsCommunication( found, e)
-    }
-    case While( b, t) => {
-      containsCommunication( found, b) ||
-      containsCommunication( found, t)
-    }
-    case _ => false
-  }
 
+class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonFactorAnnotator {
 
   def eval( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
     case EqBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] === eval( sT, r).asInstanceOf[UInt]
+    case LtBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] < eval( sT, r).asInstanceOf[UInt]
     case AndBExpression( l, r) => eval( sT, l) && eval( sT, r)
     case NotBExpression( e) => !eval( sT, e)
     case NBCanGet( Port( p)) => sT.pget( p)._2
@@ -68,6 +56,7 @@ class ImperativeModule( ast : Process) extends Module {
   def evalWithoutPort( p : Port)( sT : SymTbl, ast : BExpression) : Bool = ast match {
     case ConstantTrue => true.B
     case EqBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] === eval( sT, r).asInstanceOf[UInt]
+    case LtBExpression( l, r) => eval( sT, l).asInstanceOf[UInt] < eval( sT, r).asInstanceOf[UInt]
     case AndBExpression( l, r) => evalWithoutPort( p)( sT, l) && evalWithoutPort( p)( sT, r)
     case NotBExpression( e) => !evalWithoutPort( p)( sT, e)
     case NBCanGet( Port( pp)) if Port( pp) == p => true.B
@@ -128,63 +117,53 @@ class ImperativeModule( ast : Process) extends Module {
 
 
   def eval( sT : SymTbl, ast : Process) : SymTbl = ast match {
-    case Process( _, Blk( seqDeclLst, lst2)) => {
+    case Process( _, ResetWhileTrueWait( seqDeclLst, initSeq, mainBlk)) => {
 
         val sTinit = seqDeclLst.foldLeft(sT.push){
-// Really want this to be X, but using 47.U instead; Tests don't seem to break unless I do this
-          case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W), init=47.U))
+// These are uninitialized. Tests don't break, if you want them to, use init=47.U
+          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W)/*, init=47.U*/))
+          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, Wire( Vec(n,UInt(w.W))))
         }
 
-        if ( containsCommunication( false, Blk( List(), lst2.init))) {
-          throw new InitialSegmentContainsCommunicationException
-        }
-
-        val sTinit0 = eval( sTinit, Blk( List(), lst2.init))
+        val sTinit0 = eval( sTinit, Blk( List(), initSeq))
 
         val sT0 = seqDeclLst.foldLeft(sT.push){
-          case (st, Decl( Variable(v), UIntType(i))) => st.insert( v, Wire( UInt(i.W)))
+          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W)))
+          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, Wire( Vec(n,UInt(w.W))))
         }
 
-        val (declLst, lst) = lst2.last match {
-          case While( ConstantTrue, Blk( declLst, lst)) => (declLst, lst)
-          case _ => throw new FinalCommandNotWhileTrueException
-        }
-
-        if ( lst.last != Wait) {
-          throw new WaitOccursNotAtEndOfSingleWhileLoopException
-        }
-
-        val sT1 = eval( sT0, Blk( declLst, lst.init))
+        val sT1 = eval( sT0, mainBlk)
 
         sT0.keys.foreach{
           k => {
             sT0(k) := sTinit0(k)
             if ( sT0(k) != sT1(k)) {
               if ( sTinit(k) == sTinit0(k)) {
-                println( s"-I- Induction variable ${k} is not initialized but is updated")
+//                println( s"-I- Induction variable ${k} is not initialized but is updated")
                 sT0(k) := RegNext( next=sT1(k))
               } else {
-                println( s"-I- Induction variable ${k} is both initialized and updated")
+//                println( s"-I- Induction variable ${k} is both initialized and updated")
                 sT0(k) := RegNext( next=sT1(k), init=sTinit0(k))
               }
             } else {
               if ( sTinit(k) != sTinit0(k)) {
-                println( s"-I- Induction variable ${k} is initialized but not updated")
+//                println( s"-I- Induction variable ${k} is initialized but not updated")
                 sT0(k) := sTinit0(k)
               } else {
-                println( s"-I- Induction variable ${k} is not initialized and not updated")
+//                println( s"-I- Induction variable ${k} is not initialized and not updated")
               }
             }
           }
         }
         sT1.pop
       }
-    case _ => throw new BadTopLevelMatchException
+    case _ => throw new LoweredFormException
   }
 
   def eval( sT : SymTbl, ast : Command) : SymTbl = ast match {
-    case While( _, _) => throw new WhileUsedIncorrectlyException
-    case Wait => throw new WaitOccursNotAtEndOfSingleWhileLoopException
+    case While( _, _) => throw new LoweredFormException
+    case Wait => throw new LoweredFormException
+    case ResetWhileTrueWait( _, _, _) => throw new LoweredFormException
     case Unroll( Variable( v), ConstantInteger( lb), ConstantInteger( ub), cmd) => 
       (lb until ub).foldLeft( sT){ case( st, i) => eval( st.push.insert( v, i.U), cmd).pop}
     case Unroll( Variable( v), _, _, cmd) => throw new NonConstantUnrollBoundsException
@@ -247,13 +226,7 @@ class ImperativeModule( ast : Process) extends Module {
     case Assignment( _, _) => throw new ImproperLeftHandSideException
     case NBGet( Port( p), Variable( s)) => {
       val (r,v,d) = sT.pget( p)
-      val res_sT = sT.pupdated( p, true.B, v, d).updated( s, d)
-      res_sT.pget( p)._3 match {
-        case v : Vec[UInt] =>
-//          printf( s"nbget assignment: ${p} %d %d %d %d\n", v(0), v(1), v(2), v(3))
-        case _ => ()
-      }
-      res_sT
+      sT.pupdated( p, true.B, v, d).updated( s, d)
     }
     case NBPut( Port( p), e) => {
       val (r,v,d) = sT.pget( p)
@@ -276,7 +249,9 @@ class ImperativeModule( ast : Process) extends Module {
       }
 
       sT.pkeys.foldLeft(new_sT){ (s,p) => {
-        val bbb = evalWithoutPort( Port( p))( sT, b)
+// Performing the fix in a FIRRTL transform
+//        val bbb = evalWithoutPort( Port( p))( sT, b)
+        val bbb = bb
 
         val (pr,pv,pd) = sT.pget( p) // previous
         val (tr,tv,td) = tST.pget( p)
@@ -316,14 +291,10 @@ class ImperativeModule( ast : Process) extends Module {
   decl_lst.foreach {
     case PortDecl( Port(p), Inp, _) => {
       val (r,v,d) = sTLast.pget( p)
-//      println( s"${p} r: ${r}")
       io(p).ready := r
     }
     case PortDecl( Port(p), Out, _) => {
       val (r,v,d) = sTLast.pget( p)
-//      println( s"${p} v: ${v} d: ${d}")
-//      io( p).valid := RegNext( next=v, init=false.B)
-//      io( p).bits := RegNext( next=d)
       io( p).valid := v
       io( p).bits := d
     }

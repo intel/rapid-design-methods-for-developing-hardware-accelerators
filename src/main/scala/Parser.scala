@@ -75,8 +75,14 @@ object Parser extends Parsers {
       case _ ~ d ~ s ~ _ => Blk( d.toList, s.toList)
     }
     val w = WAIT() ^^ { _ => Wait }
+    val gg = identifier ~ QUERYQUERY() ~ identifier ^^ { 
+      case IDENTIFIER(s) ~ _ ~ IDENTIFIER(v) => Blk( List(), List( While( NotBExpression( NBCanGet( Port(s))), Wait), NBGet( Port(s), Variable(v))))
+    }
     val g = identifier ~ QUERY() ~ identifier ^^ { 
-      case IDENTIFIER(p) ~ _ ~ IDENTIFIER(v) => NBGet( Port(p), Variable(v))
+      case IDENTIFIER(s) ~ _ ~ IDENTIFIER(v) => NBGet( Port(s), Variable(v))
+    }
+    val pp = identifier ~ BANGBANG() ~ expr ^^ { 
+      case IDENTIFIER(s) ~ _ ~ e => Blk( List(), List( While( NotBExpression( NBCanPut( Port( s))), Wait), NBPut( Port(s), e)))
     }
     val p = identifier ~ BANG() ~ expr ^^ { 
       case IDENTIFIER(s) ~ _ ~ e => NBPut( Port(s), e)
@@ -88,7 +94,7 @@ object Parser extends Parsers {
       case IDENTIFIER( v) ~ _ ~ e => Assignment( Variable( v), e)
     }
 
-    whl | unrl | ite | it | sc | w | g | p | va | a
+    whl | unrl | ite | it | sc | w | gg | g | pp | p | va | a
   }
 
   def bexpr: Parser[BExpression] = positioned {
@@ -115,7 +121,10 @@ object Parser extends Parsers {
     val e = expr ~ EQ() ~ expr ^^ { 
       case l ~ _ ~ r => EqBExpression( l, r)
     }
-    t | cg | cp | n | g | e
+    val lt = expr ~ LT() ~ expr ^^ { 
+      case l ~ _ ~ r => LtBExpression( l, r)
+    }
+    t | cg | cp | n | g | e | lt
   }
 
   def expr: Parser[Expression] = positioned {

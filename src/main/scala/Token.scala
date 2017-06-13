@@ -29,9 +29,12 @@ case class VEC() extends Token
 case class WAIT() extends Token
 case class ASSIGN() extends Token
 case class EQ() extends Token
+case class LT() extends Token
 case class COLON() extends Token
 case class ADD() extends Token
 case class SUB() extends Token
 case class MUL() extends Token
 case class QUERY() extends Token
 case class BANG() extends Token
+case class QUERYQUERY() extends Token
+case class BANGBANG() extends Token

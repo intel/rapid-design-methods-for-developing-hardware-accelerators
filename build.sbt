@@ -1,10 +1,10 @@
-organization := "SCL"
-
-version := "0.1"
+organization := "com.intel"
 
 name := "imperative"
 
-scalaVersion := "2.11.7"
+version := "0.1"
+
+scalaVersion := "2.11.11"
 
 scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-language:reflectiveCalls", "-Ypatmat-exhaust-depth", "80")
 
@@ -23,6 +23,12 @@ libraryDependencies ++= (Seq("chisel3","chisel-iotesters").map {
 
 libraryDependencies ++= Seq( "org.scala-lang.modules"  %% "scala-parser-combinators" % "1.0.4")
 
+libraryDependencies ++= Seq( "com.storm-enroute" %% "scalameter" % "0.9-SNAPSHOT")
+
+libraryDependencies += "com.intel" %% "reporters" % "0.1"
+
+testFrameworks += new TestFramework( "org.scalameter.ScalaMeterFramework")
+
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots"),
   Resolver.sonatypeRepo("releases")
@@ -35,9 +41,10 @@ logBuffered in Test := false
 //  Running tests in parallel on Jenkins currently fails.
 parallelExecution in Test := false
 
-fork in Test := true
-javaOptions in Test += "-Xms1024M"
-javaOptions in Test +=  "-Xss1024M"
+// SMB: had problems with fork set to true. SBT would report stack traces
+fork in Test := false
+//javaOptions in Test += "-Xms1024M"
+//javaOptions in Test +=  "-Xss128M"
 
 
 

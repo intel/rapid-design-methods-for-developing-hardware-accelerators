@@ -5,10 +5,11 @@ import org.scalatest.{ Matchers, FlatSpec, FreeSpec}
 import chisel3._
 import chisel3.iotesters._
 
-import compiler.Compiler
+import compiler.{ Compiler, CompilationErrorException}
 
-class BadInitSeg extends ImperativeModule(
-  Compiler.run("""
+object BadInitSeg {
+  val txt =
+"""
 process BadInitSeg ( O: out UInt(80))
 {
   var x : UInt(80)
@@ -23,10 +24,10 @@ process BadInitSeg ( O: out UInt(80))
     wait
   }
 }
-"""))
+"""
 
-class BadInitSeg2 extends ImperativeModule(
-  Compiler.run("""
+  val txt2 =
+"""
 process BadInitSeg ( O: out UInt(80))
 {
   var x : UInt(80)
@@ -41,10 +42,10 @@ process BadInitSeg ( O: out UInt(80))
     wait
   }
 }
-"""))
+"""
 
-class BadInitSeg3 extends ImperativeModule(
-  Compiler.run("""
+  val txt3 =
+"""
 process BadInitSeg ( O: out UInt(80))
 {
   var x : UInt(80)
@@ -58,10 +59,10 @@ process BadInitSeg ( O: out UInt(80))
     wait
   }
 }
-"""))
+"""
 
-class GoodInitSeg extends ImperativeModule(
-  Compiler.run("""
+  val good =
+"""
 process GoodInitSeg ( O: out UInt(80))
 {
   var x : UInt(80)
@@ -74,28 +75,28 @@ process GoodInitSeg ( O: out UInt(80))
     wait
   }
 }
-"""))
-
+"""
+}
 
 class InitSegTest extends FreeSpec with Matchers {
   "Init Segments" - {
-    "nbcanput in init segment should throw an assertion" in {
-      an [InitialSegmentContainsCommunicationException] should be thrownBy {
-        chisel3.Driver.execute( Array[String](), () => new BadInitSeg)
+    "nbcanput in init segment should throw an exception" in {
+      a [CompilationErrorException] should be thrownBy {
+        Compiler.run(BadInitSeg.txt)
       }
     }
-    "while in init segment should throw an assertion" in {
-      an [WhileUsedIncorrectlyException] should be thrownBy {
-        chisel3.Driver.execute( Array[String](), () => new BadInitSeg2)
+    "while in init segment should throw an exception" in {
+      a [CompilationErrorException] should be thrownBy {
+        Compiler.run(BadInitSeg.txt2)
       }
     }
-    "nbput in init segment should throw an assertion" in {
-      an [InitialSegmentContainsCommunicationException] should be thrownBy {
-        chisel3.Driver.execute( Array[String](), () => new BadInitSeg3)
+    "nbput in init segment should throw an exception" in {
+      a [CompilationErrorException] should be thrownBy {
+        Compiler.run(BadInitSeg.txt3)
       }
     }
-    "good init segment should not throw an assertion" in {
-      chisel3.Driver.execute( Array[String](), () => new GoodInitSeg)
+    "good init segment should compile" in {
+      Compiler(BadInitSeg.good).isRight should be (true)
     }
   }
 }

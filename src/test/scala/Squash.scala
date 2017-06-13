@@ -28,9 +28,40 @@ class Squash extends ImperativeModule(
       |    wait
       |  }
       |}
-    """.stripMargin.trim))
+    """.stripMargin.trim)
+)
 
-class SquashTester(c:Squash) extends PeekPokeTester(c) {
+class SquashHLSPrefix extends ImperativeModule( 
+  Compiler.runHLS3(
+    """
+      |process Squash( P : inp UInt(64), Q : out UInt(64)) {
+      |  var v : UInt(64)
+      |  P??v
+      |  wait
+      |  while ( true) {
+      |    Q!!v
+      |    P??v
+      |    wait
+      |  }
+      |}
+    """.stripMargin.trim)
+)
+
+class SquashHLS extends ImperativeModule( 
+  Compiler.runHLS3(
+    """
+      |process Squash( P : inp UInt(64), Q : out UInt(64)) {
+      |  var v : UInt(64)
+      |  while ( true) {
+      |    P??v
+      |    wait
+      |    Q!!v
+      |  }
+      |}
+    """.stripMargin.trim)
+)
+
+class SquashTester[T <: ImperativeIfc](c:T) extends PeekPokeTester(c) {
   poke( c.io("Q").ready, 1)
   poke( c.io("P").valid, 0)
 
@@ -83,7 +114,25 @@ class SquashTester(c:Squash) extends PeekPokeTester(c) {
 class SquashTest extends FlatSpec with Matchers {
   behavior of "Squash"
   it should "work" in {
-    chisel3.iotesters.Driver( () => new Squash, "firrtl") { c =>
+    chisel3.iotesters.Driver.execute( Array( "--fr-allow-cycles", "--backend-name", "firrtl"), () => new Squash) { c =>
+      new SquashTester( c)
+    } should be ( true)
+  }
+}
+
+class SquashHLSPrefixTest extends FlatSpec with Matchers {
+  behavior of "Squash"
+  it should "work" in {
+    chisel3.iotesters.Driver( () => new SquashHLSPrefix, "firrtl") { c =>
+      new SquashTester( c)
+    } should be ( true)
+  }
+}
+
+class SquashHLSTest extends FlatSpec with Matchers {
+  behavior of "Squash"
+  it should "work" in {
+    chisel3.iotesters.Driver( () => new SquashHLS, "firrtl") { c =>
       new SquashTester( c)
     } should be ( true)
   }

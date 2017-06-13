@@ -17,13 +17,64 @@ object DoubleComm {
       |               Q : out UInt(8))
       |{
       |  while ( true) {
-      |    if ( P? && Q!) {
-      |      var a : UInt(8)
+      |    var a : UInt(8)
+      |    while ( !P?) wait
+      |    P?a
+      |    wait
+      |    while ( !(P? && Q!)) wait
+      |    {
       |      var b : UInt(8)
-      |      P?a
-      |      wait
       |      P?b
       |      Q!( a + 10*b)
+      |    }
+      |    wait
+      |  }
+      |}
+    """.stripMargin.trim
+
+  val txt2 =
+    """
+      |process Div2 ( P : inp UInt(8),
+      |               Q : out UInt(8))
+      |{
+      |  // state=0
+      |  while ( true) {
+      |    var a : UInt(8)
+      |    while ( !P?) wait
+      |    // state=0 && P?
+      |    P?a
+      |    wait
+      |    // state=1
+      |    while ( !(P? && Q!)) wait
+      |    // state=1 && P? && Q!
+      |    {
+      |      var b : UInt(8)
+      |      P?b
+      |      Q!( a + 10*b)
+      |    }
+      |    wait
+      |    // state=0
+      |  }
+      |}
+    """.stripMargin.trim
+
+  val txt3 =
+    """
+      |process Div2 ( P : inp UInt(8),
+      |               Q : out UInt(8))
+      |{
+      |  var a : UInt(8) // now an induction variable
+      |  var state : UInt(1)
+      |  state=0
+      |  while ( true) {
+      |    if ( state == 0 && P?) {
+      |      P?a
+      |      state=1
+      |    } else if ( state == 1 && P? && Q!) {
+      |      var b : UInt(8)
+      |      P?b
+      |      Q!( a + 10*b)
+      |      state=0
       |    }
       |    wait
       |  }
@@ -34,11 +85,9 @@ object DoubleComm {
 class BadDoubleCommunicationTest extends FreeSpec with Matchers {
   "Bad Double Communication" - {
     "Two nbget commands in same cycle should return error" in {
-      val e_ast = Compiler( DoubleComm.txt)
-      if ( e_ast.isLeft ) {
-        println( s"${e_ast.left}")
+      a [CompilationErrorException] should be thrownBy {
+        Compiler.run( DoubleComm.txt)
       }
-      e_ast.isLeft should be (true)
     }
   }
 }
