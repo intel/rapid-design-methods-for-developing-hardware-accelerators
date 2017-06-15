@@ -65,6 +65,7 @@ object SemanticAnalyzer {
     case AndBExpression( l, r) => getGuards( getGuards( m, l), r)
     case NotBExpression( b) => getGuards( m, b)
     case EqBExpression( l, r) => m
+    case LtBExpression( l, r) => m
     case ConstantTrue => m
   }
 
@@ -117,6 +118,7 @@ object SemanticAnalyzer {
     case AndBExpression( l, r) => unguardedComms( unguardedComms( m, l), r)
     case NotBExpression( b) => m // Ignore sub expression (for now)
     case EqBExpression( l, r) => m
+    case LtBExpression( l, r) => m
     case ConstantTrue => m
   }
 

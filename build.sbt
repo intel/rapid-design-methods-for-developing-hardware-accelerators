@@ -23,11 +23,11 @@ libraryDependencies ++= (Seq("chisel3","chisel-iotesters").map {
 
 libraryDependencies ++= Seq( "org.scala-lang.modules"  %% "scala-parser-combinators" % "1.0.4")
 
-libraryDependencies ++= Seq( "com.storm-enroute" %% "scalameter" % "0.9-SNAPSHOT")
+//libraryDependencies ++= Seq( "com.storm-enroute" %% "scalameter" % "0.9-SNAPSHOT")
 
 libraryDependencies += "com.intel" %% "reporters" % "0.1"
 
-testFrameworks += new TestFramework( "org.scalameter.ScalaMeterFramework")
+//testFrameworks += new TestFramework( "org.scalameter.ScalaMeterFramework")
 
 resolvers ++= Seq(
   Resolver.sonatypeRepo("snapshots"),

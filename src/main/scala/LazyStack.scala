@@ -55,6 +55,7 @@ class LazyStackWait1 extends ImperativeModule(
       |{
       |  var f : UInt(1)
       |  var x : UInt(8)
+      |  var y : UInt(8)
       |  f = 0
       |  while ( true) {
       |    if        ( f==1 ∧ In? ∧ Put!) {
@@ -65,9 +66,9 @@ class LazyStackWait1 extends ImperativeModule(
       |      In?x
       |      f = 1
       |    } else if ( f==0 ∧ Out! ∧ Get?) {
-      |      Get?x
+      |      Get?y
       |      wait
-      |      Out!x
+      |      Out!y
       |    } else if ( f==1 ∧ Out!) {  
       |      Out!x
       |      f = 0
@@ -88,6 +89,7 @@ class LazyStackWait2 extends ImperativeModule(
       |{
       |  var f : UInt(1)
       |  var x : UInt(8)
+      |  var y : UInt(8)
       |  f = 0
       |  while ( true) {
       |    if        ( f==1 ∧ In?) {
@@ -98,9 +100,9 @@ class LazyStackWait2 extends ImperativeModule(
       |      In?x
       |      f = 1
       |    } else if ( f==0 ∧ Out!) {
-      |      Get??x
+      |      Get??y
       |      wait
-      |      Out!x
+      |      Out!y
       |    } else if ( f==1 ∧ Out!) {  
       |      Out!x
       |      f = 0
@@ -211,6 +213,11 @@ object LazyStackNWaitDriver extends App {
 object LazyStackNWait1Driver extends App {
   val extraArgs = Array[String]( "-fct", "reporters.ReportTiming")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait1))
+}
+
+object LazyStackNWait2Driver extends App {
+  val extraArgs = Array[String]( "-fct", "reporters.ReportTiming")
+  Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait2))
 }
 
 object LazyStackNCombDriver extends App {

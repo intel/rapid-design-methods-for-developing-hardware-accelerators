@@ -4,7 +4,7 @@ import org.scalatest.{ Matchers, FlatSpec, FreeSpec}
 
 import org.scalatest.tagobjects.Slow
 
-import org.scalameter.api._
+//import org.scalameter.api._
 
 import scala.annotation.tailrec
 
