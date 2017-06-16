@@ -195,32 +195,43 @@ class LazyStackN[T <: ImperativeIfc]( n : Int, factory : () => T) extends StackI
   }
 }
 
+import firrtl.{ SeqTransform, LowForm}
+import firrtl.transforms.{ CheckCombLoops}
+import imperative.transform.ShannonFactor
+import reporters.{ ReportArea, InlineAndReportTiming}
+
+class CT extends SeqTransform {
+  def inputForm = LowForm
+  def outputForm = LowForm
+  def transforms = Seq(new ShannonFactor, new ReportArea, new CheckCombLoops, new InlineAndReportTiming)
+}
+
 object LazyStackWaitDriver extends App {
-  val extraArgs = Array[String]()
+  val extraArgs = Array[String]( "-fct", "imperative.CT")
   Driver.execute( args ++ extraArgs, () => new LazyStackWait)
 }
 
 object LazyStackWait1Driver extends App {
-  val extraArgs = Array[String]()
+  val extraArgs = Array[String]( "--no-check-comb-loops", "-fct", "imperative.CT")
   Driver.execute( args ++ extraArgs, () => new LazyStackWait1)
 }
 
 object LazyStackNWaitDriver extends App {
-  val extraArgs = Array[String]( "-fct", "reporters.ReportArea")
+  val extraArgs = Array[String]( "--no-check-comb-loops", "-fct", "imperative.CT")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait))
 }
 
 object LazyStackNWait1Driver extends App {
-  val extraArgs = Array[String]( "-fct", "reporters.ReportTiming")
+  val extraArgs = Array[String]( "--no-check-comb-loops", "-fct", "imperative.CT")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait1))
 }
 
 object LazyStackNWait2Driver extends App {
-  val extraArgs = Array[String]( "-fct", "reporters.ReportTiming")
+  val extraArgs = Array[String]( "--no-check-comb-loops", "-fct", "imperative.CT")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait2))
 }
 
 object LazyStackNCombDriver extends App {
-  val extraArgs = Array[String]( "-fct", "reporters.ReportArea")
+  val extraArgs = Array[String]( "--no-check-comb-loops", "-fct", "imperative.CT")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackComb))
 }
