@@ -129,14 +129,33 @@ class LazyStackNCombTest extends FlatSpec with Matchers {
   }
 }
 
+import firrtl.{ SeqTransform, LowForm, CircuitState}
+import firrtl.ir.{ Module}
+import firrtl.passes.{ InlineInstances}
+import firrtl.annotations.{ ModuleName, ComponentName, CircuitName}
+import imperative.transform.{ ShannonFactor}
+import reporters.{ ReportTiming, ReportArea}
+
+class InlineModulesInCircuit( circuitName : String) extends InlineInstances {
+  override def execute( state: CircuitState): CircuitState = {
+    println( s"Calling InlineModulesInCircuit with $circuitName")
+    val modSet = state.circuit.modules.collect {
+      case Module(_, name, _, _) if name != state.circuit.main => ModuleName(name, CircuitName(circuitName))
+    }.toSet
+    run( state.circuit, modSet, Set.empty[ComponentName], state.annotations)
+  }
+}
+
+class CT extends SeqTransform {
+  def inputForm = LowForm
+  def outputForm = LowForm
+  def transforms = Seq(new ShannonFactor, new ReportArea, new InlineModulesInCircuit( "LazyStackN"), new ReportTiming)
+}
+
 class LazyStackNWaitTest extends FlatSpec with Matchers {
   behavior of "LazyStackNWait"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( /* "--fint-write-vcd", */ "-fct", "imperative.transform.ReportArea", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackWait)) { c =>
-      new LazyStackNTester( c)
-    } should be ( true)
-
-    chisel3.iotesters.Driver( () => new LazyStackN(10, () => new LazyStackWait), "firrtl") { c =>
+    chisel3.iotesters.Driver.execute( Array( /* "--fint-write-vcd", */ "-fct", "imperative.CT", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackWait)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
@@ -145,7 +164,7 @@ class LazyStackNWaitTest extends FlatSpec with Matchers {
 class LazyStackNWait1Test extends FlatSpec with Matchers {
   behavior of "LazyStackNWait1"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( "--backend-name", "verilator"), () => new LazyStackN(10, () => new LazyStackWait1)) { c =>
+    chisel3.iotesters.Driver.execute( Array( "-fct", "imperative.CT", "--backend-name", "verilator"), () => new LazyStackN(10, () => new LazyStackWait1)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
@@ -154,7 +173,7 @@ class LazyStackNWait1Test extends FlatSpec with Matchers {
 class LazyStackNWait2Test extends FlatSpec with Matchers {
   behavior of "LazyStackNWait2"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( "--backend-name", "verilator"), () => new LazyStackN(10, () => new LazyStackWait2)) { c =>
+    chisel3.iotesters.Driver.execute( Array( "-fct", "imperative.CT", "--backend-name", "verilator"), () => new LazyStackN(10, () => new LazyStackWait2)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
