@@ -395,6 +395,9 @@ template<typename PAYLOAD, unsigned int SIZE=2, CHANNEL_TRAIT CHTRAIT=DEFAULT_CH
 class ga_storage_fifo {};
 
 template<typename PAYLOAD, unsigned int SIZE=2, CHANNEL_TRAIT CHTRAIT=DEFAULT_CHANNEL_TRAIT>
+class ga_storage_fifo_reg {};
+
+template<typename PAYLOAD, unsigned int SIZE=2, CHANNEL_TRAIT CHTRAIT=DEFAULT_CHANNEL_TRAIT>
 class ga_storage_fifo_fast {};
 
 #ifndef __SYNTHESIS__
@@ -443,6 +446,48 @@ public:
   }
 
   ga_storage_fifo() :
+     TLM_NMSPC::tlm_fifo<PAYLOAD>(SIZE)
+  {
+  }
+
+  // not quite reset methods but do the tricks. apparently tlm1 fifo doesn't have reset and its init method is bogus as it doesn't delete content of the circular buffer
+  void reset_put() {
+    while(this->nb_can_get()) {
+      this->get();
+    }
+  }
+  void reset_get() {
+    while(this->nb_can_get()) {
+      this->get();
+    }
+  }
+
+
+  // do not include reads/writes happened in this cycle
+  int num_of_elems_as_of_start_of_cycle() const {
+    return TLM_NMSPC::tlm_fifo<PAYLOAD>::m_num_readable;
+  }
+
+  // size of the fifo
+  int size() const {
+    return TLM_NMSPC::tlm_fifo<PAYLOAD>::size();
+  }
+  // empty clk_rst binding for TLM
+  template <typename CLK_T, typename RST_T>
+  void clk_rst(CLK_T clk, RST_T rst) { }
+
+};
+
+template<typename PAYLOAD, unsigned int SIZE>
+class ga_storage_fifo_reg<PAYLOAD, SIZE, GA_TLM>  : public TLM_NMSPC::tlm_fifo<PAYLOAD>
+{
+public:
+  ga_storage_fifo_reg(sc_module_name modname) :
+     TLM_NMSPC::tlm_fifo<PAYLOAD>(modname, SIZE)
+  {
+  }
+
+  ga_storage_fifo_reg() :
      TLM_NMSPC::tlm_fifo<PAYLOAD>(SIZE)
   {
   }

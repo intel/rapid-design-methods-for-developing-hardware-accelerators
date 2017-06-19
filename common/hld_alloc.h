@@ -2,9 +2,11 @@
 #ifndef __HLD_ALLOC_H__
 #define __HLD_ALLOC_H__
 
+#ifndef __SYNTHESIS__
 #include <new>
 #include "stddef.h"
 #include "assert.h"
+#endif 
 
 class hld_alloc {
   char *buf;

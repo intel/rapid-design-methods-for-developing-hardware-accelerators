@@ -110,6 +110,8 @@ struct Log2
 };
 
 template<> struct Log2<1> { enum { Value = 0 }; };
+//TODO: some compilers need this one?
+template<> struct Log2<0> { enum { Value = 0 }; };
 
 
 template<size_t Delay>
