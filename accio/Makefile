@@ -3,5 +3,5 @@ SOURCES=tb.cpp
 TARGET=accio_test
 DEBUG_FLAGS=-g
 
-CFLAGS=${USER_DEFS} -O3
+CFLAGS=${USER_DEFS} 
 include ../common/Makefile.inc

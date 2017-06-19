@@ -1,5 +1,4 @@
 // See LICENSE for license details.
-// See LICENSE for license details.
 #include <iostream>
 #include <stdlib.h>
 #include <stdint.h>

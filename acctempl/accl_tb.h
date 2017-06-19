@@ -1,5 +1,4 @@
 // See LICENSE for license details.
-// See LICENSE for license details.
 
 #ifndef ACCL_TB_H_
 #define ACCL_TB_H_
