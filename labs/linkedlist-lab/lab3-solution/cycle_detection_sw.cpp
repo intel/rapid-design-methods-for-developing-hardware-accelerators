@@ -84,6 +84,7 @@ int sc_main(int argc, char *argv[]) {
       printf("TEST FAILED - there is a cycle in reference implementation\n");
       assert(i >= n);
     }
+    printf("TEST PASSED\n");
   }
   acc_app.free();
   return 0;

@@ -11,6 +11,9 @@
 
 struct AcclApp : public FpgaAppSwAlloc /*this class provides allocation service*/ {
 
+   AcclApp () : FpgaAppSwAlloc() {}
+   AcclApp (const char *auid = NULL) : FpgaAppSwAlloc(auid) {}
+
    void compute (const void * config_ptr, const unsigned int config_size) {
      cout << "SW compute.." << endl;
      const Config *config = static_cast<const Config *>(config_ptr);

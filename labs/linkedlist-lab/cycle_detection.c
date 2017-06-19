@@ -56,7 +56,7 @@ int main() {
 
   for (size_t c = 0; c < iter; ++c) {
     i = rand() % (2*n);
-    printf("i = %d n = %d\n", i, n); 
+    printf("i = %ld n = %ld\n", i, n); 
     if(i <n )
       nodes[n-1].next = nodes+i;
     else
@@ -69,7 +69,7 @@ int main() {
     
     printf("cycle %s\n", rc ? "found" : "not found"); 
   }
-
+  printf("Test Passed\n");
   free(nodes);
   return 0;
 }
