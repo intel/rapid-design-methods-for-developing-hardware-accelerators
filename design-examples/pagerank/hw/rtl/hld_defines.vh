@@ -6,7 +6,7 @@
 `define HLD_MEM_WR_PORTS 1
 
 //CLK_400 or CLK_273 or CLK_200 or CLK_136 or CLK_100
-`define HLD_ACC_CLK CLK_136
+`define HLD_ACC_CLK CLK_100
 
 //xxd -l 8 -p /dev/random
 `define HLD_AFU_ID_H 64'hce53_7515_9d3a_cabc

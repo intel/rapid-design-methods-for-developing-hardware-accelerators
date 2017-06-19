@@ -475,9 +475,9 @@ public:
 class pagerank_acc : public accelerator_interface<Config> {
 public:
   //  // primary IOs come from accelelatore_interface
-  typedef LoadUnitParams<VertexData, 24, 1<<30, 2> VertexDataLoadParams;
-  typedef LoadUnitParams<VertexIdType, 32, 1<<30> VertexIdLoadParams;
-  typedef LoadUnitParams<PageRankType, 20, 1<<30> LVPageRankLoadParams;
+  typedef LoadUnitParams<VertexData, 24, unsigned(-1), 2> VertexDataLoadParams;
+  typedef LoadUnitParams<VertexIdType, 32, unsigned(-1)> VertexIdLoadParams;
+  typedef LoadUnitParams<PageRankType, 20, unsigned(-1)> LVPageRankLoadParams;
   typedef LoadUnitSingleReqParams<PageRankType, pagerank_hls::Tag, 128> PageRankLoadParams;
 
   typedef LoadStoreUnitSingleReqParams<PageRankType, pagerank_hls::Tag, 64, 2, 128, 32> PageRankLoadStoreParams;

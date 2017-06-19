@@ -1,5 +1,6 @@
 // See LICENSE for license details.
 // See LICENSE for license details.
+// See LICENSE for license details.
 #ifdef SC_KERNEL
 #include "pagerank_hls.h"
 #include "pr_kernel_tb.h"
@@ -37,19 +38,29 @@ PRreal RANKOFFSET;
 int sc_main(int argc, char *argv[])
 {
    AcclApp theApp(PR_AFU_ID);
-   WORKSPACE_SIZE = 700*1024*1024;
+   WORKSPACE_SIZE = (unsigned long long)12*1000*1024*1024;
    WORKSPACE = (unsigned char *)theApp.alloc(WORKSPACE_SIZE); // 2GB
 
   if (WORKSPACE != NULL) {
+   
+#ifdef GRAPHGEN
+    if (argc != 3) {
+      cout << "No filename (without .in) or graph size given." << endl
+           << "Usage: ga GRAPHNAME SIZE_IN_EXP" << endl;
+      return 1;
+    }
+    string graphFileName = argv[1];
+    string graphSize = argv[2];
+    graph_generate(graphSize);
+#else
     if (argc != 2) {
       cout << "No filename (without .in) given." << endl
            << "Usage: ga GRAPHNAME" << endl;
       return 1;
     }
-   
     string graphFileName = argv[1];
     graph_read(graphFileName);
- 
+#endif
     RANKOFFSET=(1-BETA)/vtxCnt;
     numIter=10;
     Config config;
