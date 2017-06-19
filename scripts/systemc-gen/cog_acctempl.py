@@ -531,7 +531,9 @@ class DUT:
         return bw
 
     def semantic(self):
-        if self.have_run_semantic: return
+        if self.have_run_semantic: 
+          return
+
         self.have_run_semantic = True
 
         assert( self.config_bitwidth <= 9*64)
@@ -547,10 +549,14 @@ class DUT:
         self.get_tbl = {}
         self.put_tbl = {}
 
+
+        all_cthreads = list(self.module.cthreads.values())
+        #if no threads we do not proceed further as we don't have semantics to check
+        if (len(all_cthreads) == 0): 
+          return
 #
 # Current only two level
 #
-        all_cthreads = list(self.module.cthreads.values())
         for m in self.modules.values():
             all_cthreads.extend( m.cthreads.values())
 
