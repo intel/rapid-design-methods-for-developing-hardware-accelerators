@@ -1,0 +1,15 @@
+# Currently need to run standalone firrtl.
+# Hacked my own local script to reference necessary class paths
+
+./firrtl -tn LazyStackN -X low -fct imperative.transform.ShannonFactor
+mv LazyStackN.lo.fir LazyStackN.lo1.fir 
+
+# Need to inline all modules to report all paths
+./firrtl -tn LazyStackN -i LazyStackN.lo1.fir -X low -fil LazyStackN
+mv LazyStackN.lo.fir LazyStackN.lo2.fir 
+./firrtl -tn LazyStackN -i LazyStackN.lo2.fir -X low -fct reporters.ReportTiming
+
+# These should all be the same:
+./firrtl -tn LazyStackN -X low -fct reporters.ReportArea
+./firrtl -tn LazyStackN -i LazyStackN.lo1.fir -X low -fct reporters.ReportArea
+./firrtl -tn LazyStackN -i LazyStackN.lo2.fir -X low -fct reporters.ReportArea

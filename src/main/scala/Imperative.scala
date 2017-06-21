@@ -249,9 +249,9 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
       }
 
       sT.pkeys.foldLeft(new_sT){ (s,p) => {
+        val bbb = evalWithoutPort( Port( p))( sT, b)
 // Performing the fix in a FIRRTL transform
-//        val bbb = evalWithoutPort( Port( p))( sT, b)
-        val bbb = bb
+//        val bbb = bb
 
         val (pr,pv,pd) = sT.pget( p) // previous
         val (tr,tv,td) = tST.pget( p)
