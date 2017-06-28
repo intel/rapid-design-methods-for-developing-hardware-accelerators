@@ -259,6 +259,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
         s.pupdated( p, mx( bbb, pr, tr, er), mx( bbb, pv, tv, ev), mx( bbb, pd, td, ed))
       }}
     }
+    case _ => throw new LoweredFormException
   }
 
   val sT = decl_lst.foldLeft(new SymTbl) {
