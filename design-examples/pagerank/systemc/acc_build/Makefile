@@ -3,7 +3,7 @@ HLD_ROOT ?= ../../../../
 
 DEBUG_FLAGS=-O3
 
-USER_DEFS ?= -DSC_ACC -DGRAPHGEN -fopenmp
+USER_DEFS ?= -DSC_ACC -fopenmp
 # -DGRAPHGEN
 SOURCES=sc_main.cpp 
 TARGET=ga_acc
