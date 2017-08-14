@@ -1,5 +1,5 @@
 # See LICENSE for license details.
-HLD_ROOT = ../../../..
+HLD_ROOT ?= ../../../..
 
 SOURCES=tb.cpp
 CFLAGS =

@@ -1,15 +1,9 @@
 # See LICENSE for license details.
 
 HLD_ROOT ?= ../
-ifneq ("$(wildcard /home/smburns)","")
-SC_DIR=/home/smburns/pg-sobel/systemc-2.3.0-install
-GTEST_DIR = /home/smburns/pg-sobel/googletest
-CTOS_DIR = /home/smburns/pg-sobel/ctos
-else
 SC_DIR ?= /p/hdk/rtl/cad/x86-64_linux26/accellera/systemc/systemc-2.3.0
 GTEST_DIR ?= /nfs/site/disks/scl.work.58/ppt/aayupov/gtest/googletest/googletest
 CTOS_DIR ?= /nfs/site/disks/ccdo.soc.cad_root.0/cad/x86-64_linux26/cadence/ctos/14.2/share/ctos
-endif
 
 SC_LIB ?= $(SC_DIR)/lib-linux64/libsystemc.a
 
