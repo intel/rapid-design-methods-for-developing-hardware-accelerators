@@ -203,7 +203,7 @@ import reporters.{ ReportArea, InlineAndReportTiming}
 class CT extends SeqTransform {
   def inputForm = LowForm
   def outputForm = LowForm
-  def transforms = Seq(new ShannonFactor, new ReportArea, new CheckCombLoops, new InlineAndReportTiming)
+  def transforms = Seq(new ShannonFactor, new CheckCombLoops, new ReportArea, new InlineAndReportTiming)
 }
 
 object LazyStackWaitDriver extends App {
@@ -233,5 +233,35 @@ object LazyStackNWait2Driver extends App {
 
 object LazyStackNCombDriver extends App {
   val extraArgs = Array[String]( "--no-check-comb-loops", "-fct", "imperative.CT")
+  Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackComb))
+}
+
+object LazyStackWaitDriverBare extends App {
+  val extraArgs = Array[String]()
+  Driver.execute( args ++ extraArgs, () => new LazyStackWait)
+}
+
+object LazyStackWait1DriverBare extends App {
+  val extraArgs = Array[String]( "--no-check-comb-loops")
+  Driver.execute( args ++ extraArgs, () => new LazyStackWait1)
+}
+
+object LazyStackNWaitDriverBare extends App {
+  val extraArgs = Array[String]( "--no-check-comb-loops")
+  Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait))
+}
+
+object LazyStackNWait1DriverBare extends App {
+  val extraArgs = Array[String]( "--no-check-comb-loops")
+  Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait1))
+}
+
+object LazyStackNWait2DriverBare extends App {
+  val extraArgs = Array[String]( "--no-check-comb-loops")
+  Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackWait2))
+}
+
+object LazyStackNCombDriverBare extends App {
+  val extraArgs = Array[String]( "--no-check-comb-loops")
   Driver.execute( args ++ extraArgs, () => new LazyStackN( 16, () => new LazyStackComb))
 }
