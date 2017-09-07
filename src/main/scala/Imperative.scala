@@ -272,7 +272,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
       case PortDecl( Port(p), Out, UIntType(w)) => {
         val pp = io(p)
         val (r,v,d) = (pp.ready,pp.valid,pp.bits)
-        s.pupdated( p, r, false.B, Wire(d.asInstanceOf[UInt]))
+        s.pupdated( p, r, false.B, Wire(d.asInstanceOf[UInt].cloneType))
       }
       case PortDecl( Port(p), Inp, VecType(n,UIntType(w))) => {
         val pp = io(p)
@@ -282,7 +282,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
       case PortDecl( Port(p), Out, VecType(n,UIntType(w))) => {
         val pp = io(p)
         val (r,v,d) = (pp.ready,pp.valid,pp.bits)
-        s.pupdated( p, r, false.B, Wire(d.asInstanceOf[Vec[UInt]]))
+        s.pupdated( p, r, false.B, Wire(d.asInstanceOf[Vec[UInt]].cloneType))
       }
     }
   }

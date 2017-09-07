@@ -530,7 +530,7 @@ class MergeTest extends FlatSpec with Matchers {
 class StandaloneMergeP0Test extends FreeSpec with Matchers {
   "Merge with combinational path (false)" - {
     "StandaloneMergeP0 (wire connecting P0.ready to P0.valid) should fail" in {
-      a [firrtl_interpreter.InterpreterException] should be thrownBy {
+      a [firrtl.graph.DiGraph$PathNotFoundException] should be thrownBy {
         chisel3.iotesters.Driver( () => new StandaloneMergeP0, "firrtl") { c =>
           new StandaloneMergeP0Tester( c)
         }
@@ -550,7 +550,7 @@ class StandaloneMergeP1Test extends FreeSpec with Matchers {
 class StandaloneMergeQTest extends FreeSpec with Matchers {
   "Merge with combinational path (false)" - {
     "StandaloneMergeQ (wire connecting Q.valid to Q.ready) should fail" in {
-      a [firrtl_interpreter.InterpreterException] should be thrownBy {
+      a [firrtl.graph.DiGraph$PathNotFoundException] should be thrownBy {
         chisel3.iotesters.Driver( () => new StandaloneMergeQ, "firrtl") { c =>
           new StandaloneMergeQTester( c)
         }
@@ -584,11 +584,11 @@ class StandaloneSplitQ1Tester(c:StandaloneSplitQ1) extends PeekPokeTester( c)
 class StandaloneSplitPTest extends FreeSpec with Matchers {
   "Split input has a (false) combinational path" - {
     "StandaloneSplitP (wire connecting P.ready to P.valid) should fail" in {
-//      a [firrtl_interpreter.InterpreterException] should be thrownBy {
+      a [firrtl.graph.DiGraph$PathNotFoundException] should be thrownBy {
         chisel3.iotesters.Driver.execute( Array( "--backend-name", "verilator"), () => new StandaloneSplitP) { c =>
           new StandaloneSplitPTester( c)
         }
-//      }
+      }
     }
   }
 }

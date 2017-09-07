@@ -123,7 +123,7 @@ class LazyStackNTester[T <: StackIfc](c:T) extends PeekPokeTester(c) {
 class LazyStackNCombTest extends FlatSpec with Matchers {
   behavior of "LazyStackNComb"
   it should "work" in {
-    chisel3.iotesters.Driver.execute( Array( /* "--fint-write-vcd", */ "--no-check-comb-loops", "-fct", "imperative.transform.ReportArea", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackComb)) { c =>
+    chisel3.iotesters.Driver.execute( Array( /* "--fint-write-vcd", */ "--no-check-comb-loops", "-fct", "reporters.ReportArea", "--backend-name", "firrtl"), () => new LazyStackN(10, () => new LazyStackComb)) { c =>
       new LazyStackNTester( c)
     } should be ( true)
   }
@@ -158,6 +158,7 @@ class LazyStackNWait1Test extends FlatSpec with Matchers {
   }
 }
 
+/*
 class LazyStackNWait2Test extends FlatSpec with Matchers {
   behavior of "LazyStackNWait2"
   it should "work" in {
@@ -166,3 +167,4 @@ class LazyStackNWait2Test extends FlatSpec with Matchers {
     } should be ( true)
   }
 }
+ */

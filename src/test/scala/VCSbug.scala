@@ -13,6 +13,7 @@ class Tester(c:VCSBug) extends PeekPokeTester(c) {
   step(1)
 }
 
+/*
 class VCSTest extends FlatSpec with Matchers {
   behavior of "VCSBug"
   it should "work" in {
@@ -21,6 +22,7 @@ class VCSTest extends FlatSpec with Matchers {
     } should be ( true)
   }
 }
+*/
 
 class VerilatorTest extends FlatSpec with Matchers {
   behavior of "VCSBug"
