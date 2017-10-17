@@ -4,7 +4,7 @@ name := "imperative"
 
 version := "0.1"
 
-scalaVersion := "2.11.11"
+scalaVersion := "2.12.3"
 
 scalacOptions ++= Seq("-deprecation", "-feature", "-unchecked", "-language:reflectiveCalls", "-Ypatmat-exhaust-depth", "80")
 
