@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+<!-- Local
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+-->
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+
+  <style>
+    .jumbotron {
+        padding-top : 12px;
+        padding-bottom : 12px;
+    }
+
+     table {
+        width: 100%;
+     }
+
+     td {
+        font-family: monospace;
+        font-size: small;
+     }
+
+     .th-number {
+        width : 30px;
+     }
+
+     .th-op {
+        width : 200px;
+     }
+
+     .td-number {
+        text-align: right;
+        width : 30px;
+     }
+
+     .td-op {
+        width : 200px;
+     }
+
+     thead th {
+        height : 30px;
+     }
+
+     #endpoints {
+        height : 30ex;
+     }
+
+     #endpoints-card {
+        height : 28ex;
+        overflow-y:scroll;
+        width : 100.0%;
+     }
+
+     #pathtrace-card {
+        height : 65ex;
+        overflow-y:scroll;
+        width : 100.0%;
+     }
+
+     #editor {
+        height: 80ex;
+     }
+
+  </style>
+
+  <body>
+
+<div class="jumbotron jumbotron-sm">
+  <div class="container">
+    <h1 class="display-4">FIRRTL-Based Timer</h1>
+  </div>
+</div>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-6">
+       <div class="chart"></div>
+    </div>
+    <div class="col-md-3">
+      <div class="card" id="endpoints-card">
+      <h2>Start Points</h2>
+      <table class="table-sm table-striped">
+         <thead class="thead-default">
+           <tr> 
+             <th class="th-number"> Slack </th>
+             <th> Source </th>
+           </tr> 
+        </thead>
+        <tbody id="startpoints">
+        </tbody>
+      </table>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card" id="endpoints-card">
+      <h2>End Points</h2>
+      <table class="table-sm table-striped">
+         <thead class="thead-default">
+           <tr> 
+             <th class="th-number"> Slack </th>
+             <th> Sink </th>
+           </tr> 
+        </thead>
+        <tbody id="endpoints">
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+       <h2>Chisel Source</h2>
+       <div>
+         <pre id="editor"></pre>
+       </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card" id="pathtrace-card">
+      <h2>Path Trace</h2>
+      <table class="table-sm table-striped">
+         <thead class="thead-default">
+           <tr> 
+             <th class="th-op"> Op </th>
+             <th class="th-number"> Incr </th>
+             <th class="th-number" id="headAOrR"> Arrival </th>
+             <th> Net </th>
+           </tr> 
+         </thead>
+         <tbody id="pathtrace">
+         </tbody>
+         <tfoot class="tfoot-default">
+           <tr> 
+             <th class="th-op"> Op </th>
+             <th class="th-number"> Incr </th>
+             <th class="th-number" id="footAOrR"> Arrival </th>
+             <th> Net </th>
+           </tr> 
+         </tfoot>
+      </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- Local
+    <script src="assets/javascript/jquery-3.2.1.slim.min.js"></script>
+    <script src="assets/javascript/popper.min.js"></script>
+    <script src="assets/javascript/bootstrap.min.js"></script>
+    <script src="assets/javascript/d3.v4.min.js"></script>
+    <script src="assets/javascript/ace-builds/src-noconflict/ace.js"></script> 
+    <script src="assets/javascript/ace-builds/src-noconflict/ext-language_tools.js"></script> 
+-->
+
+    <script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.9/ace.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.2.9/ext-language_tools.js"></script>
+
+
+<script>
+  ace.require("ace/ext/language_tools");
+  var editor = ace.edit("editor");
+  editor.setTheme("ace/theme/crimson_editor");
+  editor.getSession().setMode("ace/mode/scala");
+  editor.$blockScrolling = Infinity;
+
+  function changeLine( linenum, pos) {
+    var line = linenum
+    editor.focus();
+    editor.gotoLine( line, pos-1, false);
+  }
+
+  var clickOrMouseOver = "click";
+
+  var chiselSourceDir = "/source?filename=";
+  var chiselSourceFile;
+  var chiselSourceLine;
+
+  function reqListenerCode () {
+    editor.setValue(this.responseText);
+    changeLine( chiselSourceLine, chiselSourcePos);
+  }
+
+  function loadChiselSourceFile( fn, line, pos) {
+    chiselSourceLine = line;
+    chiselSourcePos = pos;
+    if ( fn != chiselSourceFile) {
+//    console.log( "Change file to: " + fn);
+      let oReq = new XMLHttpRequest();
+      oReq.addEventListener("load", reqListenerCode);
+      chiselSourceFile = fn;
+      oReq.open("GET", chiselSourceDir + chiselSourceFile);
+      oReq.send();
+    } else {
+      changeLine( chiselSourceLine, chiselSourcePos);
+    }
+  }
+
+  function computeHisto( slack_pairs) {
+    var histo = {};
+    slack_pairs.forEach( function (slack_pair) {
+       let slack = slack_pair.slack;
+       if ( !histo[slack]) { histo[slack] = 0; }
+       histo[slack]++;
+    });
+
+    var sortedSlacks = Object.keys(histo).sort( function (a,b) {
+      if ( +a < +b) return -1;
+      if ( +a > +b) return  1;
+      return  0;
+    });
+    var data = [];
+    { 
+      let sum = 0;
+      sortedSlacks.forEach( function (x) {
+        data.push( [x,sum]);
+        sum += histo[x];
+        data.push( [x,sum]);
+      });
+    }
+    return data;
+  }
+
+  function genGraphs( slack_pairs, startpoint_pairs) {
+
+    var chart = d3.select(".chart"),
+        svg = chart.append("svg").attr("width", "500").attr("height", "250"),
+        margin = {top: 20, right: 20, bottom: 30, left: 50},
+        width = +svg.attr("width") - margin.left - margin.right,
+        height = +svg.attr("height") - margin.top - margin.bottom,
+        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var x = d3.scaleLinear()
+              .rangeRound([0, width]);
+
+    var y = d3.scaleLinear()
+              .rangeRound([height, 0]);
+
+    var line = d3.line()
+                 .x(function(d) { return x(d[0]); })
+                 .y(function(d) { return y(d[1]); });
+
+    var data = computeHisto( slack_pairs);
+    var data_startpoints = computeHisto( startpoint_pairs);
+
+    function histoExtent( data_lst, coord) {
+        let mn = Math.min( data_lst[0][0][coord], data_lst[1][0][coord]);
+        let mx = Math.max( data_lst[0][data_lst[0].length-1][coord],
+                           data_lst[1][data_lst[1].length-1][coord]);
+        return [mn,mx]; 
+    }
+
+// Should be faster
+    {
+       let xmin = Math.min( data[0][0], data_startpoints[0][0]);
+       let xmax = Math.max( data[data.length-1][0], data_startpoints[data_startpoints.length-1][0]);
+       let ymin = Math.min( data[0][1], data_startpoints[0][1]);
+       let ymax = Math.max( data[data.length-1][1], data_startpoints[data_startpoints.length-1][1]);
+
+//       x.domain( [xmin,xmax]);
+//       y.domain( [ymin,ymax]);
+
+       x.domain( histoExtent( [data,data_startpoints], 0));
+       y.domain( histoExtent( [data,data_startpoints], 1));
+    }
+/*
+// remember to use the + to convert to a number for comparision
+    x.domain(d3.extent(data, function(d) { return +d[0]; }));
+    y.domain(d3.extent(data, function(d) { return +d[1]; }));
+*/
+
+    g.append("g")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x));
+
+    g.append("g")
+        .call(d3.axisLeft(y))
+     .append("text")
+        .attr("fill", "#000")
+        .attr("transform", "rotate(-90)")
+        .attr("y", 6)
+        .attr("dy", "0.71em")
+        .attr("text-anchor", "end")
+        .text("Cumulative Count");
+
+    g.append("path")
+        .datum(data)
+        .attr("fill", "none")
+        .attr("stroke", "steelblue")
+        .attr("stroke-linejoin", "round")
+        .attr("stroke-linecap", "round")
+        .attr("stroke-width", 2.5)
+        .attr("d", line);
+    g.append("path")
+        .datum(data_startpoints)
+        .attr("fill", "none")
+        .attr("stroke", "forestgreen")
+        .attr("stroke-linejoin", "round")
+        .attr("stroke-linecap", "round")
+        .attr("stroke-width", 2.5)
+        .attr("d", line);
+  }
+
+  var modules = undefined;
+  var module = undefined;
+
+  function reqListenerPathTrace() {
+
+    path_trace = JSON.parse( this.responseText)[0].trace;
+
+    document.getElementById("headAOrR").innerText = "Arrival";
+    document.getElementById("footAOrR").innerText = "Arrival";
+    var target = document.getElementById( "pathtrace");    
+
+/*
+    {
+       for ( let i=target.rows.length-1; i>=0; i-=1) {
+           target.deleteRow(i);
+       }
+    }
+*/
+    target.innerHTML = "";
+
+//
+// arrival; (incr; arrival)*
+// First line by itself; then pairs 
+//
+    var compressed_path_trace = [];
+    var trc = {};
+    for ( i=0; i<path_trace.length; i+=1) {
+       let line = path_trace[i];
+       if ( line.hasOwnProperty( "op")) { trc.op = line.op;}
+       if ( line.hasOwnProperty( "info")) { trc.info = line.info;}
+       if ( line.hasOwnProperty( "incr")) { trc.incr = line.incr;}
+       if ( line.hasOwnProperty( "arrival")) { trc.arrival = line.arrival;}
+       if ( line.hasOwnProperty( "net")) { trc.net = line.net;}
+       if ( i % 2 == 0) {
+          compressed_path_trace.push( trc);
+          trc = {};
+       }
+    }
+
+    compressed_path_trace.forEach( function (line) {
+       let tr = document.createElement( "TR");
+       {
+         let td = document.createElement( "TD");
+         if ( line.hasOwnProperty( "op")) {
+           td.className = "td-op";
+           td.appendChild( document.createTextNode( line.op));
+         }
+         if ( line.hasOwnProperty( "info")) {
+           let pattern = /^ @\[(\S+)\s+(\d+):(\d+):.*\]$/;
+           let match = pattern.exec( line.info);
+           if ( match) {
+              let fn   =  match[1];
+              let line = +match[2];
+              let pos  = +match[3];
+              let txt = "filename: " + fn + " line: " + line + " pos: " + pos;
+              td.addEventListener( clickOrMouseOver, function() {
+	         console.log( txt);
+                 loadChiselSourceFile( fn, line, pos);
+              });                              
+	      td.title = txt;
+           }
+         }
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         td.className = "td-number";
+         if ( line.hasOwnProperty( "incr")) {
+           td.appendChild( document.createTextNode( line.incr));
+         }
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         td.className = "td-number";
+         if ( line.hasOwnProperty( "arrival")) {
+           td.appendChild( document.createTextNode( line.arrival));
+         }
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         if ( line.hasOwnProperty( "net")) {
+           td.appendChild( document.createTextNode( line.net));
+         }
+         tr.appendChild( td);
+       }
+       target.appendChild( tr);
+    });
+  }
+
+  function reqListenerRequiredPathTrace() {
+
+    path_trace = JSON.parse( this.responseText)[0].trace;
+    document.getElementById("headAOrR").innerText = "Required";
+    document.getElementById("footAOrR").innerText = "Required";
+    var target = document.getElementById( "pathtrace");    
+
+/*
+    {
+       for ( let i=target.rows.length-1; i>=0; i-=1) {
+           target.deleteRow(i);
+       }
+    }
+*/
+    target.innerHTML = "";
+
+//
+// required; (incr; required)*
+// First line by itself; then pairs 
+//
+    var compressed_path_trace = [];
+    var trc = {};
+    for ( i=0; i<path_trace.length; i+=1) {
+       let line = path_trace[i];
+       if ( line.hasOwnProperty( "op")) { trc.op = line.op;}
+       if ( line.hasOwnProperty( "info")) { trc.info = line.info;}
+       if ( line.hasOwnProperty( "incr")) { trc.incr = line.incr;}
+       if ( line.hasOwnProperty( "required")) { trc.required = line.required;}
+       if ( line.hasOwnProperty( "net")) { trc.net = line.net;}
+       if ( i % 2 == 1) {
+          compressed_path_trace.push( trc);
+          trc = {};
+       }
+    }
+    compressed_path_trace.push( trc);
+    trc = {};
+// do this to experiment with uncompressed traces
+//    compressed_path_trace = path_trace;
+
+    compressed_path_trace.forEach( function (line) {
+       let tr = document.createElement( "TR");
+       {
+         let td = document.createElement( "TD");
+         if ( line.hasOwnProperty( "op")) {
+           td.className = "td-op";
+           td.appendChild( document.createTextNode( line.op));
+         }
+         if ( line.hasOwnProperty( "info")) {
+           let pattern = /^ @\[(\S+)\s+(\d+):(\d+):.*\]$/;
+           let match = pattern.exec( line.info);
+           if ( match) {
+              let fn   =  match[1];
+              let line = +match[2];
+              let pos  = +match[3];
+              let txt = "filename: " + fn + " line: " + line + " pos: " + pos;
+              td.addEventListener( clickOrMouseOver, function() {
+//                 console.log( txt);
+                 loadChiselSourceFile( fn, line, pos);
+              });                              
+	      td.title = txt;
+           }
+         }
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         td.className = "td-number";
+         if ( line.hasOwnProperty( "incr")) {
+           td.appendChild( document.createTextNode( line.incr));
+         }
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         td.className = "td-number";
+         if ( line.hasOwnProperty( "required")) {
+           td.appendChild( document.createTextNode( line.required));
+         }
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         if ( line.hasOwnProperty( "net")) {
+           td.appendChild( document.createTextNode( line.net));
+         }
+         tr.appendChild( td);
+       }
+       target.appendChild( tr);
+    });
+  }
+
+  function getPathTrace( endpoint) {
+    let oReq = new XMLHttpRequest();
+    oReq.addEventListener("load", reqListenerPathTrace);
+    oReq.open("GET", "/path?module=" + encodeURIComponent( module) + "&endpoint=" + encodeURIComponent( endpoint));
+    oReq.send();
+  }
+
+  function getRequiredPathTrace( startpoint) {
+    let oReq = new XMLHttpRequest();
+    oReq.addEventListener("load", reqListenerRequiredPathTrace);
+    oReq.open("GET", "/requiredpath?module=" + encodeURIComponent( module) + "&startpoint=" + encodeURIComponent( startpoint));
+    oReq.send();
+  }
+
+  function genEndPoints( sp) {
+
+    let slack_pairs = sp.sort( (a,b) => {
+       if ( +a.slack < +b.slack) return -1;
+       if ( +a.slack > +b.slack) return  1;
+       if ( a.po < b.po) return -1;
+       if ( a.po > b.po) return  1;
+       return 0;
+    });
+
+    var target = document.getElementById( "endpoints");
+    for ( i=0; i<slack_pairs.length; i+=1) {
+       let tr = document.createElement( "TR");
+       {
+         let td = document.createElement( "TD");
+         td.className = "td-number";
+         td.appendChild( document.createTextNode( slack_pairs[i].slack));
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         td.addEventListener( clickOrMouseOver, function() {
+            getPathTrace( this.innerText);
+         });                              
+         td.appendChild( document.createTextNode( slack_pairs[i].po));
+         tr.appendChild( td);
+       }
+       target.appendChild( tr);
+    }
+  }
+
+  function genStartPoints( sp) {
+
+    let slack_pairs = sp.sort( (a,b) => {
+       if ( +a.slack < +b.slack) return -1;
+       if ( +a.slack > +b.slack) return  1;
+       if ( a.pi < b.pi) return -1;
+       if ( a.pi > b.pi) return  1;
+       return 0;
+    });
+
+    var target = document.getElementById( "startpoints");
+    for ( i=0; i<slack_pairs.length; i+=1) {
+       let tr = document.createElement( "TR");
+       {
+         let td = document.createElement( "TD");
+         td.className = "td-number";
+         td.appendChild( document.createTextNode( slack_pairs[i].slack));
+         tr.appendChild( td);
+       }
+       {
+         let td = document.createElement( "TD");
+         td.addEventListener( clickOrMouseOver, function() {
+            getRequiredPathTrace( this.innerText);
+         });                              
+         td.appendChild( document.createTextNode( slack_pairs[i].pi));
+         tr.appendChild( td);
+       }
+       target.appendChild( tr);
+    }
+  }
+
+  function reqListenerModules() {
+    modules = JSON.parse( this.responseText);
+
+
+    if ( modules.length < 1) {
+      alert( "No modules.")       ;
+      return;
+    }
+    if ( modules.length > 1) {
+      alert( "More than one module. Using the first ...");
+    }
+
+    module = modules[0];
+
+    {
+      let oReq = new XMLHttpRequest();
+      oReq.addEventListener("load", function () {
+         let slack_pairs = JSON.parse( this.responseText);
+         genEndPoints( slack_pairs);
+         {
+            let oReq = new XMLHttpRequest();
+            oReq.addEventListener("load", function () {
+               let startpoint_pairs = JSON.parse( this.responseText);
+               genGraphs( slack_pairs, startpoint_pairs);
+               genStartPoints( startpoint_pairs);
+            });
+            oReq.open("GET", "/startpoints?module=" + encodeURIComponent( module));
+            oReq.send();
+         }
+      });
+      oReq.open("GET", "/endpoints?module=" + encodeURIComponent( module));
+      oReq.send();
+    }
+  }				     
+
+  {
+    let oReq = new XMLHttpRequest();
+    oReq.addEventListener("load", reqListenerModules);
+    oReq.open("GET", "/modules");
+    oReq.send();
+  }
+
+
+</script>
+
+  </body>
+</html>
