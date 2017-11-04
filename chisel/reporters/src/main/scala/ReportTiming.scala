@@ -1122,6 +1122,14 @@ class ReportTiming( val area_timing : Boolean = false,
           JsObject( "uv" -> JsString( uv0), "slack" -> JsNumber( -delay))
         }):_*).prettyPrint
 
+      def removeDotDotSlash( basename : String) : String = {
+         val s = """\.\.\/""".r.replaceFirstIn( basename, "")
+         if ( s == basename)
+           basename
+         else
+           removeDotDotSlash( s)
+      }
+
       import java.nio.file.{ Files, FileSystems, Path}
       def findFile( basename : String) : Option[Path] = {
         val paths = List( "src/main/scala", "../designutils/src/main/scala", "../dataflow_building_blocks/src/main/scala", "../accio/src/main/scala", "../../chisel/local_src/chisel3/src/main/scala/chisel3/util")
@@ -1161,12 +1169,13 @@ class ReportTiming( val area_timing : Boolean = false,
           Results.Ok( jsonRequiredTraces( rMap( module), Set( startpoint)))
         }
         case GET(p"/source" ? q"filename=$filename") => Action {
-          val pathO = findFile( s"$filename")
+          val basename = removeDotDotSlash( filename)
+          val pathO = findFile( s"$basename")
           if ( pathO.isDefined) {
             val fileContents = scala.io.Source.fromFile( pathO.get.toString).getLines.mkString("\n")
             Results.Ok( fileContents)
           } else {
-            println( s"Couldn't find: ${filename}")
+            println( s"Couldn't find: ${basename}")
             Results.NotFound
           }
         }
@@ -1181,7 +1190,8 @@ class ReportTiming( val area_timing : Boolean = false,
         }
         case GET(p"/assets/javascript/$file*") => Action {
           try {
-            val fileContents = scala.io.Source.fromFile( s"public/javascript/$file").getLines.mkString("\n")
+            val basename = removeDotDotSlash( file)
+            val fileContents = scala.io.Source.fromFile( s"public/javascript/$basename").getLines.mkString("\n")
             Results.Ok( fileContents).as( "text/javascript")
           } catch {
             case e : java.io.FileNotFoundException => 
@@ -1190,7 +1200,8 @@ class ReportTiming( val area_timing : Boolean = false,
         }
         case GET(p"/assets/css/$file*") => Action {
           try {
-            val fileContents = scala.io.Source.fromFile( s"public/css/$file").getLines.mkString("\n")
+            val basename = removeDotDotSlash( file)
+            val fileContents = scala.io.Source.fromFile( s"public/css/$basename").getLines.mkString("\n")
             Results.Ok( fileContents).as( "text/css")
           } catch {
             case e : java.io.FileNotFoundException => 
