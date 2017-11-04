@@ -29,3 +29,4 @@ libraryDependencies ++= Seq(
 libraryDependencies += "com.intel" %% "testutil" % "1.0"
 libraryDependencies += "com.intel" %% "accio" % "0.0"
 libraryDependencies += "com.intel" %% "designutils" % "0.1"
+libraryDependencies += "com.intel" %% "reporters" % "0.1"
