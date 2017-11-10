@@ -1,3 +1,4 @@
+// See LICENSE for license details.
 organization := "com.intel"
 
 name := "testutil"

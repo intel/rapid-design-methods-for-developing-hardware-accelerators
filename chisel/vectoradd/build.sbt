@@ -1,7 +1,7 @@
 // See LICENSE for license details.
 organization := "com.intel"
 
-name := "designutils"
+name := "vectoradd"
 
 version := "0.1"
 
@@ -26,3 +26,9 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % "3.0.1",
   "org.scalacheck" %% "scalacheck" % "1.13.4")
  */
+
+libraryDependencies += "com.intel" %% "testutil" % "1.0"
+libraryDependencies += "com.intel" %% "accio" % "0.0"
+libraryDependencies += "com.intel" %% "designutils" % "0.1"
+libraryDependencies += "com.intel" %% "imperative" % "0.1"
+libraryDependencies += "com.intel" %% "dataflow-building-blocks" % "0.1"

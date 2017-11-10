@@ -322,21 +322,26 @@ object MemWrReqGen {
 
 class MemWrReqGenSingle[T<:Data, CONFT<:Data] (confGen: CONFT, genFunc: (CONFT) => AccMemBurstWrReq)(implicit params: AccParams) extends Module {
   val io = IO(new Bundle {
+    val start = Input(Bool())
     val config = Input(confGen.cloneType)
     val req = Decoupled(new AccMemBurstRdReq)
   })
   
   val isSent = RegInit(init = false.B)
   
-  io.req.valid := !isSent
-  isSent := io.req.ready
-  io.req.bits := genFunc(io.config)
+  io.req.valid := false.B
+  when (io.start) {
+    io.req.valid := !isSent
+    isSent := io.req.ready
+    io.req.bits := genFunc(io.config)
+  }
 }
 
 object MemWrReqGenSingle {
-  def apply[CONFT<:Data](conf: CONFT, genFunc: (CONFT) => AccMemBurstWrReq)(implicit params: AccParams): DecoupledIO[AccMemBurstRdReq] = {
+  def apply[CONFT<:Data](conf: CONFT, genFunc: (CONFT) => AccMemBurstWrReq, start: Bool = true.B)(implicit params: AccParams): DecoupledIO[AccMemBurstRdReq] = {
     val mod = Module(new MemWrReqGenSingle(conf, genFunc))
     mod.io.config := conf
+    mod.io.start := start
     mod.io.req
   }
 }
