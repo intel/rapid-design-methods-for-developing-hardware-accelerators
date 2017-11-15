@@ -8,7 +8,7 @@ docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd reporters; sbt test)
 docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd testutil; sbt 'testOnly -- -l WithVCSBackend')"
 docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd pipe_insert_transform; sbt test)"
 docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd accio; sbt test)"
-docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd datflow_building_blocks; sbt test)"
+docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd dataflow_building_blocks; sbt test)"
 docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd vectoradd; sbt test)"
 
 
