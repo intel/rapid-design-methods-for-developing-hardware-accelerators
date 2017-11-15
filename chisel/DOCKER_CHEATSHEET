@@ -1,0 +1,18 @@
+Build everything (including verilator):
+---------------------------------------
+docker build -f Dockerfile -t stevenmburns/hldchisel .
+
+When finished, run all the test simultaneously (6 containers of the same image.)
+-------------------
+docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd reporters; sbt test)"
+docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd testutil; sbt 'testOnly -- -l WithVCSBackend')"
+docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd pipe_insert_transform; sbt test)"
+docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd accio; sbt test)"
+docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd datflow_building_blocks; sbt test)"
+docker run -d -t stevenmburns/hldchisel:latest bash -c "(cd vectoradd; sbt test)"
+
+
+Check results:
+--------------
+for i in $(docker ps -a -n 6 -q); do docker logs $i; done
+
