@@ -126,8 +126,10 @@ class DecoupledDatapathTesterVerilator  extends ChiselFlatSpec{
   }
 }
 
+object WithVCSBackend extends org.scalatest.Tag("WithVCSBackend")
+
 class DecoupledDatapathTesterVCS  extends ChiselFlatSpec{
-  "decoupled datapath" should "calculate L2 norms" in {
+  "decoupled datapath" should "calculate L2 norms" taggedAs(WithVCSBackend) in {
     chisel3.iotesters.Driver(() => new Datapath(4,8,44,2),"vcs"){ c =>
       new DecoupledDatapathTestsUsingAdvTester(c)
     }should be(true)

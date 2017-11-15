@@ -147,7 +147,7 @@ class VectorAddTester extends ChiselFlatSpec{
   }
   
   "sdf circuit" should "simulate" in {
-    chisel3.iotesters.Driver(() => new VecAddTb(UInt(16.W), 2),"vcs"){ c =>
+    chisel3.iotesters.Driver(() => new VecAddTb(UInt(16.W), 2),"verilator"){ c =>
       new VectorAddFirstTest(c)
     }should be(true)
   }
@@ -163,7 +163,7 @@ class VectorAddNoConfigTester extends ChiselFlatSpec{
   }
   def createDutFactory[T <: UInt] (gen : T, size : Int) : VecAddNoConfigIO[T] = new VecAddNoConfig(gen, size)
   "sdf circuit" should "simulate" in {
-    chisel3.iotesters.Driver(() => new VecAddNoConfigTb(()=>new VecAddNoConfig(UInt(16.W), 16)),"vcs"){ c =>
+    chisel3.iotesters.Driver(() => new VecAddNoConfigTb(()=>new VecAddNoConfig(UInt(16.W), 16)),"verilator"){ c =>
       new VectorAddTestNoConfig(c)
     }should be(true)
   }

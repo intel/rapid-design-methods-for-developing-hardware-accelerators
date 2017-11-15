@@ -30,5 +30,4 @@ libraryDependencies ++= Seq(
 libraryDependencies += "com.intel" %% "testutil" % "1.0"
 libraryDependencies += "com.intel" %% "accio" % "0.0"
 libraryDependencies += "com.intel" %% "designutils" % "0.1"
-libraryDependencies += "com.intel" %% "imperative" % "0.1"
 libraryDependencies += "com.intel" %% "dataflow-building-blocks" % "0.1"

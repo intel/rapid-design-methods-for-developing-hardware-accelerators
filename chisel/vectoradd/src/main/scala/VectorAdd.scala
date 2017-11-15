@@ -10,9 +10,6 @@ import type_repacker._
 import designutils._
 import accio.MemRdReqRespTuple._  
 import accio.MemWrReqRespTuple._  
-import imperative._
-import lexer._
-import compiler._
 import hld_interface_wrapper._
 
 class Config extends Bundle {

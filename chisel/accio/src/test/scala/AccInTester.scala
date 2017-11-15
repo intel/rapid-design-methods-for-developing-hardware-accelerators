@@ -173,12 +173,12 @@ class AccInTester extends ChiselFlatSpec {
 }
 class AccUserInTester extends ChiselFlatSpec {
   "AccUserInTestWithOddCnt" should "compile and run without incident" in {
-    chisel3.iotesters.Driver(() => new TopWithUserAccIn,"vcs") { c =>
+    chisel3.iotesters.Driver(() => new TopWithUserAccIn,"verilator") { c =>
       new AccUserInTestsUsingAdvTesterOddCnt(c)
     } should be(true)
   }
 //  "AccUserInTest" should "compile and run without incident" in {
-//    chisel3.iotesters.Driver(() => new TopWithUserAccIn,"vcs") { c =>
+//    chisel3.iotesters.Driver(() => new TopWithUserAccIn,"verilator") { c =>
 //      new AccUserInTestsUsingAdvTester(c)
 //    } should be(true)
 //  }

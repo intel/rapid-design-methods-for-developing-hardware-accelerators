@@ -238,7 +238,7 @@ class TypeRepackerSimpleTester extends ChiselFlatSpec {
   def createDut[T1 <: Data, T2 <: Data] (gen1 : T1, gen2 : T2) : TopIf[T1, T2] = new TopSimple(gen1, gen2)
   
   "AccumTypeRepackerTester" should "compile and run without incident" in {
-    chisel3.iotesters.Driver(() => createDut(new MyType(), Vec(3, new MyType())),"vcs") { c =>
+    chisel3.iotesters.Driver(() => createDut(new MyType(), Vec(3, new MyType())),"verilator") { c =>
       new AccumTypeRepackerTester(c)
     } should be(true)
   }

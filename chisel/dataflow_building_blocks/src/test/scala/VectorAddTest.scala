@@ -225,7 +225,7 @@ class MultiVectorAddNoConfigTester extends ChiselFlatSpec{
   import VecAddAccParams._
   
   "sdf circuit" should "simulate" in {
-    chisel3.iotesters.Driver(() => new MultiVecAddNoConfigTb(UInt(16.W), 16, 2),"vcs"){ c =>
+    chisel3.iotesters.Driver(() => new MultiVecAddNoConfigTb(UInt(16.W), 16, 2),"verilator"){ c =>
       new MultiVectorAddTestNoConfig(c, 2)
     }should be(true)
   }
