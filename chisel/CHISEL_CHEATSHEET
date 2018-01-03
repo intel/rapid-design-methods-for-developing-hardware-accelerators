@@ -1,9 +1,4 @@
 
-git submodule init
-git submodule update
-
-or
-
 git clone https://github.com/ucb-bar/chisel3.git
 git clone https://github.com/ucb-bar/firrtl.git
 git clone https://github.com/ucb-bar/firrtl-interpreter.git
@@ -13,6 +8,12 @@ git clone https://github.com/ucb-bar/chisel-testers.git
 (cd firrtl-interpreter; git checkout b99bad1cc841b525516823fee870b3837a430c88)
 (cd chisel-testers; git checkout f1f2645690de370063af01f86c5fe6e49a462f3b)
 
+#bash
+for dir in firrtl chisel3 firrtl-interpreter chisel-testers ; do
+  (cd $dir; sed '1,$s/scalaVersion := "2.11.11"/scalaVersion := "2.12.3"/' < build.sbt > _tmp; diff _tmp build.sbt; mv _tmp build.sbt)
+done
+
+#csh
 foreach dir ( firrtl chisel3 firrtl-interpreter chisel-testers)
   (cd $dir; sed '1,$s/scalaVersion := "2.11.11"/scalaVersion := "2.12.3"/' < build.sbt > _tmp; diff _tmp build.sbt; mv _tmp build.sbt)
 end
@@ -31,7 +32,7 @@ end
 (cd dataflow_building_blocks; sbt publishLocal)
 
 (cd reporters; sbt test)
-(cd testutil; sbt test)
+(cd testutil; sbt 'testOnly -- -l WithVCSBackend')
 (cd pipe_insert_transform; sbt test)
 (cd designutils; sbt test)
 (cd accio; sbt test)
