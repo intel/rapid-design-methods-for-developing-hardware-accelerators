@@ -121,25 +121,51 @@ class HldAcceleratorMultiPortWrapper[T<:Data] (dutGen: ()=>HldAcceleratorMultiPo
   io.start <> mod.io.start
   io.done <> mod.io.done
 
+  def tagToSpl(tag: UInt, auid: Int, auCnt: Int) = {
+    // spl tag: (15,7)(6,0)
+    //    ld/st tag^    ^auid+memarbid
+    // (6,0) are shared between auid and memarbid, with memarbid taking LSBs and auid are MSB
+    // chisel tag (15,0) - shared ld/st tag and memarb with ld/st tag is LSBs and right after it there's memarbid
+    // thus chisel tag(8,0) should go to splTag(15,7) and the rest tag(15,9) to splTag(6,0)
+    // then, MSB of splTag(6,0) gets auid, based of log2(auid), for 4 AUs, splTag(6,5)=auid
+ log2Ceil(auCnt)   val splTag = Wire(UInt(params.DefMemTagWidth.W))
+    //splTag(15, 7) := tag(8,0)
+    //splTag(6,0) := tag(15,9)
+    //splTag(6, 6-log2Ceil(auCnt)+1) := auid.U
+    splTag := tag(8,0) ## auid.U(log2Ceil(auCnt).W) ## tag(15-log2Ceil(auCnt),9)
+    splTag
+  }
+  def splToTag(splTag: UInt, auCnt: Int) = {
+    val tag = Wire(UInt(params.DefMemTagWidth.W))
+    //tag(8,0) := splTag(15, 7)
+    //tag(15-log2Ceil(auCnt),9) := splTag(6-log2Ceil(auCnt),0) // dropping auid
+    //tag(15, 15-log2Ceil(auCnt)+1) := 0.U
+    tag := 0.U(log2Ceil(auCnt).W)##splTag(6-log2Ceil(auCnt),0)##splTag(15, 7)
+    tag
+  }
+  
   val clalignFactor = log2Ceil(params.CacheLineWidth>>3)
   for (i <- 0 until mod.numReadPorts) {  
     mod.io.mem_rd_resp(i).bits.data := io.spl_rd_resp(i).bits(511,0) 
-    mod.io.mem_rd_resp(i).bits.tag := io.spl_rd_resp(i).bits(527,512) 
+    //AA: support for multiported AUs. need to modify the tag to add id for port number
+    mod.io.mem_rd_resp(i).bits.tag := splToTag(io.spl_rd_resp(i).bits(527,512), mod.numReadPorts)
     io.spl_rd_resp(i).valid <> mod.io.mem_rd_resp(i).valid
     io.spl_rd_resp(i).ready <> mod.io.mem_rd_resp(i).ready
     assert(mod.io.mem_rd_req(i).bits.addr(63, 56) === 0.U, "the address should be in cachelines, so msb should be zeros")
-    io.spl_rd_req(i).bits := mod.io.mem_rd_req(i).bits.tag ## ((mod.io.mem_rd_req(i).bits.addr << clalignFactor)(63,0))
+    //AA: support for multiported AUs. need to modify the tag to add id for port number
+    io.spl_rd_req(i).bits := tagToSpl(mod.io.mem_rd_req(i).bits.tag, i, mod.numReadPorts) ## ((mod.io.mem_rd_req(i).bits.addr << clalignFactor)(63,0))
     io.spl_rd_req(i).valid <> mod.io.mem_rd_req(i).valid
     io.spl_rd_req(i).ready <> mod.io.mem_rd_req(i).ready
   }  
   for (i <- 0 until mod.numWritePorts) {  
     assert(mod.io.mem_wr_req(i).bits.addr(63, 56) === 0.U, "the address should be in cachelines, so msb should be zeros")
   
-    mod.io.mem_wr_resp(i).bits.tag := io.spl_wr_resp(i).bits(16,1)
+    //AA: support for multiported AUs. need to modify the tag to add id for port number
+    mod.io.mem_wr_resp(i).bits.tag := splToTag(io.spl_wr_resp(i).bits(16,1), mod.numWritePorts)
     io.spl_wr_resp(i).valid <> mod.io.mem_wr_resp(i).valid
     io.spl_wr_resp(i).ready <> mod.io.mem_wr_resp(i).ready
-    
-    io.spl_wr_req(i).bits := mod.io.mem_wr_req(i).bits.tag ## 0.U(14.W) ## mod.io.mem_wr_req(i).bits.data ## ((mod.io.mem_wr_req(i).bits.addr << clalignFactor)(63,0))    
+    //AA: support for multiported AUs. need to modify the tag to add id for port number
+    io.spl_wr_req(i).bits := tagToSpl(mod.io.mem_wr_req(i).bits.tag, i, mod.numWritePorts) ## 0.U(14.W) ## mod.io.mem_wr_req(i).bits.data ## ((mod.io.mem_wr_req(i).bits.addr << clalignFactor)(63,0))    
     io.spl_wr_req(i).valid <> mod.io.mem_wr_req(i).valid
     io.spl_wr_req(i).ready <> mod.io.mem_wr_req(i).ready
   } 
