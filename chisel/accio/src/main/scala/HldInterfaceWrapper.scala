@@ -128,7 +128,7 @@ class HldAcceleratorMultiPortWrapper[T<:Data] (dutGen: ()=>HldAcceleratorMultiPo
     // chisel tag (15,0) - shared ld/st tag and memarb with ld/st tag is LSBs and right after it there's memarbid
     // thus chisel tag(8,0) should go to splTag(15,7) and the rest tag(15,9) to splTag(6,0)
     // then, MSB of splTag(6,0) gets auid, based of log2(auid), for 4 AUs, splTag(6,5)=auid
- log2Ceil(auCnt)   val splTag = Wire(UInt(params.DefMemTagWidth.W))
+    val splTag = Wire(UInt(params.DefMemTagWidth.W))
     //splTag(15, 7) := tag(8,0)
     //splTag(6,0) := tag(15,9)
     //splTag(6, 6-log2Ceil(auCnt)+1) := auid.U
