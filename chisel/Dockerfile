@@ -23,9 +23,10 @@ RUN \
   apt-get install sbt && \
   sbt sbtVersion
 
+RUN \
+  git clone https://github.com/intel/rapid-design-methods-for-developing-hardware-accelerators.git hld
 
-WORKDIR /ChiselRoot
-ADD ./modifyVersion.csh /ChiselRoot
+WORKDIR /hld/chisel
 
 RUN \
   git clone https://github.com/ucb-bar/chisel3.git && \
@@ -45,8 +46,7 @@ RUN \
 
 FROM chisel3 as hldchisel
 
-WORKDIR /ChiselRoot
-ADD . /ChiselRoot
+WORKDIR /hld/chisel
 
 RUN \
   (cd reporters; sbt publishLocal) && \
