@@ -1,5 +1,7 @@
-Build everything (including verilator):
+Builds everything standalone (no need to first checkout git repository)
 ---------------------------------------
+curl -o- https://raw.githubusercontent.com/intel/rapid-design-methods-for-developing-hardware-accelerators/master/chisel/Dockerfile | docker build -t stevenmburns/hldchisel:latest -
+
 docker build -f Dockerfile -t stevenmburns/hldchisel .
 
 When finished, run all the test simultaneously (6 containers of the same image.)
