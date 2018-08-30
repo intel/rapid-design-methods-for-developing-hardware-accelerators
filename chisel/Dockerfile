@@ -2,7 +2,11 @@ FROM openjdk:8 as withverilator
 
 RUN \
   apt-get update && \
-  apt-get -y install make autoconf g++ flex bison && \
+  apt-get -y install make autoconf flex bison software-properties-common && \
+  apt-get install -y \
+     gcc-6 g++-6 gcc-6.base && \
+  update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-6 100 && \
+  update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-6 100 && \  
   git clone http://git.veripool.org/git/verilator && \
   (cd verilator; git pull && git checkout verilator_3_886 && \
   autoconf && ./configure && make && make install)
