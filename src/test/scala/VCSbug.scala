@@ -6,7 +6,7 @@ import chisel3._
 import chisel3.iotesters._
 
 class VCSBug extends Module {
-  val io = IO(new Bundle)
+  val io = IO(new Bundle{})
 }
 
 class Tester(c:VCSBug) extends PeekPokeTester(c) {

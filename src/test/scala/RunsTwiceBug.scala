@@ -22,7 +22,7 @@ class AddPrintf extends Transform {
           val prnt =
             Print(
               NoInfo,
-              StringLit( s"Running module ${m.name}\n".getBytes),
+              StringLit( s"Running module ${m.name}\n"),
               Seq[Expression](),
               WRef( "clock", ClockType, PortKind, MALE),
               UIntLiteral(1,IntWidth(1))
@@ -42,7 +42,7 @@ class AddPrintf extends Transform {
 
 class RunsTwiceBug extends Module {
   println( s"Building RunsTwiceBug...")
-  val io = IO(new Bundle)
+  val io = IO(new Bundle{})
 }
 
 class Tester(c:RunsTwiceBug) extends PeekPokeTester(c) {

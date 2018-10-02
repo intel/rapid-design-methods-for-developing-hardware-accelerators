@@ -9,13 +9,13 @@ import chisel3.iotesters._
 import compiler._
 
 class StandaloneSquashP extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle{})
   val m = Module( new Squash)
   m.io("P").valid := m.io("P").ready
 }
 
 class StandaloneSquashQ extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle{})
   val m = Module( new Squash)
   m.io("Q").ready := m.io("Q").valid
 }

@@ -39,7 +39,7 @@ class ShannonFactor extends Transform {
         case ref @ (_: WRef | _: WSubField) => refs += ref
         case nested @ (_: Mux | _: DoPrim | _: ValidIf) => nested map rec
         case ignore @ (_: Literal) => // Do nothing
-        case unexpected => throwInternalError
+        case unexpected => throwInternalError()
       }
       e
     }
@@ -52,8 +52,7 @@ class ShannonFactor extends Transform {
                          (expr: Expression): Seq[LogicNode] =
     extractRefs(expr).map { e =>
       if (kind(e) == InstanceKind) {
-        println( s"getDepsImpl: ${e}")
-        throwInternalError
+        throwInternalError( s"getDepsImpl: ${e}")
       } else
         LogicNode(mname, e)
     }
@@ -124,13 +123,13 @@ class ShannonFactor extends Transform {
       case Stop(_,_, clk, en) => // do nothing
       case Print(_, _, args, clk, en) => // do nothing
       case ignore @ (_: IsInvalid | _: WDefInstance | EmptyStmt) => // do nothing
-      case other => throwInternalError
+      case other => throwInternalError()
     }
 
     // Add all ports as vertices
     mod.ports.foreach {
       case Port(_, name, _, _: GroundType) => depGraph.addVertex(LogicNode(mod.name, name))
-      case other => throwInternalError
+      case other => throwInternalError()
     }
     onStmt(mod.body)
   }
@@ -141,7 +140,7 @@ class ShannonFactor extends Transform {
     val depGraph = new MutableDiGraph[LogicNode]
     m match {
       case mod : Module => setupDepGraph(regs, depGraph)(mod)
-      case _ => throwInternalError
+      case _ => throwInternalError()
     }
     DiGraph( depGraph)
   }
@@ -189,7 +188,7 @@ class ShannonFactor extends Transform {
       DiGraph( reverseDepGraph)
     }
 
-    def transformCone( modName : String, srcName : String, tgtName : String, cone : Set[LogicNode])( m : DefModule) : DefModule = {
+    def transformCone( modName : String, srcName : String, tgtName : String, cone : collection.mutable.LinkedHashSet[LogicNode])( m : DefModule) : DefModule = {
 
       val visitedLogicNodes = mutable.Set[LogicNode]()
 
@@ -223,8 +222,7 @@ class ShannonFactor extends Transform {
             }
           case (_ : Mux | _ : DoPrim | _ : UIntLiteral | _ : SIntLiteral) => ex
           case _ => 
-            println( s"Not Yet Implemented Expressions: ${ex}")
-            throwInternalError
+            throwInternalError( s"Not Yet Implemented Expressions: ${ex}")
         }
       }
 
@@ -403,8 +401,7 @@ class ShannonFactor extends Transform {
 //                println( s"Bundle: ${p}")
                 List()
               case other =>
-                println( s"${other}")
-                throwInternalError
+                throwInternalError( s"${other}")
             }
 
           println( s"-I- ShannonFactor: Found ${tuples.size} decoupledIO dependencies in ${m.name}: ${tuples}")

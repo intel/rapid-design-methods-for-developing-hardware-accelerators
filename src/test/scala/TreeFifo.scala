@@ -488,19 +488,19 @@ class MergeTester[T <: ImperativeIfc](c: T) extends PeekPokeTester(c) {
 }
 
 class StandaloneMergeP0 extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle{})
   val m = Module( new MergeFalseCombLoop)
   m.io("P0").valid := m.io("P0").ready
 }
 
 class StandaloneMergeP1 extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle{})
   val m = Module( new MergeFalseCombLoop)
   m.io("P1").valid := m.io("P1").ready
 }
 
 class StandaloneMergeQ extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle{})
   val m = Module( new MergeFalseCombLoop)
   m.io("Q").ready := m.io("Q").valid
 }
@@ -566,13 +566,13 @@ class StandaloneSplitP extends Module {
 }
 
 class StandaloneSplitQ0 extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle{})
   val m = Module( new Split)
   m.io("Q0").ready := m.io("Q0").valid
 }
 
 class StandaloneSplitQ1 extends Module {
-  val io = IO( new Bundle)
+  val io = IO( new Bundle{})
   val m = Module( new Split)
   m.io("Q1").ready := m.io("Q1").valid
 }
