@@ -169,10 +169,10 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
     case Blk( decl_lst, seq) => {
       val sT0 = decl_lst.foldLeft(sT.push){
         case (st, Decl( Variable(v), UIntType(w))) => {
-          st.insert( v, WireInit( UInt(w.W), DontCare))
+          st.insert( v, WireInit( UInt(w.W), init=DontCare))
         }
         case (st, Decl( Variable(v), VecType( n, UIntType(w)))) => {
-          st.insert( v, WireInit( Vec(n,UInt(w.W)), DontCare))
+          st.insert( v, WireInit( Vec(n,UInt(w.W)), init=DontCare))
         }
       }
       seq.foldLeft(sT0){ eval}.pop
@@ -182,7 +182,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
     case Assignment( VectorIndex( s, ConstantInteger( i)), r) => {
       sT( s) match {
         case v : Vec[UInt] => {
-          val whole : Vec[UInt] = Wire(init=v)
+          val whole : Vec[UInt] = WireInit(init=v)
           val part : UInt = eval( sT, r).asInstanceOf[UInt]
           whole(i) := part
           sT.updated( s, whole)
@@ -214,7 +214,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
       } else {
         sT( s) match {
           case v : Vec[UInt] => {
-            val whole : Vec[UInt] = Wire(init=v)
+            val whole : Vec[UInt] = WireInit(init=v)
             val part : UInt = eval( sT, r).asInstanceOf[UInt]
             whole(index) := part
             sT.updated( s, whole)
@@ -237,7 +237,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
       def mx[T <: Data]( bb : Bool, p : T, t : T, e : T) : T = {
 // using "!=" because I'm comparing whether the Chisel objects (not their values) are different
         if ( p != t || p != e) {
-          val w = Wire( init=e)
+          val w = WireInit( init=e)
           when( bb) { w := t}
           w
         } else p
