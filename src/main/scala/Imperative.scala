@@ -120,15 +120,15 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
     case Process( _, ResetWhileTrueWait( seqDeclLst, initSeq, mainBlk)) => {
 
         val sTinit = seqDeclLst.foldLeft(sT.push){
-          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W), init=DontCare))
-          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, Wire( Vec(n,UInt(w.W))))
+          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, WireInit( UInt(w.W), init=DontCare))
+          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, WireInit( Vec(n,UInt(w.W)), init=DontCare))
         }
 
         val sTinit0 = eval( sTinit, Blk( List(), initSeq))
 
         val sT0 = seqDeclLst.foldLeft(sT.push){
-          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W)))
-          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, Wire( Vec(n,UInt(w.W))))
+          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, WireInit( UInt(w.W), init=DontCare))
+          case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, WireInit( Vec(n,UInt(w.W)), init=DontCare))
         }
 
         val sT1 = eval( sT0, mainBlk)
