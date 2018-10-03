@@ -491,12 +491,20 @@ class StandaloneMergeP0 extends Module {
   val io = IO( new Bundle{})
   val m = Module( new MergeFalseCombLoop)
   m.io("P0").valid := m.io("P0").ready
+  m.io("P0").bits := DontCare
+  m.io("P1").valid := DontCare
+  m.io("P1").bits := DontCare
+  m.io("Q").ready := DontCare
 }
 
 class StandaloneMergeP1 extends Module {
   val io = IO( new Bundle{})
   val m = Module( new MergeFalseCombLoop)
+  m.io("P0").valid := DontCare
+  m.io("P0").bits := DontCare
   m.io("P1").valid := m.io("P1").ready
+  m.io("P1").bits := DontCare
+  m.io("Q").ready := DontCare
 }
 
 class StandaloneMergeQ extends Module {

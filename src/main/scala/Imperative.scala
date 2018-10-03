@@ -120,8 +120,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
     case Process( _, ResetWhileTrueWait( seqDeclLst, initSeq, mainBlk)) => {
 
         val sTinit = seqDeclLst.foldLeft(sT.push){
-// These are uninitialized. Tests don't break, if you want them to, use init=47.U
-          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W)/*, init=47.U*/))
+          case (st, Decl( Variable(v), UIntType(w))) => st.insert( v, Wire( UInt(w.W), init=DontCare))
           case (st, Decl( Variable(v), VecType(n,UIntType(w)))) => st.insert( v, Wire( Vec(n,UInt(w.W))))
         }
 
@@ -170,10 +169,10 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
     case Blk( decl_lst, seq) => {
       val sT0 = decl_lst.foldLeft(sT.push){
         case (st, Decl( Variable(v), UIntType(w))) => {
-          st.insert( v, Wire( UInt(w.W)))
+          st.insert( v, WireInit( UInt(w.W), DontCare))
         }
         case (st, Decl( Variable(v), VecType( n, UIntType(w)))) => {
-          st.insert( v, Wire( Vec(n,UInt(w.W))))
+          st.insert( v, WireInit( Vec(n,UInt(w.W)), DontCare))
         }
       }
       seq.foldLeft(sT0){ eval}.pop
@@ -272,7 +271,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
       case PortDecl( Port(p), Out, UIntType(w)) => {
         val pp = io(p)
         val (r,v,d) = (pp.ready,pp.valid,pp.bits)
-        s.pupdated( p, r, false.B, Wire(d.asInstanceOf[UInt].cloneType))
+        s.pupdated( p, r, false.B, WireInit(d.asInstanceOf[UInt].cloneType,init=DontCare))
       }
       case PortDecl( Port(p), Inp, VecType(n,UIntType(w))) => {
         val pp = io(p)
@@ -282,7 +281,7 @@ class ImperativeModule( ast : Process) extends ImperativeIfc( ast) with ShannonF
       case PortDecl( Port(p), Out, VecType(n,UIntType(w))) => {
         val pp = io(p)
         val (r,v,d) = (pp.ready,pp.valid,pp.bits)
-        s.pupdated( p, r, false.B, Wire(d.asInstanceOf[Vec[UInt]].cloneType))
+        s.pupdated( p, r, false.B, WireInit(d.asInstanceOf[Vec[UInt]].cloneType,init=DontCare))
       }
     }
   }
