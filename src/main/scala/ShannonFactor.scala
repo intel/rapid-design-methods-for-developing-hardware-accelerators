@@ -71,11 +71,17 @@ class ShannonFactor extends Transform {
         val (ps,ns) = regs(node)
         depGraph.addVertex(ps)
         depGraph.addVertex(ns)
-        Seq(clock, reset, init).flatMap(getDeps(_)).foreach(ref => depGraph.addEdge(ps, ref))
+        Seq(clock, reset, init).flatMap(getDeps(_)).foreach ( ref => {
+          depGraph.addVertex(ref)
+          depGraph.addEdge(ps, ref)
+        })
       case DefNode(_, name, value) =>
         val node = LogicNode(mod.name, name)
         depGraph.addVertex(node)
-        getDeps(value).foreach(ref => depGraph.addEdge(node, ref))
+        getDeps(value).foreach ( ref => {
+          depGraph.addVertex( ref)
+          depGraph.addEdge(node, ref)
+        })
       case DefWire(_, name, _) =>
         depGraph.addVertex(LogicNode(mod.name, name))
       case mem: DefMemory =>
@@ -87,11 +93,16 @@ class ShannonFactor extends Transform {
         val sinks = exprs.getOrElse(FEMALE, List.empty).flatMap(getDeps(_))
         val memNode = getDeps(memRef) match { case Seq(node) => node }
         depGraph.addVertex(memNode)
-        sinks.foreach(sink => depGraph.addEdge(sink, memNode))
+        sinks.foreach(sink => {
+          depGraph.addVertex( memNode)
+          depGraph.addEdge(sink, memNode)
+        })
         sources.foreach(source => depGraph.addEdge(memNode, source))
       case Attach(_, exprs) => // Add edge between each expression
         exprs.flatMap(getDeps(_)).toSet.subsets(2).map(_.toList).foreach {
           case Seq(a, b) =>
+            depGraph.addVertex(a)
+            depGraph.addVertex(b)
             depGraph.addEdge(a, b)
             depGraph.addEdge(b, a)
         }
@@ -107,7 +118,7 @@ class ShannonFactor extends Transform {
           } else {
             node
           }
-        getDeps(expr).foreach{ ref =>
+        getDeps(expr).foreach( ref => {
           val ref0 =
             if ( regs.contains( ref)) {
 //              println( s"Right-hand side reg: ${ref}")
@@ -115,8 +126,10 @@ class ShannonFactor extends Transform {
             } else {
               ref
             }
+          depGraph.addVertex(node0)
+          depGraph.addVertex(ref0)
           depGraph.addEdge(node0, ref0)
-        }
+        })
 
       case Block(stmts) => stmts.foreach(onStmt(_))
 
