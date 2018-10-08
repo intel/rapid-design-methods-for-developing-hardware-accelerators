@@ -1,7 +1,7 @@
 ## rapid-design-methods-for-developing-hardware-accelerators
 
 ## Update
-Now includes integraton with OPAE (Oct. 8, 2018). For an example, see the `vectoradd` example in the `chisel` subdirectory.
+Now includes integraton with OPAE (Oct. 8, 2018). For an example, see `vectoradd` in the `chisel` subdirectory.
 
 ## Introduction
 This project includes code and documentation to help software programmers and hardware engineers efficiently use platforms that include multi-core servers and FPGAs.
