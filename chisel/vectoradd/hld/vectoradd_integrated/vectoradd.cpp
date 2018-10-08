@@ -3,10 +3,16 @@
 #include <string.h>
 #include <assert.h>
 
-#include "systemc.h"
+using namespace std;
+
 #include "hld_alloc.h"
 
 #include "AcclApp.h"
+
+#include <iostream>
+#include <ios>
+
+#include "afu_json_info.h"
 
 struct Config {
   unsigned long long in0Addr : 64;
@@ -15,10 +21,9 @@ struct Config {
   unsigned vecCount : 32;
 };
 
-int sc_main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
 
-  AcclApp acc_app("5cdf79ed09527e2cbfa1f873fa0e52cf");
-
+  AcclApp acc_app( AFU_ACCEL_UUID);
   size_t count = 256;
 
   size_t workspace_size = 3*count*sizeof(unsigned int) ;
@@ -53,11 +58,11 @@ int sc_main(int argc, char *argv[]) {
   size_t failed = 0;
   for(unsigned i = 0; i < count; ++i) {
     bool match = invec1[i]+invec2[i]==outvec[i];
-    cout << i << " - invec1[i] = " << invec1[i] << " invec2[i] " << invec2[i] << " outvec[i] = " << outvec[i] << " " << (match)?"SUCCESS":"FAILURE"<<endl;
+    //    cout << i << " - invec1[i] = " << invec1[i] << " invec2[i] " << invec2[i] << " outvec[i] = " << outvec[i] << " " << ((match)?"SUCCESS":"FAILURE") << endl;
     if(!match) ++failed;
   }
-  assert(!failed);
-
   acc_app.free();
+
+  assert(!failed);
   return 0;
 }
