@@ -2,7 +2,7 @@
 
 Build the ASE simulation for this block
 ````code
-afu_sim_setup --source rtl/sources.txt build_sim --platform intg_xeon --tool VCS
+afu_sim_setup --source rtl/sources.txt build_sim --platform intg_xeon --tool VCS --ase-verbose
 ````
 Make sure the the OPAE install bin directory is in your path.
 For me this is:
