@@ -30,10 +30,6 @@ int main(int argc, char *argv[]) {
   
   void *workspace = acc_app.alloc(workspace_size);
 
-  cout << "WORKSPACE ALLOCATED OF SIZE " << workspace_size << " @ " << hex << (size_t)workspace << endl << dec;
-  assert(workspace);  
-  
-
   hld_alloc alloc((char*)workspace, workspace_size);
   unsigned int *invec1 = alloc.allocate<unsigned int>(count);
   unsigned int *invec2 = alloc.allocate<unsigned int>(count);
@@ -49,7 +45,7 @@ int main(int argc, char *argv[]) {
   config.in0Addr = reinterpret_cast<unsigned long long>(invec1);
   config.in1Addr = reinterpret_cast<unsigned long long>(invec2);
   config.outAddr = reinterpret_cast<unsigned long long>(outvec);
-  config.vecCount = count/16; // count is in terms of vectors of int
+  config.vecCount = count/16; // count is in Cachelines (64 bytes per cacheline / 4 bytes per unsigned int)
 
   acc_app.compute(&config, sizeof(Config));
   acc_app.join();
