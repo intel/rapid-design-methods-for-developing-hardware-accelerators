@@ -1,0 +1,17 @@
+afu_sim_setup --source rtl/sources.txt build_sim --platform intg_xeon --tool VCS
+
+cd build_sim
+
+xterm & # get new windon
+
+make && make sim
+
+In new window, set enviornment variable
+
+setenv ASE_WORKDIR /nfs/site/disks/scl.work.37/ppt/users/smburns/hld/chisel/vectoradd/hld/build_sim/work
+
+cd ../vectoradd_standalone
+
+make
+
+./vectoradd_ase
