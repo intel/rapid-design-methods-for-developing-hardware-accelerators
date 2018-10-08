@@ -1,3 +1,4 @@
+# See LICENSE for license details.
 set_false_path -to *|shim|d_rst
 set_false_path -to *|shim|d_config_[*]
 set_false_path -to *|shim|d_start
