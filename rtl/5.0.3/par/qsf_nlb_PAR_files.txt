@@ -1,0 +1,37 @@
+# nlb core files 
+
+# Paths
+set_global_assignment -name SEARCH_PATH $RTL_SRC/afu/nlb_400/include_files/common/
+
+# QSYS IPs
+set_global_assignment -name QSYS_FILE $RTL_SRC/afu/nlb_400/QSYS_IPs/RAM/lpbk1_RdRspRAM2PORT.qsys
+set_global_assignment -name MISC_FILE $RTL_SRC/afu/nlb_400/QSYS_IPs/RAM/lpbk1_RdRspRAM2PORT.qsys
+set_global_assignment -name QSYS_FILE $RTL_SRC/afu/nlb_400/QSYS_IPs/RAM/req_C1TxRAM2PORT.qsys
+set_global_assignment -name MISC_FILE $RTL_SRC/afu/nlb_400/QSYS_IPs/RAM/req_C1TxRAM2PORT.qsys
+
+# IPs
+set_global_assignment -name VERILOG_FILE $RTL_SRC/afu/nlb_400/nlb_gram_sdp.v
+set_global_assignment -name VERILOG_FILE $RTL_SRC/afu/nlb_400/nlb_C1Tx_fifo.v
+
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/test_sw1.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/test_rdwr.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/test_lpbk1.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/requestor.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/nlb_lpbk.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/nlb_csr.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/arbiter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $RTL_SRC/afu/nlb_400/ccip_std_afu.sv
+
+# NLB SDC
+set_global_assignment -name SDC_FILE $RTL_SRC/afu/nlb_400/par/sdc_nlb.sdc
+
+# Configure nlb test mode
+# Valid options are:
+# NLB400_MODE_0 - implements loopback test
+# NLB400_MODE_3 - implements read, write, throughput (simultaneous read+write) tests
+# NLB400_MODE_7 - implements HW/Sw ping pong test
+
+# Uncomment only of the following lines
+set_global_assignment -name VERILOG_MACRO "NLB400_MODE_0"
+#set_global_assignment -name VERILOG_MACRO "NLB400_MODE_3" 
+#set_global_assignment -name VERILOG_MACRO "NLB400_MODE_7"

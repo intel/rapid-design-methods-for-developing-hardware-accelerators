@@ -1,0 +1,11 @@
++incdir+hld_shims
++incdir+include_files/common
+
+hld_shim_wrapper.sv
+requestor.sv
+accl_csr.sv
+afifo_wrapper.sv
+ccip_std_afu_vtp.sv
+accl_top.sv
+afifo_wrapper2.v
+afifo_split_wrapper2.v

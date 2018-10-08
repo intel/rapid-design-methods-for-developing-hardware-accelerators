@@ -1,0 +1,6 @@
+set HLD_ROOT "/nfs/site/disks/scl.work.38/ppt/aayupov/systemc/hld_fpga-sysc"
+set HLD_DEFINES_VH_DIR "/nfs/site/disks/scl.work.38/ppt/aayupov/systemc/hld_fpga-sysc/pagerank/pagerank_afu/5.0.3/accl_top/"
+set HLS_V_LIST "/nfs/site/disks/scl.work.38/ppt/aayupov/systemc/hld_fpga-sysc/pagerank/pagerank_afu/5.0.3/pagerank_acc_rtl_index_file.f"
+
+source /nfs/site/disks/scl.work.38/ppt/aayupov/systemc/hld_fpga-sysc/rtl/5.0.3/par/quartus_hld_rtl_common.qsf
+

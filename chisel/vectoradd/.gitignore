@@ -1,10 +1,8 @@
 *~
-project/project/
 project/target/
+project/project/
 target/
 test_run_dir/
-*.v
-*.fir
 *.anno
-*.rpt
-*.json
+*.fir
+*.v

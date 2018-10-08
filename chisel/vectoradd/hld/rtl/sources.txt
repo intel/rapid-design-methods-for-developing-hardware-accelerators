@@ -1,0 +1,12 @@
+vectoradd.json
+
+C:/nfs/site/disks/scl.work.37/ppt/users/smburns/intel-fpga-bbb/BBB_cci_mpf/hw/sim/cci_mpf_sim_addenda.txt
+
+C:/nfs/site/disks/scl.work.37/ppt/users/smburns/hld/rtl/5.0.3/ase_rtl_common_files.txt
+
++incdir+.
+
+/nfs/site/disks/scl.work.37/ppt/users/smburns/hld/chisel/vectoradd/hld/rtl/vectoradd_acc_rtl.v
+
+/nfs/site/disks/scl.work.37/ppt/users/smburns/hld/chisel/vectoradd/HldAcceleratorWrapper.v
+

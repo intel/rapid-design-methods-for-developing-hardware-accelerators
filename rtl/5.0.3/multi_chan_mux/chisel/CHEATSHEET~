@@ -1,0 +1,1 @@
+sbt "run RD_PORTS=2 WR_PORTS=4"

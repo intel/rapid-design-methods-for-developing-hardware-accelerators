@@ -1,0 +1,2 @@
+modpath /nfs/pdx/home/smburns/ppt_work_area/OPAE_INSTALL/bin
+setenv LD_LIBRARY_PATH "/nfs/site/disks/scl.work.37/ppt/users/smburns/OPAE_INSTALL/lib64:/usr/intel/pkgs/boost/1.67.0/lib"

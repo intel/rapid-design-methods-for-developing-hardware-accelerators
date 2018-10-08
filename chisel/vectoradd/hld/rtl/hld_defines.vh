@@ -13,8 +13,8 @@
 
 // ---- REGENERATE THE IDS BELOW FOR YOUR AFU ----- 
 //xxd -l 8 -p /dev/random 
-`define HLD_AFU_ID_H 64'h5cdf79ed09527e2c
-`define HLD_AFU_ID_L 64'hbfa1f873fa0e52cf
+`define HLD_AFU_ID_H 64'h092a3e6281c5499a
+`define HLD_AFU_ID_L 64'hae2c62ff4788fadd
 
 //in bits
 `define HLD_APP_CONFIG_WIDTH 320

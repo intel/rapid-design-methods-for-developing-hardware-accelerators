@@ -1,0 +1,31 @@
+proc parseFileList {filename} {
+  set f [open $filename r]
+  set fnames [split [string trim [read $f]] \n]
+  close $f
+  set fnames [lsearch -inline -not -all -glob $fnames "//*"]
+  set fnames [lsearch -inline -not -all -glob $fnames ""]
+  return $fnames
+}
+
+set_global_assignment -name SEARCH_PATH $HLD_ROOT/rtl/5.0.3
+set_global_assignment -name SEARCH_PATH $HLD_ROOT/rtl/5.0.3/hld_shims
+set_global_assignment -name SEARCH_PATH $HLD_ROOT/rtl/5.0.3/include_files/common
+set_global_assignment -name SEARCH_PATH $HLD_DEFINES_VH_DIR
+
+set_global_assignment -name SYSTEMVERILOG_FILE $HLD_ROOT/rtl/5.0.3/accl_top.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $HLD_ROOT/rtl/5.0.3/requestor.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $HLD_ROOT/rtl/5.0.3/accl_csr.sv
+set_global_assignment -name SYSTEMVERILOG_FILE $HLD_ROOT/rtl/5.0.3/ccip_std_afu_vtp.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE $HLD_ROOT/rtl/5.0.3/hld_shim_wrapper.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE $HLD_ROOT/rtl/5.0.3/afifo_wrapper.sv
+set_global_assignment -name VERILOG_FILE $HLD_ROOT/rtl/5.0.3/afifo_wrapper2.v
+set_global_assignment -name VERILOG_FILE $HLD_ROOT/rtl/5.0.3/afifo_split_wrapper2.v
+
+foreach vfile [parseFileList $HLS_V_LIST] {
+  set_global_assignment -name VERILOG_FILE $vfile
+}
+
+set_global_assignment -name SDC_FILE $HLD_ROOT/rtl/5.0.3/par/hld_shim.sdc
+set_global_assignment -name SDC_FILE $HLD_ROOT/rtl/5.0.3/par/dcfifo.sdc

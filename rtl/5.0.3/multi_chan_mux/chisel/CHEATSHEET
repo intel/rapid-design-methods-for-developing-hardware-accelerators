@@ -1,0 +1,8 @@
+sbt "run RD_PORTS=2 WR_PORTS=4"
+
+To help with conflicts later, rename all DecoupledStage references (e.g., DecoupledStge)
+
+foreach i ( MultiChannelMux*.v )
+  mv $i __tmp
+  sed '1,$s/DecoupledStage/DecoupledStge/g' < __tmp > $i
+end

@@ -1,0 +1,6 @@
+
+Makefile need locatin of MPF library. Andrey's location is here and you can use it:
+/nfs/pdx/home/aayupov/work_systemc/atd_fpga_app-qa_bblocks/cci_mpf/SW
+Otherwise, edit Makefile where CCI_MPF_SW_ROOT is set
+
+make prefix=/nfs/site/disks/scl.work.59/ppt/smburns/quick-assist/SR-5.0.3-Release/Base/SW/install
