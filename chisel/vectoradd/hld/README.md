@@ -27,7 +27,8 @@ Start the simulator
 make sim
 ````
 
-In the new window, set work directory through an environment variable:
+In the new window, set work directory through an environment variable. The command that you need to issue is printed in the console.
+For me, this is:
 ````code
 setenv ASE_WORKDIR /nfs/site/disks/scl.work.37/ppt/users/smburns/hld/chisel/vectoradd/hld/build_sim/work
 ````
