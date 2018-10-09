@@ -51,8 +51,7 @@ class ReportTiming( val area_timing : Boolean = false,
         case WRef( nm, _, _, _) => nm
         case WSubField( ref, nm, tpe, gndr) => LogicNode( moduleName, ref) + "." + nm
         case _ =>
-          println( s"LogicNode::apply ${expr}")
-          throwInternalError
+          throwInternalError( s"LogicNode::apply ${expr}")
       }
 
   }
@@ -92,7 +91,7 @@ class ReportTiming( val area_timing : Boolean = false,
           case ref @ (_: WRef | _: WSubField) => refs += ref
           case nested @ (_: Mux | _: DoPrim | _: ValidIf) => nested map rec
           case ignore @ (_: Literal) => // Do nothing
-          case unexpected => throwInternalError
+          case unexpected => throwInternalError("")
         }
         e
       }
@@ -107,15 +106,13 @@ class ReportTiming( val area_timing : Boolean = false,
         case WSubField( expr, nm, tpe, gender) =>
           getHierName( expr) + "." + nm
         case _ =>
-          println( s"getHierName: $e")
-          throwInternalError
+          throwInternalError( s"getHierName: $e")
       }
 
 
       extractRefs(expr).map { e =>
         if (kind(e) == InstanceKind) {
-          println( s"getDeps: ${e}")
-          throwInternalError
+          throwInternalError( s"getDeps: ${e}")
         } else {
           val nm = getHierName( e)
           if ( regs.contains( nm)) {
@@ -124,8 +121,7 @@ class ReportTiming( val area_timing : Boolean = false,
             } else if ( side == "rhs") {
               LogicNode(mod.name, regs(nm)._1) // ps version
             } else {
-              println( s"getDeps: ${e} ${nm}")
-              throwInternalError
+              throwInternalError( s"getDeps: ${e} ${nm}")
             }
           } else
             LogicNode(mod.name, e)
@@ -141,11 +137,17 @@ class ReportTiming( val area_timing : Boolean = false,
         val (ps,ns) = regs(node)
         depGraph.addVertex(ps)
         depGraph.addVertex(ns)
-        Seq( reset, init).flatMap(getDeps("rhs")(_)).foreach(ref => depGraph.addEdge(ns, ref))
+        Seq( reset, init).flatMap(getDeps("rhs")(_)).foreach(ref => {
+          depGraph.addVertex(ref)
+          depGraph.addEdge(ns, ref)
+        })
       case DefNode(_, name, value) =>
         val node = LogicNode(mod.name, name)
         depGraph.addVertex(node)
-        getDeps("rhs")(value).foreach{ ref => depGraph.addEdge(node, ref)}
+        getDeps("rhs")(value).foreach( ref => {
+          depGraph.addVertex(ref)
+          depGraph.addEdge(node, ref)
+        })
       case DefWire(_, name, _) =>
         depGraph.addVertex(LogicNode(mod.name, name))
       case mem : DefMemory =>
@@ -204,13 +206,14 @@ class ReportTiming( val area_timing : Boolean = false,
             depGraph.addEdge(b, a)
         }
  */
-        println( s"Don't know what to do here: ${stmt}")
-        throwInternalError
+        throwInternalError( s"Don't know what to do here: ${stmt}")
       case Connect(_, loc, expr) =>
         // This match enforces the low Firrtl requirement of expanded connections
         val node = getDeps("lhs")(loc) match { case Seq(elt) => elt }
 // only one loc; zero (constant) or one expr
         getDeps("rhs")(expr).foreach{ ref =>
+          depGraph.addVertex(node)
+          depGraph.addVertex(ref)
           depGraph.addEdge(node, ref)
         }
 
@@ -219,13 +222,13 @@ class ReportTiming( val area_timing : Boolean = false,
       case Stop(_,_, clk, en) => // do nothing
       case Print(_, _, args, clk, en) => // do nothing
       case ignore @ (_: IsInvalid | _: WDefInstance | EmptyStmt) => // do nothing
-      case other => throwInternalError
+      case other => throwInternalError("")
     }
 
     // Add all ports as vertices
     mod.ports.foreach {
       case Port(_, name, _, _: GroundType) => depGraph.addVertex(LogicNode(mod.name, name))
-      case other => throwInternalError
+      case other => throwInternalError("")
     }
 
     mod match {
@@ -242,7 +245,7 @@ class ReportTiming( val area_timing : Boolean = false,
     m match {
       case mod : Module => setupDepGraph(regs, mems, depGraph)(mod)
       case mod : ExtModule => setupDepGraph(regs, mems, depGraph)(mod)
-      case _ => throwInternalError
+      case _ => throwInternalError("")
     }
     DiGraph( depGraph)
   }

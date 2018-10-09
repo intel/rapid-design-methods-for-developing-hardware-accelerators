@@ -38,6 +38,7 @@ class SlowDecoupledAdder extends Module {
     busy         := true.B
     wait_counter := 0.U
   }
+  io.out.bits.c := DontCare
   when(busy) {
     when(wait_counter > delay_value.asUInt) {
       io.out.bits.c := a_reg + b_reg

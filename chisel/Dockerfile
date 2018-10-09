@@ -13,7 +13,7 @@ RUN \
 
 FROM withverilator as chisel3
 
-ENV SBT_VERSION 0.13.16
+ENV SBT_VERSION 1.1.1
 
 RUN \
   curl -L -o sbt-$SBT_VERSION.deb http://dl.bintray.com/sbt/debian/sbt-$SBT_VERSION.deb && \
@@ -29,19 +29,20 @@ RUN \
 WORKDIR /hld/chisel
 
 RUN \
-  git clone https://github.com/ucb-bar/chisel3.git && \
-  git clone https://github.com/ucb-bar/firrtl.git && \
-  git clone https://github.com/ucb-bar/firrtl-interpreter.git && \
-  git clone https://github.com/ucb-bar/chisel-testers.git && \
-  (cd firrtl; git checkout 3dd921f38f298c7c4aa338e14ac43bc77c652e8c) && \
-  (cd chisel3; git checkout 8168a8eea6c3465966081c5acd0347e09791361c) && \
-  (cd firrtl-interpreter; git checkout b99bad1cc841b525516823fee870b3837a430c88) && \
-  (cd chisel-testers; git checkout f1f2645690de370063af01f86c5fe6e49a462f3b) && \
-  apt-get -y install tcsh && \
-  ./modifyVersion.csh && \
+  git clone https://github.com/freechipsproject/chisel3.git && \
+  git clone https://github.com/freechipsproject/firrtl.git && \
+  git clone https://github.com/freechipsproject/firrtl-interpreter.git && \
+  git clone https://github.com/freechipsproject/chisel-testers.git && \
+  git clone https://github.com/freechipsproject/treadle.git && \
+  (cd firrtl; git checkout ed709571876b68e4982d11db15d236752713b6a1) && \
+  (cd chisel3; git checkout 822a256891ef7aeb6e79aa7aeb569a152e5e37d4) && \
+  (cd firrtl-interpreter; git checkout de2302f4fe7e61638e5a7e5d6aa6bbf73a59473c) && \
+  (cd treadle; git checkout 5e2678da19b7613ad767df4514797207d26700fe) && \
+  (cd chisel-testers; git checkout 5bbe52cdac7fa304a7d2aef75e82bac753971437) && \
   (cd firrtl; sbt assembly publishLocal) && \
   (cd chisel3; sbt publishLocal) && \
   (cd firrtl-interpreter; sbt publishLocal) && \
+  (cd treadle; sbt publishLocal) && \
   (cd chisel-testers; sbt publishLocal)
 
 FROM chisel3 as hldchisel

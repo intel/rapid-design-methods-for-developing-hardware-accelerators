@@ -389,13 +389,15 @@ class PipeRetimePass (info : Seq[PipeInsertInfo]) extends Pass {
   def topoSort(edges: List[((NetlistNode, NetlistNode), Int)]): List[((NetlistNode, NetlistNode), Int)] = {
     val g = new MutableDiGraph[NetlistNode]
     val map = edges.map { case ((n1,n2), w) =>
+      g.addVertex(n1)
+      g.addVertex(n2)
       g.addEdge(n1, n2)
     }
     val edgeMap = edges.toMap 
     try {
       DiGraph(g).linearize.flatMap{n => g.getEdges(n).map(out => (n,out)->edgeMap((n,out)))}.toList
     } catch {
-      case c: firrtl.graph.DiGraph$CyclicException => 
+      case c: firrtl.graph.CyclicException => 
         println("Cyclic graph for edge creation/deletion. Cannot topo sort it")
         edges
     } 
@@ -411,6 +413,7 @@ class PipeRetimePass (info : Seq[PipeInsertInfo]) extends Pass {
       retimingWeights += (superNode,vtx)->0    
 
       wdGraph.getEdges(vtx).foreach {toVtx =>
+        retGraph.addVertex(toVtx)
         retGraph.addEdge(toVtx, vtx)
         // add weights for all existing edges
         retimingWeights += (toVtx,vtx)->W((vtx,toVtx))
@@ -422,6 +425,7 @@ class PipeRetimePass (info : Seq[PipeInsertInfo]) extends Pass {
           if (dist > clockCycle) {
             val weight = W((vtx,toVtx))
             //println (s"add negative path edge: $toVtx -> $vtx dist = $dist weight = $weight")
+            retGraph.addVertex(toVtx)
             retGraph.addEdge(toVtx, vtx)
             retimingWeights += (toVtx,vtx)->(weight - 1)
           } 

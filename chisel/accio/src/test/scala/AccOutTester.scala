@@ -21,6 +21,15 @@ class TopAccOut extends Module {
   //val reqQ = Module (new DecoupledStage(mockmem.io.mem_wr_in.bits))
   val respQ = Module (new Queue(mockmem.io.mem_wr_out.bits.cloneType, 2))
   
+  mockmem.io.mem_rd_out.ready := DontCare
+  mockmem.io.mem_rd_in.valid := DontCare
+  mockmem.io.mem_rd_in.bits := DontCare
+
+  reqQ.io.enq.bits := DontCare
+  reqQ.io.enq.valid := DontCare
+  reqQ.io.deq.ready := DontCare
+  reqQ.io.deq.ready := DontCare
+
   //printf("mem req in top reqQ.io.enq (v/r) %d/%d addr - %d data - %x - widths %d\n", reqQ.io.enq.valid,reqQ.io.enq.ready,reqQ.io.enq.bits.addr, reqQ.io.enq.bits.data, reqQ.io.enq.bits.getWidth.U)  
   //printf("mem req in top reqQ.io.deq (v/r) %d/%d addr - %d data - %x - widths %d\n", reqQ.io.deq.valid,reqQ.io.deq.ready,reqQ.io.deq.bits.addr, reqQ.io.deq.bits.data, reqQ.io.deq.bits.getWidth.U)  
   

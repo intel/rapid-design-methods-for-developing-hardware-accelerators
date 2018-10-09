@@ -29,7 +29,7 @@ class TypeRepacker[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends Module 
     val flush = Input(Bool())
     val cnt = Output(UInt((in2width / in1width).W))
   })
-
+  io.cnt := DontCare
 
   //println("TypeRepacker: in1, in2 widths: ", in1width, in2width) 
   if (in1width == in2width) {
@@ -77,6 +77,7 @@ class TypeRepacker[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends Module 
 
     io.in.nodeq()
     io.out.noenq()
+
     when (io.out.ready && (remainNum === ratio.U || (remainNum != 0.U && io.flush))) {
       io.out.enq(io.out.bits.fromBits(outAsT1.asUInt))
       io.cnt := remainNum
@@ -167,6 +168,8 @@ class TypeRepackerVec[T1 <: Data, T2<: Data] (gen1 : T1, rate1 : Int, gen2 : T2,
   
   val tr = Module(new TypeRepacker(Vec(rate1,gen1), Vec(rate2, gen2)))
   
+  tr.io.flush := DontCare
+
   tr.io.in.valid <> io.in.valid
   tr.io.in.ready <> io.in.ready
   tr.io.in.bits := tr.io.in.bits.fromBits(io.in.bits.asUInt())

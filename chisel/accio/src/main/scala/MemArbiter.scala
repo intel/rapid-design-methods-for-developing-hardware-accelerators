@@ -132,6 +132,21 @@ object ReadMemArbiter  {
     
     (rdArb.io.req_out,rdArb.io.resp_in) 
   }
+  
+  def apply(accins: Seq[(DecoupledIO[MemRdReq], DecoupledIO[MemRdResp])], maxBufSize: Int)(implicit params : AccParams) = {
+    val steerBit = log2Ceil(maxBufSize)
+    val rdArb = Module(new MemArbiter(new MemRdReq, new MemRdResp, accins.length, steerBit))
+    assert(steerBit+log2Ceil(accins.size) < rdArb.arbiter.dataWithTag.tag.getWidth)
+    
+    
+    accins.zipWithIndex.foreach { case(accin, ind) => { 
+      accin._1 <> rdArb.io.req_in(ind)
+      accin._2 <> rdArb.io.resp_out(ind)
+    }}
+    
+    (rdArb.io.req_out,rdArb.io.resp_in) 
+   
+  }
 }
 
 object WriteMemArbiter  {

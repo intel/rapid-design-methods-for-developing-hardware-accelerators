@@ -57,6 +57,8 @@ class MemCtrl()(implicit params : AccParams) extends Module {
 	val conf = Reg(new Config)
 	val initState = RegInit(init = true.B)
 
+  io.config.nodeq
+
 	io.acc_rd_req.noenq
   io.acc_wr_req.noenq
   
@@ -336,7 +338,7 @@ class ShiftRegisterPipeReg[T<:Data] (gen : T, N : Int, stage_in_front : Boolean 
 
 object ShiftRegisterPipeReg {
   def apply[T<:Data](in : DecoupledIO[T], N: Int, stage_in_front : Boolean = false) = {
-    val srp = Module(new ShiftRegisterPipeReg(in.bits, N))
+    val srp = Module(new ShiftRegisterPipeReg(in.bits.cloneType, N))
     srp.io.in <> in
     srp.io.out
   }

@@ -96,7 +96,7 @@ class HldAcceleratorMultiPortIO[T<:Data](conf: T, val numReadPorts: Int, val num
 // produces the right interface and connections for RTL integration with HLD FPGA methodology 
 class HldAcceleratorMultiPortWrapper[T<:Data] (dutGen: ()=>HldAcceleratorMultiPortIO[T], name: String = "HldAcceleratorMultiPortWrapper") extends Module {
   import HldAccParams._
-
+  val LDTagWidth = 9// equivalent to SplTag type field in SystemC
   val mod = Module(dutGen())
 
   val io = IO(new Bundle{

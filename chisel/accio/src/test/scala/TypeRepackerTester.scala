@@ -36,8 +36,6 @@ class VecToBits[T <: Data](gen : T, N : Int) extends Module {
   
   val WIDTH = gen.getWidth
  
-  val out = Wire(UInt((N*gen.getWidth).W))
-  
   io.out.bits := io.in.bits.asUInt
   
   //printf("VecToBits %d converted to %d (valid=%d, %d)\n", io.in.bits(0).asUInt, io.out.bits, io.in.valid, io.out.valid)
@@ -70,6 +68,8 @@ class Top[T1 <: Data, T2<: Data] (vgen1 : T1, vgen2 : T2) extends TopIf(vgen1, v
 
 class TopSimple[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends TopIf(gen1, gen2) {
   val dut = Module (new TypeRepacker(gen1, gen2))  
+
+  dut.io.flush := DontCare
 
   dut.io.in.valid := io.in_flat.valid
   dut.io.in.ready <> io.in_flat.ready

@@ -227,6 +227,7 @@ class ValidToken [T<:Data](gen : T) extends Bundle {
   
   def reset() = {
     valid := false.B
+    token := DontCare
   }
   
   def set(t : T) = {

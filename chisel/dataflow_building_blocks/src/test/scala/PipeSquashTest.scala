@@ -1,4 +1,5 @@
 // See LICENSE for license details.
+
 package dataflow
 
 import chisel3._
@@ -93,14 +94,14 @@ class PipeWithSquashSimple(gen : UInt) extends PipeWithSquashIO(gen) {
 }
 
 class TopPipeSquash(dut_factory : () => PipeWithSquashIO) extends Module {
-  val gen = Module(dut_factory())
-  val io = IO(new Bundle {
-    val in  = Flipped(Decoupled( gen.io.in.bits.cloneType ) )
-    val out  = Decoupled( gen.io.out.bits.cloneType ) 
-  })
-
   val pipe1 = Module(dut_factory())
   val pipe2 = Module(dut_factory())
+
+// pipe1 or pipe2 below => from same dut_factory
+  val io = IO(new Bundle {
+    val in  = Flipped(Decoupled( pipe1.io.in.bits.cloneType ) )
+    val out  = Decoupled( pipe1.io.out.bits.cloneType ) 
+  })
   
   pipe1.io.in <> io.in
   pipe2.io.in <> DecoupledStage(pipe1.io.out)
