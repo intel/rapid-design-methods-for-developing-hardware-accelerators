@@ -30,9 +30,11 @@ class HldAcceleratorIO[T<:Data](conf: T)(implicit params: AccParams) extends Mod
 
 // produces the right interface and connections for RTL integration with HLD FPGA methodology 
 class HldAcceleratorWrapper[T<:Data] (dutGen: ()=>HldAcceleratorIO[T]) extends Module {
+  val maxULLsInConfig = 9
+  val maxBitsInConfig = maxULLsInConfig*64
   import HldAccParams._
   val io = IO(new Bundle{
-    val config = Input(UInt(320.W))
+    val config = Input(UInt(maxBitsInConfig.W))
     val start = Input(Bool())
     val done = Output(Bool())
   
@@ -44,7 +46,7 @@ class HldAcceleratorWrapper[T<:Data] (dutGen: ()=>HldAcceleratorIO[T]) extends M
   
   val mod = Module(dutGen())
   
-  require (mod.io.config.getWidth.toInt <= 320, s"Config width should be under 320 bits but ${mod.io.config.getWidth.toInt} is detected")
+  require (mod.io.config.getWidth.toInt <= maxBitsInConfig, s"Config width should be under ${maxBitsInConfig} bits but ${mod.io.config.getWidth.toInt} is detected")
   require (mod.io.mem_rd_req.bits.getWidth == (new MemRdReq).getWidth, s"mod.io.mem_rd_req.getWidth = ${mod.io.mem_rd_req.getWidth} not equal to ${(new MemRdReq).getWidth}")
   require (mod.io.mem_wr_req.bits.getWidth == (new MemWrReq).getWidth)
   require (mod.io.mem_rd_resp.bits.getWidth == (new MemRdResp).getWidth)

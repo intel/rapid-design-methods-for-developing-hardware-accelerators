@@ -1,0 +1,13 @@
+DVEfiles/
+target/
+project/target/
+*~
+*.vcd
+*.v
+*.anno
+*.fir
+LOG
+*.log
+*.vpd
+test_run_dir/
+ucli.key
