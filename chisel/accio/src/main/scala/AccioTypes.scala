@@ -283,7 +283,7 @@ class MemRdReqGenSingle[T<:Data, CONFT<:Data] (confGen: CONFT, genFunc: (CONFT) 
   
   val isSent = RegInit(init = false.B)
   
-  io.req.valid := false.B
+  io.req.noenq
   when (io.start) {
     io.req.valid := !isSent 
     isSent := isSent || io.req.ready
@@ -330,7 +330,7 @@ class MemWrReqGenSingle[T<:Data, CONFT<:Data] (confGen: CONFT, genFunc: (CONFT) 
   
   val isSent = RegInit(init = false.B)
   
-  io.req.valid := false.B
+  io.req.noenq
   when (io.start) {
     io.req.valid := !isSent
     isSent := io.req.ready
