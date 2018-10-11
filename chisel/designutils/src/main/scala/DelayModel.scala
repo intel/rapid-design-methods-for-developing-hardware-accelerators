@@ -36,7 +36,7 @@ class DelayModel[T <: Data] (gen : T, lat: Int, ii : Int) extends Module {
 
 object DelayModel {
   def apply[T <: Data](in: DecoupledIO[T], lat: Int, ii : Int): DecoupledIO[T] = {
-    val dm = Module(new DelayModel(in.bits, lat, ii))
+    val dm = Module(new DelayModel(in.bits.cloneType, lat, ii))
     dm.io.in <> in
     dm.io.out
   }
