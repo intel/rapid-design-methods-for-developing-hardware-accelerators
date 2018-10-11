@@ -24,6 +24,9 @@ RUN \
   sbt sbtVersion
 
 RUN \
+  apt-get install graphviz
+
+RUN \
   git clone https://github.com/intel/rapid-design-methods-for-developing-hardware-accelerators.git hld
 
 WORKDIR /hld/chisel
