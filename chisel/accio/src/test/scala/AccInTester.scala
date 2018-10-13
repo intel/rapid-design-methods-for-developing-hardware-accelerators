@@ -312,7 +312,7 @@ class AccInTester extends ChiselFlatSpec {
 
 class AccInWithMemSimTester extends ChiselFlatSpec {
   "AccInWithMemSimTester" should "compile and run without incident" in {
-    chisel3.iotesters.Driver(() => new AccInReg(6),"vcs") { c =>
+    chisel3.iotesters.Driver(() => new AccInReg(6),"verilator") { c =>
       new AccInWithMemSimTest(c)
     } should be(true)
   }
