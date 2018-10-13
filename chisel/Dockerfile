@@ -53,6 +53,7 @@ FROM chisel3 as hldchisel
 WORKDIR /hld/chisel
 
 RUN \
+  git pull && \
   (cd reporters; sbt publishLocal) && \
   (cd testutil; sbt publishLocal) && \
   (cd pipe_insert_transform; sbt publishLocal) && \
