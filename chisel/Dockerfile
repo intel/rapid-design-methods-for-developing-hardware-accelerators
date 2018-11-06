@@ -24,6 +24,9 @@ RUN \
   sbt sbtVersion
 
 RUN \
+  apt-get -y install graphviz
+
+RUN \
   git clone https://github.com/intel/rapid-design-methods-for-developing-hardware-accelerators.git hld
 
 WORKDIR /hld/chisel
@@ -50,6 +53,7 @@ FROM chisel3 as hldchisel
 WORKDIR /hld/chisel
 
 RUN \
+  git pull && \
   (cd reporters; sbt publishLocal) && \
   (cd testutil; sbt publishLocal) && \
   (cd pipe_insert_transform; sbt publishLocal) && \
