@@ -360,7 +360,7 @@
            td.appendChild( document.createTextNode( line.op));
          }
          if ( line.hasOwnProperty( "info")) {
-           let pattern = /^ @\[(\S+)\s+(\d+):(\d+):.*\]$/;
+           let pattern = /^ @\[(\S+)\s+(\d+):(\d+).*\]$/;
            let match = pattern.exec( line.info);
            if ( match) {
               let fn   =  match[1];

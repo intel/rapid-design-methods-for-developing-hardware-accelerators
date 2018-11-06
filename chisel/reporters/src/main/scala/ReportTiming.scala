@@ -1127,7 +1127,7 @@ class ReportTiming( val area_timing : Boolean = false,
 
       import java.nio.file.{ Files, FileSystems, Path}
       def findFile( basename : String) : Option[Path] = {
-        val paths = List( "src/main/scala", "../designutils/src/main/scala", "../dataflow_building_blocks/src/main/scala", "../accio/src/main/scala", "../../chisel/local_src/chisel3/src/main/scala/chisel3/util")
+        val paths = List( "src/main/scala", "../designutils/src/main/scala", "../dataflow_building_blocks/src/main/scala", "../accio/src/main/scala", "../chisel3/src/main/scala/chisel3/util")
 
         val defaultFS = FileSystems.getDefault()
         val separator = defaultFS.getSeparator()
