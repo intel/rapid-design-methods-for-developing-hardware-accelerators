@@ -11,8 +11,8 @@ object Helper {
     val onehot = for ( i <- 0 until n) yield {
       val s = (0 until k) map ( j => indices(j) === (((1<<j)&i) != 0).B)
 //      val s = (0 until k) map ( j => if (((1<<j)&i) != 0) indices(j) else !indices(j))
-//      VecInit((s ++ validOpt).toIndexedSeq).asUInt.andR
-      VecInit((s ++ validOpt).toIndexedSeq).reduce{_&&_}
+      VecInit((s ++ validOpt).toIndexedSeq).asUInt.andR
+//      VecInit((s ++ validOpt).toIndexedSeq).reduce{_&&_}
     }
     onehot
   }
