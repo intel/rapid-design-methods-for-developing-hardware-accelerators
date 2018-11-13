@@ -1,4 +1,3 @@
-// See LICENSE for license details.
 package reporters
 
 import collection.mutable
@@ -32,9 +31,7 @@ object ComputeArea {
     case AreaOp( "add", List(w0,w1), w, 0) => w*(cMaj+2*cXor)
     case AreaOp( "add", List(w0,w1), w, 1) => w*(cNand( 2)+cXor)
     case AreaOp( "add", List(w0,w1), w, 2) => 0
-    case AreaOp( "sub", List(w0,w1), w, 0) => w*(cMaj+2*cXor)
-    case AreaOp( "sub", List(w0,w1), w, 1) => w*(cNand( 2)+cXor)
-    case AreaOp( "sub", List(w0,w1), w, 2) => 0
+    case AreaOp( "sub", List(w0,w1), w, c) => apply( AreaOp( "add", List(w0,w1), w, c), tbl)
     case AreaOp( op, List(w0), w, c) if List("shl","shr","shlw").contains( op) => 0
     case AreaOp( "dshl", List(w0,w1), w, 0) => cMux4*w0*((w1+1)/2)
     case AreaOp( "dshlw", List(w0,w1), w, 0) => cMux4*w0*((w1+1)/2)
@@ -49,7 +46,7 @@ object ComputeArea {
     case AreaOp( "not", List(w0), w, c) => 0
     case AreaOp( "neq", List(w0,w1), w, c) => apply( AreaOp( "eq", List(w0,w1), w, c), tbl)
     case AreaOp( "eq", List(w0,w1), w, 0) => w0*cXor+cNand(w0)
-    case AreaOp( "eq", inpSizes@List(w0,w1), w, 1) => apply( AreaOp( "and", inpSizes, w0, 0),tbl)
+    case AreaOp( "eq", inpSizes@List(w0,w1), w, 1) => apply( AreaOp( "and", List.fill(w0.max(w1)){w}, w, 0),tbl)
     case AreaOp( "eq", List(w0,w1), w, 2) => 0
     case AreaOp( "mul", List(w0,w1), w, 0) => w0*apply(AreaOp("add", List(w1,w), w, 0),tbl)+apply( AreaOp( "add", List(w,w), w, 0),tbl)
     case AreaOp( "mul", List(w0,w1), w, 1) => 0 // only if constant a power of 2 

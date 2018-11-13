@@ -1,4 +1,3 @@
-// See LICENSE for license details.
 package reporters
 
 import scala.annotation.tailrec
@@ -82,6 +81,8 @@ class ReportTiming( val area_timing : Boolean = false,
                              mems : mutable.Set[DefMemory],
                              depGraph: MutableDiGraph[LogicNode])
                            (mod: DefModule): Unit = {
+
+//    println( s"$mod")
 
     /** Extract all References and SubFields from a possibly nested Expression */
     def extractRefs(expr: Expression): Seq[Expression] = {
@@ -208,10 +209,12 @@ class ReportTiming( val area_timing : Boolean = false,
  */
         throwInternalError( s"Don't know what to do here: ${stmt}")
       case Connect(_, loc, expr) =>
+//        println( s"Connect: ${loc} ${expr}")
         // This match enforces the low Firrtl requirement of expanded connections
         val node = getDeps("lhs")(loc) match { case Seq(elt) => elt }
 // only one loc; zero (constant) or one expr
         getDeps("rhs")(expr).foreach{ ref =>
+//          println( s"ref: ${ref}")
           depGraph.addVertex(node)
           depGraph.addVertex(ref)
           depGraph.addEdge(node, ref)
@@ -309,7 +312,7 @@ class ReportTiming( val area_timing : Boolean = false,
             List((rhsNode0,extractWidth(tpe)))
           case UIntLiteral( lit, width) => List()
           case SIntLiteral( lit, width) => List()
-          case x@DoPrim( padOrBits, lst, _, _) /*if List("pad","bits","asSInt","asUInt").contains(s"$padOrBits") */ =>
+          case x@DoPrim( padOrBits, lst, _, _) if List("pad","bits","asSInt","asUInt").contains(s"$padOrBits") =>
 //            println( s"Recursive call: ${x}")
             inSignals( lst)
           case x@Mux( c, t, e, tpe) =>
@@ -320,29 +323,12 @@ class ReportTiming( val area_timing : Boolean = false,
             List()
         }
 
-      s match {
-        case _ : Block =>
-          s map constructTimingArcsStatement
-          ()
-        case Connect( info, lhsRef, rhsRef) =>
-//          println( s"$s")
-          lhsRef match {
-            case _: WRef | _: WSubField =>
-              val lhsNode = LogicNode( m.name, lhsRef)
-              val lhsNode0 = if ( regs.contains( lhsNode)) regs(lhsNode)._2 else lhsNode
-
-              for ( (rhsNode0,width) <- inSignals( List(rhsRef))) {
-                tas( ( rhsNode0, lhsNode0)) = (0,"connect",0,info)
-              }
-          }
-        case EmptyStmt =>
-        case _ : DefRegister => //println( s"$s")
-        case _ : DefWire => //println( s"$s")
-        case DefNode( info, lhs, rhs) =>
+      def doRHS( rhs:firrtl.ir.Expression) = {
           val (o,lstOfLsts,a) = rhs match {
             case Mux( cond, te, fe, tpe) =>
               ("mux",List(inSignals(List(cond)),inSignals(List(te,fe))), AreaMux( extractWidth(tpe), isConst(cond), isConst(te) + isConst(fe)))
             case DoPrim( op, inps, _, tpe) =>
+//              println( s"DoPrim match: ${op}")
               val opStr = s"${op}"
               val inpList = List()
 
@@ -417,12 +403,52 @@ class ReportTiming( val area_timing : Boolean = false,
               case "copy" => 0
               case "literal" => 0
               case "eq" | "neq" | "and" | "or" | "xor" | "xnor" =>
-                if ( widths == "((1))") 0 else 1
+//                println( s"${o} ${oo}  ${lstOfLsts}")
+                if ( lstOfLsts.isEmpty || lstOfLsts.head.length < 1)
+                  0
+                else if ( lstOfLsts.head.length < 2)
+                  chisel3.util.log2Floor( lstOfLsts.head.head._2)
+                else
+                  chisel3.util.log2Floor( lstOfLsts.head.head._2) + 1
               case _ => 
                 println(s"Unknown primitive ${o}. Assign delay to 1")
                 1
             }
           val area = ComputeArea( a, mutable.Map[String,Int]())
+          (area,delay,oo,lstOfLsts)
+
+      }
+      s match {
+        case _ : Block =>
+          s map constructTimingArcsStatement
+          ()
+        case Connect( info, lhsRef, rhsRef) =>
+//          println( s"$s: ${rhsRef}")
+//          println( s"$info")
+          lhsRef match {
+            case _: WRef | _: WSubField =>
+              val lhsNode = LogicNode( m.name, lhsRef)
+              val lhsNode0 = if ( regs.contains( lhsNode)) regs(lhsNode)._2 else lhsNode
+
+/*
+              for ( (rhsNode0,width) <- inSignals( List(rhsRef))) {
+//                println( s"${rhsNode0}")
+                tas( ( rhsNode0, lhsNode0)) = (0,"connect",0,info)
+              }
+ */
+              val (area,delay,oo,lstOfLsts) = doRHS( rhsRef)
+              for { lst <- lstOfLsts
+                    (f,width) <- lst} {
+//                println( s"${f} ${tgt} ${delay} ${oo}")
+                tas( (f,lhsNode0)) = (delay,oo,area,info)
+              }
+
+          }
+        case EmptyStmt =>
+        case _ : DefRegister => //println( s"$s")
+        case _ : DefWire => //println( s"$s")
+        case DefNode( info, lhs, rhs) =>
+          val (area,delay,oo,lstOfLsts) = doRHS( rhs)
           for { lst <- lstOfLsts
                 (f,width) <- lst} {
             val tgt = LogicNode(m.name,lhs)
@@ -769,6 +795,8 @@ class ReportTiming( val area_timing : Boolean = false,
     m.ports.foreach {
       case Port( _, name, Input, _: GroundType) => pis += name
       case Port( _, name, Output, _: GroundType) => pos += name
+      case Port( _, name, pt, g) =>
+        println( s"Warning: unknown point direction ${pt} ${g}")
     }
 
     val piSet = Set( (pis.map(LogicNode(m.name,_))): _*) - LogicNode(m.name,"clock")
