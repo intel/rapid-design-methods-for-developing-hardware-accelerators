@@ -51,11 +51,11 @@ class MockMemoryComb (clSize : Int = 128, mem_init_function: Option[UInt => UInt
     val out_p = cnt.value 
     
     //io.mem_rd_in.ready := io.mem_rd_out.ready
-    //io.mem_rd_in.ready := Wire(init = !io.mem_rd_in.valid || io.mem_rd_out.ready)
-    //io.mem_wr_in.ready := Wire(init = !io.mem_wr_in.valid ||  !(cnt.value % 4.U) && io.mem_wr_out.ready)
+    //io.mem_rd_in.ready := WireInit(init = !io.mem_rd_in.valid || io.mem_rd_out.ready)
+    //io.mem_wr_in.ready := WireInit(init = !io.mem_wr_in.valid ||  !(cnt.value % 4.U) && io.mem_wr_out.ready)
   
     when (!testPushBack.B || !(cnt.value % 3.U)) {
-      val w_mem_rd_req = Wire(init = io.mem_rd_in.bits)
+      val w_mem_rd_req = WireInit(init = io.mem_rd_in.bits)
       when (io.mem_rd_out.ready) {
         w_mem_rd_req := io.mem_rd_in.deq     //just setting ready to true (bits were taken before)
       }
@@ -66,7 +66,7 @@ class MockMemoryComb (clSize : Int = 128, mem_init_function: Option[UInt => UInt
     }
     
     when (!testPushBack.B || !(cnt.value % 4.U)) {
-      val w_mem_wr_in = Wire(init = io.mem_wr_in.bits)
+      val w_mem_wr_in = WireInit(init = io.mem_wr_in.bits)
       when (io.mem_wr_out.ready) {
         w_mem_wr_in := io.mem_wr_in.deq
       }

@@ -19,7 +19,7 @@ class FillableQueue [T <: Data] (gen: T, entries: Int, init_entries : Int, pipe:
   val fillStage = RegInit(init = init_entries.U) 
 
   
-  when (fillStage != 0.U) {
+  when (fillStage =/= 0.U) {
     fillStage := fillStage - 1.U
   }
 
@@ -28,7 +28,7 @@ class FillableQueue [T <: Data] (gen: T, entries: Int, init_entries : Int, pipe:
   io.count <> q.io.count
   
   io.enq.ready := Mux (fillStage === 0.U, q.io.enq.ready, false.B)
-  io.fenq.ready := Mux (fillStage != 0.U, q.io.enq.ready, false.B)
+  io.fenq.ready := Mux (fillStage =/= 0.U, q.io.enq.ready, false.B)
   
   q.io.enq.valid := Mux (fillStage === 0.U, io.enq.valid, io.fenq.valid)
   q.io.enq.bits := Mux (fillStage === 0.U, io.enq.bits, io.fenq.bits)

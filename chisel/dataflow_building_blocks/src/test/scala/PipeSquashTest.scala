@@ -29,8 +29,8 @@ class PipeWithSquash(gen : UInt) extends PipeWithSquashIO(gen) {
   io.out.noenq
   io.in.nodeq
   
-  val w_stage2ready = Wire(init = !stage2.valid)
-  val w_stage1ready = Wire(init = !stage1.valid)
+  val w_stage2ready = WireInit(init = !stage2.valid)
+  val w_stage1ready = WireInit(init = !stage1.valid)
   
   //we use anti-dependency coding style to model pipeline 
   
@@ -69,8 +69,8 @@ class PipeWithSquashSimple(gen : UInt) extends PipeWithSquashIO(gen) {
   io.out.noenq
   io.in.nodeq
   
-  val w_stage2ready = Wire(init = !stage2.valid)
-  val w_stage1ready = Wire(init = !stage1.valid)
+  val w_stage2ready = WireInit(init = !stage2.valid)
+  val w_stage1ready = WireInit(init = !stage1.valid)
   
   //we use anti-dependency coding style to model pipeline 
   

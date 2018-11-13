@@ -50,7 +50,7 @@ class TopSdf() extends Module {
   q1.io.fenq.valid <> io.in.valid
   io.in.ready <> q1.io.fenq.ready
   
-  q1.io.fenq.bits := q1.io.fenq.bits.fromBits(io.in.bits)
+  q1.io.fenq.bits := io.in.bits.asTypeOf(q1.io.fenq.bits)
 }
 
 

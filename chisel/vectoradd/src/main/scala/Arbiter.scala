@@ -15,7 +15,7 @@ import chisel3.internal.naming.chiselName  // can't use chisel3_ version because
   * @param gen data type
   * @param n number of inputs
   */
-class ArbiterIO[T <: Data](gen: T, n: Int) extends Bundle {
+class ArbiterIO[T <: Data](private val gen: T, val n: Int) extends Bundle {
   val in  = Flipped(Vec(n, Decoupled(gen)))
   val out = Decoupled(gen)
   val chosen = Output(UInt(log2Ceil(n).W))

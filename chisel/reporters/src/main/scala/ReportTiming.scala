@@ -153,23 +153,23 @@ class ReportTiming( val area_timing : Boolean = false,
         depGraph.addVertex(LogicNode(mod.name, name))
       case mem : DefMemory =>
         val nm = mem.name
-//        
-// Seems like we want this: 
+//
+// Seems like we want this:
 //    rType: clk, en, addr, data
 //      readLatency = 0
-//        en -> data 
+//        en -> data
 //        addr -> data
 //      readLatency > 0
 //        en -> clk
 //        addr -> clk
 //        clk -> data
 //
-//    wType: clk, en, addr, data, mask  
+//    wType: clk, en, addr, data, mask
 //      writeLatency > 0
-//        en -> clk   
-//        addr -> clk   
-//        data -> clk   
-//        mask -> clk   
+//        en -> clk
+//        addr -> clk
+//        data -> clk
+//        mask -> clk
 //
 //    rwType: clk, en, addr, rdata, wmode, wdata, wmask
 //
@@ -236,7 +236,7 @@ class ReportTiming( val area_timing : Boolean = false,
 
     mod match {
       case m : Module => onStmt(m.body)
-      case m : ExtModule => 
+      case m : ExtModule =>
     }
   }
 
@@ -263,7 +263,7 @@ class ReportTiming( val area_timing : Boolean = false,
         val nodePS = LogicNode( modName, s"${name}#ps")
         val nodeNS = LogicNode( modName, s"${name}#ns")
         regs(node) = (nodePS,nodeNS)
-      case _ => 
+      case _ =>
     }
     s
   }
@@ -274,7 +274,7 @@ class ReportTiming( val area_timing : Boolean = false,
     s map allMems( mems, modName)
     s match {
       case mem : DefMemory => mems += mem
-      case _ => 
+      case _ =>
     }
     s
   }
@@ -302,11 +302,11 @@ class ReportTiming( val area_timing : Boolean = false,
 
       def inSignals( inp : Seq[Expression]) : List[(LogicNode,Int)] =
         inp.toList flatMap {
-          case ref@WRef( nm, tpe, knd, gnrd) => 
+          case ref@WRef( nm, tpe, knd, gnrd) =>
             val rhsNode = LogicNode( m.name, ref)
             val rhsNode0 = if ( regs.contains( rhsNode)) regs(rhsNode)._1 else rhsNode
             List((rhsNode0,extractWidth(tpe)))
-          case sub@WSubField( ref, nm, tpe, gnrd) => 
+          case sub@WSubField( ref, nm, tpe, gnrd) =>
             val rhsNode = LogicNode( m.name, sub)
             val rhsNode0 = if ( regs.contains( rhsNode)) regs(rhsNode)._1 else rhsNode
             List((rhsNode0,extractWidth(tpe)))
@@ -356,7 +356,7 @@ class ReportTiming( val area_timing : Boolean = false,
               println( s"constructTimingArcs: DefNode Not Yet Implemented: ${rhs}")
               ("nyi",List(), AreaNone)
           }
-          
+
           val widths = (lstOfLsts.map { lst =>
             lst.map( _._2).mkString( "(", ",", ")")
           }).mkString( "(", ",", ")")
@@ -399,7 +399,7 @@ class ReportTiming( val area_timing : Boolean = false,
                   0
                 else
                   1
-              case "validif" => 0 
+              case "validif" => 0
               case "copy" => 0
               case "literal" => 0
               case "eq" | "neq" | "and" | "or" | "xor" | "xnor" =>
@@ -410,7 +410,7 @@ class ReportTiming( val area_timing : Boolean = false,
                   chisel3.util.log2Floor( lstOfLsts.head.head._2)
                 else
                   chisel3.util.log2Floor( lstOfLsts.head.head._2) + 1
-              case _ => 
+              case _ =>
                 println(s"Unknown primitive ${o}. Assign delay to 1")
                 1
             }
@@ -528,7 +528,7 @@ class ReportTiming( val area_timing : Boolean = false,
         val header = JsObject( "delay" -> JsNumber( arrivals(v).time.get),
           "source" -> JsString( trc.head),
           "sink" -> JsString( v))
-        
+
         val trace = mutable.ArrayBuffer[JsObject]()
         for { v <- trc} {
           val a = arrivals(v)
@@ -566,7 +566,7 @@ class ReportTiming( val area_timing : Boolean = false,
         val header = JsObject( "delay" -> JsNumber( requireds(u).time.get),
           "source" -> JsString( u),
           "sink" -> JsString( trc.head))
-        
+
         val trace = mutable.ArrayBuffer[JsObject]()
         for { u <- trc} {
           val r = requireds(u)
@@ -622,7 +622,7 @@ class ReportTiming( val area_timing : Boolean = false,
     val topoOrder = reverseDepGraph.linearize
     val arrivals = mutable.Map.empty[LogicNode,Arrival]
     aMap(m.name) = arrivals
-   
+
     def assignArrivals : Unit =
       for { v <- topoOrder} {
         for { u <- depGraph.getEdges( v)
@@ -725,7 +725,7 @@ class ReportTiming( val area_timing : Boolean = false,
         val header = JsObject( "delay" -> JsNumber( arrivals(v).time.get),
           "source" -> JsString( trc.head),
           "sink" -> JsString( v))
-        
+
         val trace = mutable.ArrayBuffer[JsObject]()
         for { v <- trc} {
           val a = arrivals(v)
@@ -792,7 +792,7 @@ class ReportTiming( val area_timing : Boolean = false,
 // collect PIs
     val pis = mutable.ArrayBuffer.empty[String]
     val pos = mutable.ArrayBuffer.empty[String]
-    m.ports.foreach {
+    m.ports.foreach { x => (x: @unchecked) match {
       case Port( _, name, Input, _: GroundType) => pis += name
       case Port( _, name, Output, _: GroundType) => pos += name
       case Port( _, name, pt, g) =>
@@ -1206,7 +1206,7 @@ class ReportTiming( val area_timing : Boolean = false,
             val fileContents = scala.io.Source.fromFile( "public/index.html").getLines.mkString("\n")
             Results.Ok( fileContents).as( "text/html")
           } catch {
-            case e : java.io.FileNotFoundException => 
+            case e : java.io.FileNotFoundException =>
               Results.NotFound
           }
         }
@@ -1215,7 +1215,7 @@ class ReportTiming( val area_timing : Boolean = false,
             val fileContents = scala.io.Source.fromFile( s"public/javascript/$file").getLines.mkString("\n")
             Results.Ok( fileContents).as( "text/javascript")
           } catch {
-            case e : java.io.FileNotFoundException => 
+            case e : java.io.FileNotFoundException =>
               Results.NotFound
           }
         }
@@ -1224,7 +1224,7 @@ class ReportTiming( val area_timing : Boolean = false,
             val fileContents = scala.io.Source.fromFile( s"public/css/$file").getLines.mkString("\n")
             Results.Ok( fileContents).as( "text/css")
           } catch {
-            case e : java.io.FileNotFoundException => 
+            case e : java.io.FileNotFoundException =>
               Results.NotFound
           }
         }

@@ -19,7 +19,7 @@ class DelayModel[T <: Data] (gen : T, lat: Int, ii : Int) extends Module {
   when(io.in.fire) {
     iiCnt := (ii - 1).U
   }.otherwise {
-    when(iiCnt != 0.U) {
+    when(iiCnt =/= 0.U) {
       iiCnt := iiCnt - 1.U
     }
   }
@@ -41,4 +41,3 @@ object DelayModel {
     dm.io.out
   }
 }
-
