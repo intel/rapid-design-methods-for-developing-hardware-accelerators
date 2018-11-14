@@ -368,7 +368,6 @@
               let pos  = +match[3];
               let txt = "filename: " + fn + " line: " + line + " pos: " + pos;
               td.addEventListener( clickOrMouseOver, function() {
-	         console.log( txt);
                  loadChiselSourceFile( fn, line, pos);
               });                              
 	      td.title = txt;
@@ -437,10 +436,6 @@
           trc = {};
        }
     }
-    compressed_path_trace.push( trc);
-    trc = {};
-// do this to experiment with uncompressed traces
-//    compressed_path_trace = path_trace;
 
     compressed_path_trace.forEach( function (line) {
        let tr = document.createElement( "TR");
@@ -451,7 +446,7 @@
            td.appendChild( document.createTextNode( line.op));
          }
          if ( line.hasOwnProperty( "info")) {
-           let pattern = /^ @\[(\S+)\s+(\d+):(\d+):.*\]$/;
+           let pattern = /^ @\[(\S+)\s+(\d+):(\d+).*\]$/;
            let match = pattern.exec( line.info);
            if ( match) {
               let fn   =  match[1];
@@ -459,7 +454,6 @@
               let pos  = +match[3];
               let txt = "filename: " + fn + " line: " + line + " pos: " + pos;
               td.addEventListener( clickOrMouseOver, function() {
-//                 console.log( txt);
                  loadChiselSourceFile( fn, line, pos);
               });                              
 	      td.title = txt;
