@@ -40,7 +40,7 @@ class VecAddNoConfig[T <: UInt](gen : T, vecLen : Int)(implicit params : AccPara
     })
     
     override def func = {
-      io.out.bits := VecInit.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) }
+      io.out.bits := VecInit(Seq.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) })
     }
   })
   val accin1 = Module (new AccIn(32))

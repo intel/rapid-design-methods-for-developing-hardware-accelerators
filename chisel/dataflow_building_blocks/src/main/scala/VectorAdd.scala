@@ -26,7 +26,7 @@ class VectorAdd[T <: UInt] (gen : T, vecSize : Int) extends SDFActor(1, 1) {
   })
     
   override def func = {
-    val add = VecInit.tabulate(vecSize) {i => io.in.bits(i%vecSize) + io.in.bits(vecSize + i%vecSize) }
+    val add = VecInit(Seq.tabulate(vecSize) {i => io.in.bits(i%vecSize) + io.in.bits(vecSize + i%vecSize) })
     io.out.bits := add
     printf("VectorAdd IN = "); io.in.bits.foreach {printf("%d ", _)}; printf("\n")
     printf("VectorAdd OUT = ");add.foreach {printf("%d ", _)};printf("\n")
@@ -43,7 +43,7 @@ class VectorAdd2[T <: UInt] (gen : T, vecSize : Int) extends SDFActor(2,1) {
     })
     
     override def func = {
-      io.out.bits := VecInit.tabulate(vecSize) {i => io.in1.bits(i) + io.in2.bits(i) }
+      io.out.bits := VecInit(Seq.tabulate(vecSize) {i => io.in1.bits(i) + io.in2.bits(i) })
     }
 }
 
@@ -123,7 +123,7 @@ class VecAddNoConfig[T <: UInt](gen : T, vecLen : Int)(implicit params : AccPara
     })
     
     override def func = {
-      io.out.bits := VecInit.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) }
+      io.out.bits := VecInit(Seq.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) })
     }
   })
   val accin1 = Module (new AccIn(32))
@@ -154,13 +154,13 @@ class VecAddMulDP[T <: UInt](gen : T, vecLen : Int)(implicit params : AccParams)
     })
     
     override def func = {
-      val add = VecInit.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) }
-      val mul1 = VecInit.tabulate(vecLen) {i => io.in1.bits(i) * add(i) }
-      val mul2 = VecInit.tabulate(vecLen) {i => io.in2.bits(i) * add(i) }
-      val add2 = VecInit.tabulate(vecLen) {i => mul1(i) + mul2(i) }
-      val mul3 = VecInit.tabulate(vecLen) {i => mul1(i) * add2(i) }
-      val mul4 = VecInit.tabulate(vecLen) {i => mul2(i) * add2(i) }
-      val add3 = VecInit.tabulate(vecLen) {i => mul3(i) + mul4(i) }
+      val add = VecInit(Seq.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) })
+      val mul1 = VecInit(Seq.tabulate(vecLen) {i => io.in1.bits(i) * add(i) })
+      val mul2 = VecInit(Seq.tabulate(vecLen) {i => io.in2.bits(i) * add(i) })
+      val add2 = VecInit(Seq.tabulate(vecLen) {i => mul1(i) + mul2(i) })
+      val mul3 = VecInit(Seq.tabulate(vecLen) {i => mul1(i) * add2(i) })
+      val mul4 = VecInit(Seq.tabulate(vecLen) {i => mul2(i) * add2(i) })
+      val add3 = VecInit(Seq.tabulate(vecLen) {i => mul3(i) + mul4(i) })
       io.out.bits := add3
     }
 }
@@ -221,7 +221,7 @@ class VecAddNoConfigPpt[T <: UInt](val gen : T, val vecLen : Int)(implicit param
       val out = Out(Vec(vecLen, gen), 1) 
     })
     override def func = {
-      io.out.bits := VecInit.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) }
+      io.out.bits := VecInit(Seq.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) })
     }
   })
   val accin1 = Module (new AccIn(32))

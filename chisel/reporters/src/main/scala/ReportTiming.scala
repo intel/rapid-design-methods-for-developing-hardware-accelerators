@@ -792,7 +792,7 @@ class ReportTiming( val area_timing : Boolean = false,
 // collect PIs
     val pis = mutable.ArrayBuffer.empty[String]
     val pos = mutable.ArrayBuffer.empty[String]
-    m.ports.foreach { x => (x: @unchecked) match {
+    m.ports.foreach {
       case Port( _, name, Input, _: GroundType) => pis += name
       case Port( _, name, Output, _: GroundType) => pos += name
       case Port( _, name, pt, g) =>

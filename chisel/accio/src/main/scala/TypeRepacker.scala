@@ -52,7 +52,7 @@ class TypeRepacker[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends Module 
       val outData = inAsT2(ratio.U - remainNum)
       remainNum := remainNum - 1.U 
       
-      io.out.enq(outData.asUInt.asTypeOf(io.out.bits))
+      io.out.enq(outData.asTypeOf(io.out.bits))
       // last output, can read a new input
       when (remainNum === 1.U) {
         w_finish := true.B

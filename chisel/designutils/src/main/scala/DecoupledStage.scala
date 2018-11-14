@@ -39,7 +39,7 @@ object DecoupledStageInv {
   def apply[T <: Data](enq: DecoupledIO[T]): DecoupledIO[T]  = {
     val q = Module(new DecoupledStage(enq.bits.cloneType))
     q.io.inp.valid := enq.valid // not using <> so that override is allowed
-    q.io.inp.bits := (~enq.bits.asUInt).asTypeOf(q.io.inp.bits)
+    q.io.inp.bits := (~enq.bits).asTypeOf(q.io.inp.bits)
     enq.ready := q.io.inp.ready
     q.io.out
   }
