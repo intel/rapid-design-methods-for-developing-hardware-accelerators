@@ -1273,6 +1273,15 @@ class InlineAnd( t : Transform) extends LowFormSeqTransform {
   def transforms = Seq( new InlineAllModules, t)
 }
 
+class OptInlineAnd( t : Transform) extends LowFormSeqTransform {
+  def transforms = Seq( new LowFirrtlOptimization, new InlineAllModules, t)
+}
+
+class OptAnd( t : Transform) extends LowFormSeqTransform {
+  def transforms = Seq( new LowFirrtlOptimization, t)
+}
+
+
 class InlineAndReportTiming extends InlineAnd( new ReportTiming)
 class InlineAndReportTimingServer extends InlineAnd( new ReportTimingServer)
 class InlineAndReportTimingFull extends InlineAnd( new ReportTimingFull)
@@ -1285,4 +1294,20 @@ class InlineAndReportArea extends InlineAnd( new ReportArea)
 
 class ReportAreaThenInlineAndReportTiming extends LowFormSeqTransform {
   def transforms = Seq( new ReportArea, new InlineAndReportTiming)
+}
+
+class OptInlineAndReportTiming extends OptInlineAnd( new ReportTiming)
+class OptInlineAndReportTimingServer extends OptInlineAnd( new ReportTimingServer)
+class OptInlineAndReportTimingFull extends OptInlineAnd( new ReportTimingFull)
+class OptInlineAndReportTimingCompact extends OptInlineAnd( new ReportTimingCompact)
+class OptInlineAndReportTimingInterfacePaths extends OptInlineAnd( new ReportTimingInterfacePaths)
+class OptInlineAndReportTimingInterfacePathsCompact extends OptInlineAnd( new ReportTimingInterfacePathsCompact)
+class OptInlineAndReportAreaTimingTradeoff extends OptInlineAnd( new ReportAreaTimingTradeoff)
+
+class OptInlineAndReportArea extends OptInlineAnd( new ReportArea)
+
+class OptAndReportArea extends OptAnd( new ReportArea)
+
+class OptReportAreaThenInlineAndReportTiming extends LowFormSeqTransform {
+  def transforms = Seq( new OptAndReportArea, new OptInlineAndReportTiming)
 }

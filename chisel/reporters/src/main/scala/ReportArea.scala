@@ -14,6 +14,12 @@ import spray.json._
 import DefaultJsonProtocol._
 import java.io._
 
+import firrtl.annotations.NoTargetAnnotation
+
+case class AreaAnnotation( val area : Int) extends NoTargetAnnotation {
+  def value: String = s"${area}"
+}
+
 class Ledger {
 
   private var moduleName: Option[String] = None
@@ -32,13 +38,14 @@ class Ledger {
     moduleOpMap(myName) = moduleOpMap.getOrElse( myName, mutable.Map())
     moduleName = Some(myName)
   }
-  def report() : Unit = {
+  def report() : Int = {
     val arcs = for { (tgt,m) <- moduleOpMap
                      (AreaModule(src,_),_) <- m
     } yield (src,tgt)
 
     val tbl = mutable.Map[String,Int]()
-    for{ nm <- TopoSort( moduleOpMap.keys.toSeq, arcs.toSeq)} {
+    val ts = TopoSort( moduleOpMap.keys.toSeq, arcs.toSeq)
+    for{ nm <- ts} {
       val area = ComputeArea(moduleOpMap(nm),tbl)
       val areas = for{ (k,v) <- moduleOpMap(nm)} yield (s"$k", v, ComputeArea(k,tbl))
 
@@ -59,6 +66,7 @@ class Ledger {
 
       tbl(nm) = area
     }
+    tbl(ts.last)
   }
 
   def reportJson( circuit : Circuit, fn : String) : Unit = {
@@ -116,10 +124,10 @@ class ReportArea extends Transform {
     val ledger = new Ledger()
     val circuit = state.circuit
     circuit map walkModule(ledger)
-    ledger.report
+    val area = ledger.report
     ledger.reportJson( circuit, "areas.json")
 
-    state
+    state.copy( annotations = state.annotations ++ Seq(AreaAnnotation( area)))
   }
 
   def walkModule(ledger: Ledger)(m: DefModule): DefModule = {
