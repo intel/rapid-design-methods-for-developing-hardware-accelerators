@@ -1,0 +1,5 @@
+*.o
+*.d
+*~
+trws_part
+tbb/
