@@ -15,5 +15,9 @@ CFLAGS += -DNUM_OF_THREADS=$(NUM_OF_THREADS)
 endif
 
 
-LDFLAGS=-L ../tbb/build/linux_intel64_gcc_cc4.8.3_libc2.11.3_kernel3.0.101_release -ltbb -lrt
+LDFLAGS = 
+ifdef USE_TBB
+LDFLAGS += -L ../tbb/build/linux_intel64_gcc_cc4.8.3_libc2.11.3_kernel3.0.101_release -ltbb -lrt
+endif
+
 include $(HLD_ROOT)/common/Makefile.inc
