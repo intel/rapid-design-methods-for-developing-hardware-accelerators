@@ -1,0 +1,450 @@
+// See LICENSE for license details.
+
+#include <x86intrin.h>
+#include <immintrin.h>
+
+#include "AcclApp.h"
+typedef unsigned long long UInt64;
+#include "Config.h"
+#include <cassert>
+
+#include <string.h>
+#include <iostream>
+
+#ifdef USE_TBB
+#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
+#include <tbb/tick_count.h>
+#include <tbb/task_scheduler_init.h>
+#endif
+
+#include <type_traits>
+
+typedef union 
+{
+  __m128i m;
+  char b[16];
+  unsigned char ub[16];
+  short s[8];
+  unsigned short us[8];
+  int i[4];
+  unsigned int ui[4];
+  std::aligned_storage<16,16> alignment_only;
+} m128iVector;
+
+typedef union 
+{
+  __m256i m;
+  char b[32];
+  unsigned char ub[32];
+  short s[16];
+  unsigned short us[16];
+  int i[8];
+  unsigned int ui[8];
+  std::aligned_storage<32,32> alignment_only;
+} m256iVector;
+
+//#define NOMMX
+//#define AVX2
+
+static const m256iVector shuffle_mask = { .ub={  0,   1,   4,   5,
+                                                 8,   9,  12,  13, 
+                                               128, 128, 128, 128,
+                                               128, 128, 128, 128,
+                                                16,  17,  20,  21, 
+						24,  25,  28,  29,
+                                               128, 128, 128, 128,
+                                               128, 128, 128, 128}};
+
+static const unsigned short threshold = 204;
+static const unsigned short bias = 1<<15;
+
+#ifndef AVX2
+static const m128iVector thresholdthreshold = { .us={ threshold, threshold,
+                                                    threshold, threshold,
+                                                    threshold, threshold,
+                                                    threshold, threshold}};
+static const m128iVector biasbias = { .us={ bias, bias,
+					    bias, bias,
+					    bias, bias,
+					    bias, bias}};
+#else
+static const m256iVector thresholdthreshold = { .us={ threshold, threshold,
+                                                      threshold, threshold,
+						      threshold, threshold,
+                                                      threshold, threshold,
+						      threshold, threshold,
+                                                      threshold, threshold,
+						      threshold, threshold,
+						      threshold, threshold}};
+static const m256iVector biasbias = { .us={ bias, bias,
+					    bias, bias,
+					    bias, bias,
+					    bias, bias,
+					    bias, bias,
+					    bias, bias,
+					    bias, bias,
+					    bias, bias}};
+
+#endif
+
+
+
+
+const unsigned int maxCLperRow = 4;
+const unsigned int log2ElementsPerCL = 5;
+const unsigned int elementsPerCL = 1<<log2ElementsPerCL;
+const unsigned int maxN = maxCLperRow<<log2ElementsPerCL;
+
+
+
+class InnerBlockRange {
+  const unsigned int n;
+  const short *off;
+  const unsigned short *slc_a_ptr;
+  const unsigned short *slc_e_ptr;
+  const unsigned short b;
+  const unsigned short f;
+  short *out;
+
+#ifndef NOMMX 
+#ifndef AVX2
+  m128iVector bb, ff;
+#else
+  m256iVector bb, ff;
+#endif
+#endif
+
+public:
+  InnerBlockRange( const unsigned int n_in,
+		   const short *off_in,
+		   const unsigned short *slc_a_ptr_in,
+		   const unsigned short *slc_e_ptr_in,
+		   const unsigned short b_in,
+		   const unsigned short f_in,
+		   short *out_in) :
+    n(n_in),
+    off(off_in),
+    slc_a_ptr(slc_a_ptr_in),
+    slc_e_ptr(slc_e_ptr_in),
+    b(b_in),
+    f(f_in),
+    out(out_in)
+  {
+#ifndef NOMMX 
+#ifndef AVX2
+    for ( unsigned int i1=0; i1<8; ++i1) {
+      bb.us[i1] = b;
+      ff.us[i1] = f;
+    }
+#else
+    for ( unsigned int i1=0; i1<16; ++i1) {
+      bb.us[i1] = b;
+      ff.us[i1] = f;
+    }
+#endif
+#endif
+  }
+
+#ifdef USE_TBB
+  void operator()( const tbb::blocked_range<unsigned int>& range) const {
+    //    std::cout << range.begin() << "," << range.end() << std::endl;
+    for( unsigned int ip=range.begin(); ip!=range.end(); ++ip) {
+      InnerBlockRange *p = const_cast<InnerBlockRange*>( this);
+      p->operator()( ip);      
+    }
+  }
+#endif
+
+
+#ifdef NOMMX
+  void operator()( unsigned int j) {
+    short best = 0;
+    for( unsigned int i=0; i<n; ++i) {          
+      unsigned int idx = n*j+i;
+      unsigned short a = slc_a_ptr[idx];
+      unsigned short e = slc_e_ptr[idx];
+      short o = off[i];
+
+      unsigned short mx = (e>f)?e:f;
+      unsigned short ab = (a>b)?a-b:b-a;
+      const unsigned short threshold = 204;
+      unsigned short mn = (ab<threshold)?ab:threshold;
+      short cand = o + (((unsigned int) mx*(unsigned int) mn)>>10);
+
+      if ( i == 0 || (cand < best)) {
+        best = cand;
+      }
+    }
+    out[j] = best;
+  }
+#else
+#ifdef AVX2
+  void operator()( unsigned int j) {
+    unsigned short biasedbest = 0;
+    const unsigned short *a_ptr = slc_a_ptr + n*j;
+    const unsigned short *e_ptr = slc_e_ptr + n*j;
+    for( unsigned int i0=0; i0<n; i0+=16) {          
+
+      m256iVector aa, ee;
+      aa.m = _mm256_load_si256( reinterpret_cast<__m256i const*>( a_ptr + i0));
+      ee.m = _mm256_load_si256( reinterpret_cast<__m256i const*>( e_ptr + i0));
+
+      m256iVector mxmx, abab, mnmn;
+      mxmx.m = _mm256_max_epu16( ee.m, ff.m);
+      abab.m = _mm256_abs_epi16( _mm256_sub_epi16( aa.m, bb.m));
+      mnmn.m = _mm256_min_epu16( abab.m, thresholdthreshold.m);
+
+      m256iVector oo;
+      oo.m = _mm256_load_si256( reinterpret_cast<__m256i const*>( off+i0));
+
+      m256iVector res;
+      res.m = _mm256_or_si256( _mm256_srli_epi16( _mm256_mullo_epi16( mxmx.m, mnmn.m), 10), _mm256_slli_epi16( _mm256_mulhi_epu16( mxmx.m, mnmn.m), 6));
+
+      m256iVector cc;
+      cc.m = _mm256_add_epi16( oo.m, res.m);
+      m256iVector ccbiased;
+      ccbiased.m = _mm256_add_epi16( cc.m, biasbias.m);
+
+      {
+	m128iVector candcand;
+	candcand.m = _mm_minpos_epu16( _mm_min_epu16( _mm256_castsi256_si128( ccbiased.m), _mm256_extracti128_si256( ccbiased.m, 1)));
+	unsigned short cand = candcand.s[0];
+	if ( i0 == 0 || (cand < biasedbest)) {
+	  biasedbest = cand;
+	}
+      }
+    }
+    out[j] = biasedbest - bias;
+  }
+#else
+  void operator()( unsigned int j) {
+    unsigned short biasedbest = 0;
+    const unsigned short *a_ptr = slc_a_ptr + n*j;
+    const unsigned short *e_ptr = slc_e_ptr + n*j;
+    for( unsigned int i0=0; i0<n; i0+=8) {          
+
+      m128iVector aa, ee;
+      aa.m = _mm_load_si128( reinterpret_cast<__m128i const*>( a_ptr + i0));
+      ee.m = _mm_load_si128( reinterpret_cast<__m128i const*>( e_ptr + i0));
+
+      m128iVector mxmx, abab, mnmn;
+      mxmx.m = _mm_max_epu16( ee.m, ff.m);
+      abab.m = _mm_abs_epi16( _mm_sub_epi16( aa.m, bb.m));
+      mnmn.m = _mm_min_epu16( abab.m, thresholdthreshold.m);
+
+      m128iVector oo;
+      oo.m = _mm_load_si128( reinterpret_cast<__m128i const*>( off+i0));
+
+/*
+ * Old way to do 8-wide fixed-point multiply
+      m256iVector mxmx256;
+      mxmx256.m = _mm256_cvtepu16_epi32( mxmx.m);
+      m256iVector mnmn256;
+      mnmn256.m = _mm256_cvtepu16_epi32( mnmn.m);
+      m256iVector res256;
+      res256.m = _mm256_srli_epi32( _mm256_mullo_epi16( mxmx256.m, mnmn256.m), 10);
+      m128iVector res;
+      res.m = _mm256_castsi256_si128( _mm256_permute4x64_epi64( _mm256_shuffle_epi8( res256.m, shuffle_mask.m), 0x58));
+*/
+
+      m128iVector res;
+      res.m = _mm_or_si128( _mm_srli_epi16( _mm_mullo_epi16( mxmx.m, mnmn.m), 10), _mm_slli_epi16( _mm_mulhi_epu16( mxmx.m, mnmn.m), 6));
+
+      m128iVector cc;
+      cc.m = _mm_add_epi16( oo.m, res.m);
+      m128iVector ccbiased;
+      ccbiased.m = _mm_add_epi16( cc.m, biasbias.m);
+
+      {
+	m128iVector candcand;
+	candcand.m = _mm_minpos_epu16( ccbiased.m);
+	unsigned short cand = candcand.s[0];
+	if ( i0 == 0 || (cand < biasedbest)) {
+	  biasedbest = cand;
+	}
+      }
+    }
+    out[j] = biasedbest - bias;
+  }
+#endif
+#endif
+
+};
+
+class OuterBlockRange {
+
+  unsigned int n, t, k0;
+
+  const unsigned short *gamma;
+  short *weights;
+  const short unsigned *q;
+
+  const Pair *lof_ptr;
+  const unsigned short *slc_a_ptr;
+  const unsigned short *slc_e_ptr;
+
+  unsigned short *mo_ptr;
+
+public:
+
+  OuterBlockRange( unsigned int n_in,
+		   unsigned int t_in,
+		   unsigned int k0_in,
+		   const unsigned short *gamma_in,
+		   short *weights_in,
+		   const short unsigned *q_in,
+		   const Pair *lof_ptr_in,
+		   const unsigned short *slc_a_ptr_in,
+		   const unsigned short *slc_e_ptr_in,
+		   short unsigned *mo_ptr_in) :
+    n(n_in),
+    t(t_in),
+    k0(k0_in),
+    gamma(gamma_in),
+    weights(weights_in),
+    q(q_in),
+    lof_ptr(lof_ptr_in),
+    slc_a_ptr(slc_a_ptr_in),
+    slc_e_ptr(slc_e_ptr_in),
+    mo_ptr(mo_ptr_in)
+  {}
+
+#ifdef USE_TBB
+  void operator()( const tbb::blocked_range<unsigned int>& range) const {
+    //    std::cout << range.begin() << "," << range.end() << std::endl;
+    for( unsigned int ip=range.begin(); ip!=range.end(); ++ip) {
+      OuterBlockRange *p = const_cast<OuterBlockRange*>( this);
+      p->operator()( ip);      
+    }
+  }
+#endif
+
+  void operator()( unsigned int s) {
+
+
+        unsigned int kk = s-(t+1) + k0;
+        short off[maxN];
+        for( unsigned int j=0; j<n; ++j) {
+          off[j] = ((gamma[s]*weights[t*maxN+j])>>10) - q[(kk%n)*maxN+j];
+        }
+
+        short out[maxN];
+        unsigned short b = lof_ptr[kk].a;
+        unsigned short f = lof_ptr[kk].e;
+
+	InnerBlockRange ibr( n, off, slc_a_ptr, slc_e_ptr, b, f, out);
+
+	//#ifdef USE_TBB
+#if 0
+	tbb::parallel_for( tbb::blocked_range<unsigned int>( 0, n, 1), ibr);
+#else
+	for ( unsigned int j=0; j<n; ++j) {
+	  ibr.operator()( j);
+	}
+#endif
+
+        /* clamp */
+        unsigned short res[maxN];
+        {
+          short best = 0;
+          for( unsigned int j=0; j<n; ++j) {
+            short cand = out[j];
+            if ( j==0 || (cand < best)) {
+              best = cand;
+            }
+          }
+          for( unsigned int j=0; j<n; ++j) {
+            res[j] = out[j] - best;
+          }
+        }
+
+        for( unsigned int j=0; j<n; ++j) {
+          weights[s*maxN+j] += res[j];
+          mo_ptr[kk*n+j] = res[j];
+        }
+
+
+  }
+
+};
+
+void AcclApp::compute( const void *config_void_ptr, const unsigned int config_size) {
+  const Config &config = *static_cast<const Config *>(config_void_ptr);
+
+  const unsigned short* gi_ptr = config.getGiPtr();
+  const short* wi_ptr = config.getWiPtr();
+  const unsigned short* mi_ptr = config.getMiPtr();
+  unsigned short* mo_ptr = config.getMoPtr();
+  const Pair* slc_ptr = config.getSlcPtr();
+  const Pair* lof_ptr = config.getLofPtr();
+
+
+  const unsigned int nSlices = config.get_nSlices();
+  const unsigned int nCLperRow = config.get_nCLperRow();
+  const unsigned int n = nCLperRow<<log2ElementsPerCL;
+    
+
+  // Reorganize slc
+
+  unsigned short* slc_a_ptr = new unsigned short[n*n];
+  unsigned short* slc_e_ptr = new unsigned short[n*n];
+
+  for ( unsigned int i=0; i<n; ++i) {
+    for ( unsigned int j=0; j<n; ++j) {
+      Pair p = slc_ptr[n*i+j];
+      slc_a_ptr[n*j+i] = p.a;
+      slc_e_ptr[n*j+i] = p.e;
+    }
+  }
+
+  unsigned short gamma[maxN];
+  for( unsigned int j=0; j<n; ++j) {
+    gamma[j] = *gi_ptr++;
+  }
+
+  short weights[maxN*maxN];
+  for( unsigned int i=0; i<n; ++i) {            
+    for( unsigned int j=0; j<n; ++j) {
+      weights[i*maxN+j] = *wi_ptr++;
+    }
+  }
+
+  unsigned short q[maxN*maxN];
+
+  {
+    unsigned int k = 0;
+    for ( unsigned int t=0; t<n; ++t) {
+      unsigned int k0 = k;
+      for ( unsigned int s=t+1; s<n; ++s) {
+        for( unsigned int j=0; j<n; ++j) {
+          q[(k%n)*maxN+j] = *mi_ptr; // delayed values
+          weights[t*maxN+j] += *mi_ptr;
+          ++mi_ptr;
+        }
+        ++k;
+      }
+      OuterBlockRange obr( n, t, k0, gamma, weights, q, lof_ptr, slc_a_ptr, slc_e_ptr, mo_ptr);
+
+#ifdef USE_TBB
+      tbb::parallel_for( tbb::blocked_range<unsigned int>( t+1, n, 1), obr);
+#else
+      for ( unsigned int s=t+1; s<n; ++s) {
+        obr.operator()( s);
+      }
+#endif
+    }
+    assert( k == n*(n-1)/2);
+
+  }
+
+  std::cout << "gi reads: " << gi_ptr - config.getGiPtr() << std::endl;
+
+  std::cout << "wi reads: " << wi_ptr - config.getWiPtr() << std::endl;
+  std::cout << "mi reads: " << mi_ptr - config.getMiPtr() << std::endl;
+  std::cout << "mo writes: " << mo_ptr - config.getMoPtr() << std::endl;
+
+  delete [] slc_a_ptr;
+  delete [] slc_e_ptr;
+
+}
