@@ -142,6 +142,7 @@ TEST(AccelTest, SimpleTest) {
     unsigned int max_count = 20*30;
 #endif
 
+    max_count = 8;
     for ( unsigned int count=0; count<max_count; ++count) {
 #ifdef USE_TBB
       tbb::tick_count tbb_begin = tbb::tick_count::now();
