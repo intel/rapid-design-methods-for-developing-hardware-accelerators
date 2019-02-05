@@ -1,0 +1,43 @@
+digraph G {
+  subgraph cluster_trws_wu {
+    updater;
+    gi_addr_gen;
+    wi_addr_gen;
+    mi_addr_gen;
+    mo_addr_gen;
+  }
+  subgraph cluster_trws_loaf {
+    inp_fetcher;
+    inp_addr_gen;
+    exp_addr_gen;
+  }
+  subgraph cluster_trws_clamper {
+    split_out;
+    compute_best;
+    subtract_out;
+  }
+  updater -> inp_fetcher [label=off,fontsize=10];
+  inp_fetcher -> split_out [label=out,fontsize=10];
+  subtract_out -> updater [label=res,fontsize=10];
+  split_out -> compute_best [label=out0,fontsize=10];
+  split_out -> subtract_out [label=out1,fontsize=10];
+  compute_best -> subtract_out [label=obest,fontsize=10];
+  gi_mem_ifc [shape=box];
+  gi_addr_gen -> gi_mem_ifc [label=req,fontsize=10];
+  gi_mem_ifc -> updater[label=resp,fontsize=10];
+  wi_mem_ifc [shape=box];
+  wi_addr_gen -> wi_mem_ifc [label=req,fontsize=10];
+  wi_mem_ifc -> updater[label=resp,fontsize=10];
+  mi_mem_ifc [shape=box];
+  mi_addr_gen -> mi_mem_ifc [label=req,fontsize=10];
+  mi_mem_ifc -> updater[label=resp,fontsize=10];
+  inp_mem_ifc [shape=box];
+  inp_addr_gen -> inp_mem_ifc [label=req,fontsize=10];
+  inp_mem_ifc -> inp_fetcher[label=resp,fontsize=10];
+  exp_mem_ifc [shape=box];
+  exp_addr_gen -> exp_mem_ifc [label=req,fontsize=10];
+  exp_mem_ifc -> inp_fetcher[label=resp,fontsize=10];
+  mo_mem_ifc [shape=box];
+  mo_addr_gen -> mo_mem_ifc [label=req,fontsize=10];
+  updater -> mo_mem_ifc [label=data,fontsize=10];
+}
