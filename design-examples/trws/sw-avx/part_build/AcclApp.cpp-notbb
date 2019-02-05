@@ -112,7 +112,6 @@ void AcclApp::compute( const void *config_void_ptr, const unsigned int config_si
   }
 
   std::cout << "gi reads: " << gi_ptr - config.getGiPtr() << std::endl;
-
   std::cout << "wi reads: " << wi_ptr - config.getWiPtr() << std::endl;
   std::cout << "mi reads: " << mi_ptr - config.getMiPtr() << std::endl;
   std::cout << "mo writes: " << mo_ptr - config.getMoPtr() << std::endl;

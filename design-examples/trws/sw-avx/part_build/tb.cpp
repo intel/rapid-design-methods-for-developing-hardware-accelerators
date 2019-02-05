@@ -134,15 +134,14 @@ TEST(AccelTest, SimpleTest) {
     config.set_modeCompute( true);
 
 #ifdef NUM_OF_THREADS
-    unsigned int max_count = 20*NUM_OF_THREADS/5;
-    if ( max_count > 40) {
-      max_count = 40;
+    unsigned int max_count = 20*NUM_OF_THREADS;
+    if ( max_count > 400) {
+      max_count = 400;
     }
 #else    
-    unsigned int max_count = 20*30;
+    unsigned int max_count = 20;
 #endif
 
-    max_count = 8;
     for ( unsigned int count=0; count<max_count; ++count) {
 #ifdef USE_TBB
       tbb::tick_count tbb_begin = tbb::tick_count::now();
