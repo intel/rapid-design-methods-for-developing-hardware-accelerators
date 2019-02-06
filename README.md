@@ -1,6 +1,8 @@
 ## rapid-design-methods-for-developing-hardware-accelerators
 
-## Update
+## Updates
+Googletest changed its library name in recent versions. Our latest code will not compile on older versions. Please update googletest if you have link errors. (Feb. 6, 2019)
+
 Now includes integration with [OPAE](https://01.org/OPAE) (Oct. 8, 2018). For an example, see `vectoradd` in the `chisel` subdirectory.
 
 ## Introduction
