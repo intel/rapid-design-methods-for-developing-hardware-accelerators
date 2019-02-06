@@ -14,12 +14,10 @@ class Accumulator extends Module {
   val sc0 = new SliceCounter
 
   val localWeights = Reg( Vec( max_cl_per_row, USIMD()))
-  val nsWeights = Wire( USIMD())
+  val nsWeights = WireInit( USIMD(), init=DontCare)
 
   io.mi0.nodeq
   io.a0.noenq
-
-//  nsWeights := DontCare
 
   when ( io.mi0.valid && (io.a0.ready || sc0.s =/= (sc0.n-1).U)) {
     io.mi0.ready := true.B

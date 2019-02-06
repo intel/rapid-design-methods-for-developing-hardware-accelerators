@@ -169,12 +169,12 @@ class GenericTest[T <: Module, P <: PeekPokeTester[T]]( tag : String, dutFactory
 
   val optionsManager = new TesterOptionsManager {
     testerOptions = testerOptions.copy(
-      backendName="vcs",
+//      backendName="vcs",
+//      vcsCommandEdits = """s/\+vcs\+initreg\+random //""",
+//      moreVcsFlags=extra,
 //      backendName="verilator",
-//      backendName="firrtl",
-      moreVcsFlags=extra,
-      isVerbose=true,
-      vcsCommandEdits = """s/\+vcs\+initreg\+random //"""
+      backendName="treadle"//,
+//      isVerbose=true
     )
   }
 

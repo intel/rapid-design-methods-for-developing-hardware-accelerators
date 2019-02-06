@@ -62,28 +62,37 @@ class LoafTester( c: Loaf) extends StreamingPeekPokeTester(c) {
 
       var nsteps = 0
 
+      val maxsteps = 1000
+
       poke( c.io.modeLoad, if ( modeLoad) BigInt(1) else BigInt(0))
       poke( c.io.modeCompute, if ( modeCompute) BigInt(1) else BigInt(0))
       poke( c.io.loadIdx, loadIdx)
       poke( c.io.computeIdx, computeIdx)
 
       val off_sender = new Sender( "off", c.io.off, toCL( Off))
-     val out_receiver = new Receiver( "out", c.io.out, toCL( Out))
+      val out_receiver = new Receiver( "out", c.io.out, toCL( Out))
 
       val slc_sender = new SenderBundle( "slc", c.io.slc, AE)
       val lof_sender = new SenderBundle( "lof", c.io.lof, BF)
 
       val lst = (if ( modeLoad) List( slc_sender) else List()) ++ (if ( modeCompute) List( lof_sender, off_sender, out_receiver) else List())
 
-      while( if ( modeLoad) peek( c.io.done) == 0 else if (modeCompute) !out_receiver.done else false) {
+      var done = false
+      while( !done) {
 // Do pokes first (all of them)
         lst.foreach( _.doPoke)
 
-// Then all peeks and expects
-        lst.foreach( _.doFire( nsteps))
+	val notDone = if ( modeLoad) peek( c.io.done) == 0 else if (modeCompute) !out_receiver.done else false
+	if (!notDone/* || nsteps > maxsteps*/) {
+	   done = true
+	} else {
 
-        step(1)
-        nsteps += 1
+// Then all peeks and expects
+           lst.foreach( _.doFire( nsteps))
+
+           step(1)
+	   nsteps += 1
+        }
       }
 
       poke( c.io.start, 0)

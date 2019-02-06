@@ -270,6 +270,7 @@ class Loaf extends LoafIfc {
     }
   }
 
+//  printf( "io.start,done,doneLoading,io.modeCompute: %d,%d,%d,%d\n", io.start, done, doneLoading, io.modeCompute)
 //  printf( "phase,c,io.off.valid,r,io.lof.valid,sendFlage,io.out.ready: %d,%d,%d,%d,%d,%d,%d\n", phase, c, io.off.valid, r, io.lof.valid, sendFlage, io.out.ready)
 
   when ( io.start && !done) {
@@ -517,13 +518,17 @@ class Loaf extends LoafIfc {
                 when ( islice =/= (n_slices-1).U) {
                   islice := islice + 1.U
                 } .otherwise {
+//		  printf( "Setting phase to 1\n")
                   islice := 0.U
                   phase := 1.U
                 }
               }
             }
           }
-        } .otherwise {
+        }
+
+	when ( phase === 1.U) {
+//	  printf( "Evaluating validFlags...\n")
           when ( !validFlag1 &&
             !validFlag2 &&
             !validFlag3 &&
@@ -538,11 +543,12 @@ class Loaf extends LoafIfc {
             !validFlagc &&
             !validFlagd &&
             !validFlage) {
-//            done := true.B
+            done := true.B
           }
         }
+
       }
-    } .otherwise {
+    } .elsewhen ( doneLoading) {
       done := true.B
     }
   }
