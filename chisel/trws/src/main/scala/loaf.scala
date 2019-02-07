@@ -99,7 +99,6 @@ class MAC extends Module with MACAbstractIfc {
   io.r := r6
 }
 
-
 class Loaf extends LoafIfc {
   val n = cl_per_row*elements_per_cl
   val n_slices = n*(n-1)/2
@@ -131,51 +130,6 @@ class Loaf extends LoafIfc {
 
   val r = RegInit( 0.U(log2_max_cl_per_row.W))
   val c = RegInit( 0.U(log2_max_cl_per_row.W))
-
-  val validFlag1 = RegInit( false.B)
-  val validFlag2 = RegInit( false.B)
-  val validFlag3 = RegInit( false.B)
-  val validFlag4 = RegInit( false.B)
-  val validFlag5 = RegInit( false.B)
-  val validFlag6 = RegInit( false.B)
-  val validFlag7 = RegInit( false.B)
-  val validFlag8 = RegInit( false.B)
-  val validFlag9 = RegInit( false.B)
-  val validFlaga = RegInit( false.B)
-  val validFlagb = RegInit( false.B)
-  val validFlagc = RegInit( false.B)
-  val validFlagd = RegInit( false.B)
-  val validFlage = RegInit( false.B)
-
-  val sendFlag1 = RegInit( false.B)
-  val sendFlag2 = RegInit( false.B)
-  val sendFlag3 = RegInit( false.B)
-  val sendFlag4 = RegInit( false.B)
-  val sendFlag5 = RegInit( false.B)
-  val sendFlag6 = RegInit( false.B)
-  val sendFlag7 = RegInit( false.B)
-  val sendFlag8 = RegInit( false.B)
-  val sendFlag9 = RegInit( false.B)
-  val sendFlaga = RegInit( false.B)
-  val sendFlagb = RegInit( false.B)
-  val sendFlagc = RegInit( false.B)
-  val sendFlagd = RegInit( false.B)
-  val sendFlage = RegInit( false.B)
-
-  val clearFlag1 = RegInit( false.B)
-  val clearFlag2 = RegInit( false.B)
-  val clearFlag3 = RegInit( false.B)
-  val clearFlag4 = RegInit( false.B)
-  val clearFlag5 = RegInit( false.B)
-  val clearFlag6 = RegInit( false.B)
-  val clearFlag7 = RegInit( false.B)
-  val clearFlag8 = RegInit( false.B)
-  val clearFlag9 = RegInit( false.B)
-  val clearFlaga = RegInit( false.B)
-  val clearFlagb = RegInit( false.B)
-  val clearFlagc = RegInit( false.B)
-  val clearFlagd = RegInit( false.B)
-  val clearFlage = RegInit( false.B)
 
   val BFbuf = Reg( new Pair)
 
@@ -273,6 +227,10 @@ class Loaf extends LoafIfc {
 //  printf( "io.start,done,doneLoading,io.modeCompute: %d,%d,%d,%d\n", io.start, done, doneLoading, io.modeCompute)
 //  printf( "phase,c,io.off.valid,r,io.lof.valid,sendFlage,io.out.ready: %d,%d,%d,%d,%d,%d,%d\n", phase, c, io.off.valid, r, io.lof.valid, sendFlage, io.out.ready)
 
+  val validFlagTSR = new TappedShiftRegister2( 14, Bool(), false.B)
+  val sendFlagTSR = new TappedShiftRegister2( 14, Bool(), false.B)
+  val clearFlagTSR = new TappedShiftRegister2( 12, Bool(), false.B)
+
   when ( io.start && !done) {
 
     when ( doneLoading && io.modeCompute) {
@@ -284,58 +242,14 @@ class Loaf extends LoafIfc {
 //
 
       val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
-      val outputsNotReady = sendFlage && !io.out.ready
 
+      when ( !sendFlagTSR.last || io.out.ready) {
 
-      when ( /*!inputsNotValid && */ !outputsNotReady) {
+	validFlagTSR.shift( phase === 0.U && !inputsNotValid)
+	sendFlagTSR.shift( phase === 0.U && r === (ngr-1).U && !inputsNotValid)
+	clearFlagTSR.shift( phase === 0.U && r === 0.U && !inputsNotValid)
 
-        validFlage := validFlagd
-        validFlagd := validFlagc
-        validFlagc := validFlagb
-        validFlagb := validFlaga
-        validFlaga := validFlag9
-        validFlag9 := validFlag8
-        validFlag8 := validFlag7
-        validFlag7 := validFlag6
-        validFlag6 := validFlag5
-        validFlag5 := validFlag4
-        validFlag4 := validFlag3
-        validFlag3 := validFlag2
-        validFlag2 := validFlag1
-        validFlag1 := phase === 0.U && !inputsNotValid
-
-
-        sendFlage := sendFlagd
-        sendFlagd := sendFlagc
-        sendFlagc := sendFlagb
-        sendFlagb := sendFlaga
-        sendFlaga := sendFlag9
-        sendFlag9 := sendFlag8
-        sendFlag8 := sendFlag7
-        sendFlag7 := sendFlag6
-        sendFlag6 := sendFlag5
-        sendFlag5 := sendFlag4
-        sendFlag4 := sendFlag3
-        sendFlag3 := sendFlag2
-        sendFlag2 := sendFlag1
-        sendFlag1 := phase === 0.U && r === (ngr-1).U && !inputsNotValid
-
-        clearFlage := clearFlagd
-        clearFlagd := clearFlagc
-        clearFlagc := clearFlagb
-        clearFlagb := clearFlaga
-        clearFlaga := clearFlag9
-        clearFlag9 := clearFlag8
-        clearFlag8 := clearFlag7
-        clearFlag7 := clearFlag6
-        clearFlag6 := clearFlag5
-        clearFlag5 := clearFlag4
-        clearFlag4 := clearFlag3
-        clearFlag3 := clearFlag2
-        clearFlag2 := clearFlag1
-        clearFlag1 := phase === 0.U && r === 0.U && !inputsNotValid
-
-        when ( sendFlage) {
+        when ( sendFlagTSR.last) {
           io.out.bits := bestBufe
           io.out.valid := true.B
         }
@@ -402,99 +316,42 @@ class Loaf extends LoafIfc {
             macs(i)(j).io.r >> radixPoint
           }
 
-          def vMin( x : SInt, y : SInt) : SInt = {
-            val w = WireInit( y)
-            when ( x < y) {
-              w := x
-            }
-            w
-          }
 
-          for ( ii<-0 until elements_per_cl/ctree_dims(0)) {
-            val d = tree_dims(0)
-            if ( d == 4) {
-              tm8(ii)(j) := vMin( vMin( elements(d*ii+0), elements(d*ii+1)),
-                                  vMin( elements(d*ii+2), elements(d*ii+3)))
-            } else if ( d == 2) {
-              tm8(ii)(j) := vMin( elements(d*ii+0), elements(d*ii+1))
-            } else if ( d == 1) {
-              tm8(ii)(j) := elements(d*ii+0)
-            } else {
-              assert( false)
-            }
-          }
+	  def stage( ctree_dim : Int,
+	             tree_dim : Int,
+		     lhs : (Int) => SInt,
+		     rhs : (Int) => SInt) {
 
-          for ( ii<-0 until elements_per_cl/ctree_dims(1)) {
-            val d = tree_dims(1)
-            if ( d == 4) {
-              tm9(ii)(j) := vMin( vMin( tm8(d*ii+0)(j), tm8(d*ii+1)(j)),
-                                  vMin( tm8(d*ii+2)(j), tm8(d*ii+3)(j)))
-            } else if ( d == 2) {
-              tm9(ii)(j) := vMin( tm8(d*ii+0)(j), tm8(d*ii+1)(j))
-            } else if ( d == 1) {
-              tm9(ii)(j) := tm8(d*ii+0)(j)
-            } else {
-              assert( false)
+            def vMin( x : SInt, y : SInt) : SInt = {
+              val w = WireInit( y)
+              when ( x < y) { w := x}
+              w
+            }
+
+            for ( ii<-0 until elements_per_cl/ctree_dim) {
+              val d = tree_dim
+              if ( d == 4) {
+                lhs(ii) := vMin( vMin( rhs(d*ii+0), rhs(d*ii+1)),
+                                 vMin( rhs(d*ii+2), rhs(d*ii+3)))
+              } else if ( d == 2) {
+                lhs(ii) := vMin( rhs(d*ii+0), rhs(d*ii+1))
+              } else if ( d == 1) {
+                lhs(ii) := rhs(d*ii+0)
+              } else {
+                assert( false)
+              }
             }
           }
 
-          for ( ii<-0 until elements_per_cl/ctree_dims(2)) {
-            val d = tree_dims(2)
-            if ( d == 4) {
-              tma(ii)(j) := vMin( vMin( tm9(d*ii+0)(j), tm9(d*ii+1)(j)),
-                                  vMin( tm9(d*ii+2)(j), tm9(d*ii+3)(j)))
-            } else if ( d == 2) {
-              tma(ii)(j) := vMin( tm9(d*ii+0)(j), tm9(d*ii+1)(j))
-            } else if ( d == 1) {
-              tma(ii)(j) := tm9(d*ii+0)(j)
-            } else {
-              assert( false)
-            }
-          }
-
-          for ( ii<-0 until elements_per_cl/ctree_dims(3)) {
-            val d = tree_dims(3)
-            if ( d == 4) {
-              tmb(ii)(j) := vMin( vMin( tma(d*ii+0)(j), tma(d*ii+1)(j)),
-                                  vMin( tma(d*ii+2)(j), tma(d*ii+3)(j)))
-            } else if ( d == 2) {
-              tmb(ii)(j) := vMin( tma(d*ii+0)(j), tma(d*ii+1)(j))
-            } else if ( d == 1) {
-              tmb(ii)(j) := tma(d*ii+0)(j)
-            } else {
-              assert( false)
-            }
-          }
-
-          for ( ii<-0 until elements_per_cl/ctree_dims(4)) {
-            val d = tree_dims(4)
-            if ( d == 4) {
-              tmc(ii)(j) := vMin( vMin( tmb(d*ii+0)(j), tmb(d*ii+1)(j)),
-                                  vMin( tmb(d*ii+2)(j), tmb(d*ii+3)(j)))
-            } else if ( d == 2) {
-              tmc(ii)(j) := vMin( tmb(d*ii+0)(j), tmb(d*ii+1)(j))
-            } else if ( d == 1) {
-              tmc(ii)(j) := tmb(d*ii+0)(j)
-            } else {
-              assert( false)
-            }
-          }
-
-          val d = tree_dims(5)
+	  stage( ctree_dims(0), tree_dims(0), (i:Int) => tm8(i)(j), (i:Int) => elements(i))
+	  stage( ctree_dims(1), tree_dims(1), (i:Int) => tm9(i)(j), (i:Int) => tm8(i)(j))
+	  stage( ctree_dims(2), tree_dims(2), (i:Int) => tma(i)(j), (i:Int) => tm9(i)(j))
+	  stage( ctree_dims(3), tree_dims(3), (i:Int) => tmb(i)(j), (i:Int) => tma(i)(j))
+	  stage( ctree_dims(4), tree_dims(4), (i:Int) => tmc(i)(j), (i:Int) => tmb(i)(j))
           val cand = Wire( SInt( bitwidth.W))
+	  stage( ctree_dims(5), tree_dims(5), (i:Int) => cand, (i:Int) => tmc(i)(j))
 
-          if ( d == 4) {
-            cand := vMin( vMin( tmc(0)(j), tmc(1)(j)),
-                          vMin( tmc(2)(j), tmc(3)(j)))
-          } else if ( d == 2) {
-            cand := vMin( tmc(0)(j), tmc(1)(j))
-          } else if ( d == 1) {
-            cand := tmc(0)(j)
-          } else {
-            assert( false)
-          }
-
-          when( clearFlagc || cand < best(j)) {
+          when( clearFlagTSR.last || cand < best(j)) {
             best(j) := cand
           }
 
@@ -518,7 +375,6 @@ class Loaf extends LoafIfc {
                 when ( islice =/= (n_slices-1).U) {
                   islice := islice + 1.U
                 } .otherwise {
-//		  printf( "Setting phase to 1\n")
                   islice := 0.U
                   phase := 1.U
                 }
@@ -528,23 +384,10 @@ class Loaf extends LoafIfc {
         }
 
 	when ( phase === 1.U) {
-//	  printf( "Evaluating validFlags...\n")
-          when ( !validFlag1 &&
-            !validFlag2 &&
-            !validFlag3 &&
-            !validFlag4 &&
-            !validFlag5 &&
-            !validFlag6 &&
-            !validFlag7 &&
-            !validFlag8 &&
-            !validFlag9 &&
-            !validFlaga &&
-            !validFlagb &&
-            !validFlagc &&
-            !validFlagd &&
-            !validFlage) {
+	  // Don't include the first one (non-delayed input)
+	  when ( validFlagTSR().tail.foldLeft(true.B){ case (x,y) => x && !y}) {
             done := true.B
-          }
+	  }
         }
 
       }

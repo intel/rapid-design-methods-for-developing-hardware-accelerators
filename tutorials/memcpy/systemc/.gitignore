@@ -1,0 +1,5 @@
+acc_test
+kernel_test
+*.d
+*.o
+*~
