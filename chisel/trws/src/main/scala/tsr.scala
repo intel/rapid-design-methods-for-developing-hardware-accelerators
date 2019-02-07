@@ -14,7 +14,7 @@ class TappedShiftRegister2[T <: Data]( n : Int, proto : T, initialValue : T) {
     inp := other
     (inps,regs).zipped.foreach{ case (i,o) => o := i}
   }
-//  def :=( other : T) { inp := other}
+  def last = outvec.last
   def apply() : Vec[T] = outvec
   def apply( idx : Int) : T = outvec(idx)
 }

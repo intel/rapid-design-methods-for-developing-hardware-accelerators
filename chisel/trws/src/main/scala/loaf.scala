@@ -243,13 +243,13 @@ class Loaf extends LoafIfc {
 
       val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
 
-      when ( !sendFlagTSR( 0xe) || io.out.ready) {
+      when ( !sendFlagTSR.last || io.out.ready) {
 
 	validFlagTSR.shift( phase === 0.U && !inputsNotValid)
 	sendFlagTSR.shift( phase === 0.U && r === (ngr-1).U && !inputsNotValid)
 	clearFlagTSR.shift( phase === 0.U && r === 0.U && !inputsNotValid)
 
-        when ( sendFlagTSR( 0xe)) {
+        when ( sendFlagTSR.last) {
           io.out.bits := bestBufe
           io.out.valid := true.B
         }
@@ -351,7 +351,7 @@ class Loaf extends LoafIfc {
           val cand = Wire( SInt( bitwidth.W))
 	  stage( ctree_dims(5), tree_dims(5), (i:Int) => cand, (i:Int) => tmc(i)(j))
 
-          when( clearFlagTSR( 0xc) || cand < best(j)) {
+          when( clearFlagTSR.last || cand < best(j)) {
             best(j) := cand
           }
 
