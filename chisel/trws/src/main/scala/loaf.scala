@@ -227,13 +227,9 @@ class Loaf extends LoafIfc {
 //  printf( "io.start,done,doneLoading,io.modeCompute: %d,%d,%d,%d\n", io.start, done, doneLoading, io.modeCompute)
 //  printf( "phase,c,io.off.valid,r,io.lof.valid,sendFlage,io.out.ready: %d,%d,%d,%d,%d,%d,%d\n", phase, c, io.off.valid, r, io.lof.valid, sendFlage, io.out.ready)
 
-  val flagEn = WireInit( false.B)
-
-  val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
-
-  val validFlagVec = TappedShiftRegister( 14, phase === 0.U && !inputsNotValid, false.B, flagEn)
-  val sendFlagVec = TappedShiftRegister( 14, phase === 0.U && r === (ngr-1).U && !inputsNotValid, false.B, flagEn)
-  val clearFlagVec = TappedShiftRegister( 12, phase === 0.U && r === 0.U && !inputsNotValid, false.B, flagEn)
+  val validFlagTSR = new TappedShiftRegister2( 14, Bool(), false.B)
+  val sendFlagTSR = new TappedShiftRegister2( 14, Bool(), false.B)
+  val clearFlagTSR = new TappedShiftRegister2( 12, Bool(), false.B)
 
   when ( io.start && !done) {
 
@@ -245,13 +241,15 @@ class Loaf extends LoafIfc {
 //   should not if io.off.valid or io.lof.valid is not true; just introduce false validFlags
 //
 
-      val outputsNotReady = sendFlagVec( 0xe) && !io.out.ready
+      val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
 
-      when ( !outputsNotReady) {
+      when ( !sendFlagTSR( 0xe) || io.out.ready) {
 
-        flagEn := true.B
+	validFlagTSR.shift( phase === 0.U && !inputsNotValid)
+	sendFlagTSR.shift( phase === 0.U && r === (ngr-1).U && !inputsNotValid)
+	clearFlagTSR.shift( phase === 0.U && r === 0.U && !inputsNotValid)
 
-        when ( sendFlagVec( 0xe)) {
+        when ( sendFlagTSR( 0xe)) {
           io.out.bits := bestBufe
           io.out.valid := true.B
         }
@@ -318,18 +316,18 @@ class Loaf extends LoafIfc {
             macs(i)(j).io.r >> radixPoint
           }
 
-          def vMin( x : SInt, y : SInt) : SInt = {
-            val w = WireInit( y)
-            when ( x < y) {
-              w := x
-            }
-            w
-          }
 
 	  def stage( ctree_dim : Int,
 	             tree_dim : Int,
 		     lhs : (Int) => SInt,
 		     rhs : (Int) => SInt) {
+
+            def vMin( x : SInt, y : SInt) : SInt = {
+              val w = WireInit( y)
+              when ( x < y) { w := x}
+              w
+            }
+
             for ( ii<-0 until elements_per_cl/ctree_dim) {
               val d = tree_dim
               if ( d == 4) {
@@ -353,7 +351,7 @@ class Loaf extends LoafIfc {
           val cand = Wire( SInt( bitwidth.W))
 	  stage( ctree_dims(5), tree_dims(5), (i:Int) => cand, (i:Int) => tmc(i)(j))
 
-          when( clearFlagVec( 0xc) || cand < best(j)) {
+          when( clearFlagTSR( 0xc) || cand < best(j)) {
             best(j) := cand
           }
 
@@ -387,7 +385,7 @@ class Loaf extends LoafIfc {
 
 	when ( phase === 1.U) {
 	  // Don't include the first one (non-delayed input)
-	  when ( validFlagVec.tail.foldLeft(true.B){ case (x,y) => x && !y}) {
+	  when ( validFlagTSR().tail.foldLeft(true.B){ case (x,y) => x && !y}) {
             done := true.B
 	  }
         }
