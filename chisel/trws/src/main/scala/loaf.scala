@@ -131,51 +131,6 @@ class Loaf extends LoafIfc {
   val r = RegInit( 0.U(log2_max_cl_per_row.W))
   val c = RegInit( 0.U(log2_max_cl_per_row.W))
 
-  val validFlag1 = RegInit( false.B)
-  val validFlag2 = RegInit( false.B)
-  val validFlag3 = RegInit( false.B)
-  val validFlag4 = RegInit( false.B)
-  val validFlag5 = RegInit( false.B)
-  val validFlag6 = RegInit( false.B)
-  val validFlag7 = RegInit( false.B)
-  val validFlag8 = RegInit( false.B)
-  val validFlag9 = RegInit( false.B)
-  val validFlaga = RegInit( false.B)
-  val validFlagb = RegInit( false.B)
-  val validFlagc = RegInit( false.B)
-  val validFlagd = RegInit( false.B)
-  val validFlage = RegInit( false.B)
-
-  val sendFlag1 = RegInit( false.B)
-  val sendFlag2 = RegInit( false.B)
-  val sendFlag3 = RegInit( false.B)
-  val sendFlag4 = RegInit( false.B)
-  val sendFlag5 = RegInit( false.B)
-  val sendFlag6 = RegInit( false.B)
-  val sendFlag7 = RegInit( false.B)
-  val sendFlag8 = RegInit( false.B)
-  val sendFlag9 = RegInit( false.B)
-  val sendFlaga = RegInit( false.B)
-  val sendFlagb = RegInit( false.B)
-  val sendFlagc = RegInit( false.B)
-  val sendFlagd = RegInit( false.B)
-  val sendFlage = RegInit( false.B)
-
-  val clearFlag1 = RegInit( false.B)
-  val clearFlag2 = RegInit( false.B)
-  val clearFlag3 = RegInit( false.B)
-  val clearFlag4 = RegInit( false.B)
-  val clearFlag5 = RegInit( false.B)
-  val clearFlag6 = RegInit( false.B)
-  val clearFlag7 = RegInit( false.B)
-  val clearFlag8 = RegInit( false.B)
-  val clearFlag9 = RegInit( false.B)
-  val clearFlaga = RegInit( false.B)
-  val clearFlagb = RegInit( false.B)
-  val clearFlagc = RegInit( false.B)
-  val clearFlagd = RegInit( false.B)
-  val clearFlage = RegInit( false.B)
-
   val BFbuf = Reg( new Pair)
 
   val load_i = RegInit( 0.U((log2_elements_per_cl+log2_max_cl_per_row).W))
@@ -277,13 +232,8 @@ class Loaf extends LoafIfc {
   val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
 
   val validFlagVec = TappedShiftRegister( 14, phase === 0.U && !inputsNotValid, false.B, flagEn)
-  val validFlagMap = (for { (r,idx) <- validFlagVec zipWithIndex } yield (s"validFlag${(idx+1).toHexString}",r)).toMap
-
   val sendFlagVec = TappedShiftRegister( 14, phase === 0.U && r === (ngr-1).U && !inputsNotValid, false.B, flagEn)
-  val sendFlagMap = (for { (r,idx) <- sendFlagVec zipWithIndex } yield (s"sendFlag${(idx+1).toHexString}",r)).toMap
-
   val clearFlagVec = TappedShiftRegister( 12, phase === 0.U && r === 0.U && !inputsNotValid, false.B, flagEn)
-  val clearFlagMap = (for { (r,idx) <- clearFlagVec zipWithIndex } yield (s"clearFlag${(idx+1).toHexString}",r)).toMap
 
   when ( io.start && !done) {
 
@@ -295,61 +245,13 @@ class Loaf extends LoafIfc {
 //   should not if io.off.valid or io.lof.valid is not true; just introduce false validFlags
 //
 
-//      val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
-      val outputsNotReady = sendFlage && !io.out.ready
-
+      val outputsNotReady = sendFlagVec( 0xe) && !io.out.ready
 
       when ( !outputsNotReady) {
 
         flagEn := true.B
 
-        validFlage := validFlagd
-        validFlagd := validFlagc
-        validFlagc := validFlagb
-        validFlagb := validFlaga
-        validFlaga := validFlag9
-        validFlag9 := validFlag8
-        validFlag8 := validFlag7
-        validFlag7 := validFlag6
-        validFlag6 := validFlag5
-        validFlag5 := validFlag4
-        validFlag4 := validFlag3
-        validFlag3 := validFlag2
-        validFlag2 := validFlag1
-        validFlag1 := phase === 0.U && !inputsNotValid
-
-
-        sendFlage := sendFlagd
-        sendFlagd := sendFlagc
-        sendFlagc := sendFlagb
-        sendFlagb := sendFlaga
-        sendFlaga := sendFlag9
-        sendFlag9 := sendFlag8
-        sendFlag8 := sendFlag7
-        sendFlag7 := sendFlag6
-        sendFlag6 := sendFlag5
-        sendFlag5 := sendFlag4
-        sendFlag4 := sendFlag3
-        sendFlag3 := sendFlag2
-        sendFlag2 := sendFlag1
-        sendFlag1 := phase === 0.U && r === (ngr-1).U && !inputsNotValid
-
-        clearFlage := clearFlagd
-        clearFlagd := clearFlagc
-        clearFlagc := clearFlagb
-        clearFlagb := clearFlaga
-        clearFlaga := clearFlag9
-        clearFlag9 := clearFlag8
-        clearFlag8 := clearFlag7
-        clearFlag7 := clearFlag6
-        clearFlag6 := clearFlag5
-        clearFlag5 := clearFlag4
-        clearFlag4 := clearFlag3
-        clearFlag3 := clearFlag2
-        clearFlag2 := clearFlag1
-        clearFlag1 := phase === 0.U && r === 0.U && !inputsNotValid
-
-        when ( sendFlagMap("sendFlage")) {
+        when ( sendFlagVec( 0xe)) {
           io.out.bits := bestBufe
           io.out.valid := true.B
         }
@@ -508,7 +410,7 @@ class Loaf extends LoafIfc {
             assert( false)
           }
 
-          when( clearFlagMap("clearFlagc") || cand < best(j)) {
+          when( clearFlagVec( 0xc) || cand < best(j)) {
             best(j) := cand
           }
 
@@ -532,7 +434,6 @@ class Loaf extends LoafIfc {
                 when ( islice =/= (n_slices-1).U) {
                   islice := islice + 1.U
                 } .otherwise {
-//		  printf( "Setting phase to 1\n")
                   islice := 0.U
                   phase := 1.U
                 }
@@ -542,29 +443,8 @@ class Loaf extends LoafIfc {
         }
 
 	when ( phase === 1.U) {
-//	  printf( "Evaluating validFlags...\n")
-
-	  val f = validFlagVec.foldLeft(true.B){ case (x,y) => x && !y}
-
-/*
-          when ( !validFlag1 &&
-            !validFlag2 &&
-            !validFlag3 &&
-            !validFlag4 &&
-            !validFlag5 &&
-            !validFlag6 &&
-            !validFlag7 &&
-            !validFlag8 &&
-            !validFlag9 &&
-            !validFlaga &&
-            !validFlagb &&
-            !validFlagc &&
-            !validFlagd &&
-            !validFlage) {
-            done := true.B
-          }
-*/
-	  when (f) {
+	  // Don't include the first one (non-delayed input)
+	  when ( validFlagVec.tail.foldLeft(true.B){ case (x,y) => x && !y}) {
             done := true.B
 	  }
         }
