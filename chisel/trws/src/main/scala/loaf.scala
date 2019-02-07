@@ -227,9 +227,9 @@ class Loaf extends LoafIfc {
 //  printf( "io.start,done,doneLoading,io.modeCompute: %d,%d,%d,%d\n", io.start, done, doneLoading, io.modeCompute)
 //  printf( "phase,c,io.off.valid,r,io.lof.valid,sendFlage,io.out.ready: %d,%d,%d,%d,%d,%d,%d\n", phase, c, io.off.valid, r, io.lof.valid, sendFlage, io.out.ready)
 
-  val validFlagTSR = new TappedShiftRegister2( 14, Bool(), false.B)
-  val sendFlagTSR = new TappedShiftRegister2( 14, Bool(), false.B)
-  val clearFlagTSR = new TappedShiftRegister2( 12, Bool(), false.B)
+  val validFlagTSR = new TappedShiftRegister( 14, Bool(), false.B)
+  val sendFlagTSR = new TappedShiftRegister( 14, Bool(), false.B)
+  val clearFlagTSR = new TappedShiftRegister( 12, Bool(), false.B)
 
   when ( io.start && !done) {
 
