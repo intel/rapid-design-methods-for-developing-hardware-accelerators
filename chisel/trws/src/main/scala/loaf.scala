@@ -99,7 +99,6 @@ class MAC extends Module with MACAbstractIfc {
   io.r := r6
 }
 
-
 class Loaf extends LoafIfc {
   val n = cl_per_row*elements_per_cl
   val n_slices = n*(n-1)/2
@@ -273,6 +272,20 @@ class Loaf extends LoafIfc {
 //  printf( "io.start,done,doneLoading,io.modeCompute: %d,%d,%d,%d\n", io.start, done, doneLoading, io.modeCompute)
 //  printf( "phase,c,io.off.valid,r,io.lof.valid,sendFlage,io.out.ready: %d,%d,%d,%d,%d,%d,%d\n", phase, c, io.off.valid, r, io.lof.valid, sendFlage, io.out.ready)
 
+  val validFlagEn = WireInit( false.B)
+
+  val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
+  val validFlagVec = TappedShiftRegister( 14, phase === 0.U && !inputsNotValid, false.B, validFlagEn)
+
+  val validFlagMap = (for { (r,idx) <- validFlagVec zipWithIndex } yield {
+     val k = s"validFlag${(idx+1).toHexString}"
+     (k,r)
+  }).toMap
+
+  assert( validFlage === validFlagMap("validFlage"))
+  assert( validFlagd === validFlagMap("validFlagd"))
+  assert( validFlagc === validFlagMap("validFlagc"))
+
   when ( io.start && !done) {
 
     when ( doneLoading && io.modeCompute) {
@@ -283,11 +296,13 @@ class Loaf extends LoafIfc {
 //   should not if io.off.valid or io.lof.valid is not true; just introduce false validFlags
 //
 
-      val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
+//      val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
       val outputsNotReady = sendFlage && !io.out.ready
 
 
-      when ( /*!inputsNotValid && */ !outputsNotReady) {
+      when ( !outputsNotReady) {
+
+        validFlagEn := true.B
 
         validFlage := validFlagd
         validFlagd := validFlagc
