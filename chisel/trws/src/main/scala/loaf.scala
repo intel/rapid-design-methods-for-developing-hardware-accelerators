@@ -326,6 +326,28 @@ class Loaf extends LoafIfc {
             w
           }
 
+	  def stage( ctree_dim : Int,
+	             tree_dim : Int,
+		     lhs : (Int) => SInt,
+		     rhs : (Int) => SInt) {
+            for ( ii<-0 until elements_per_cl/ctree_dim) {
+              val d = tree_dim
+              if ( d == 4) {
+                lhs(ii) := vMin( vMin( rhs(d*ii+0), rhs(d*ii+1)),
+                                 vMin( rhs(d*ii+2), rhs(d*ii+3)))
+              } else if ( d == 2) {
+                lhs(ii) := vMin( rhs(d*ii+0), rhs(d*ii+1))
+              } else if ( d == 1) {
+                lhs(ii) := rhs(d*ii+0)
+              } else {
+                assert( false)
+              }
+            }
+          }
+
+	  stage( ctree_dims(0), tree_dims(0), (i:Int) => tm8(i)(j), (i:Int) => elements(i))
+
+/*
           for ( ii<-0 until elements_per_cl/ctree_dims(0)) {
             val d = tree_dims(0)
             if ( d == 4) {
@@ -339,6 +361,7 @@ class Loaf extends LoafIfc {
               assert( false)
             }
           }
+*/
 
           for ( ii<-0 until elements_per_cl/ctree_dims(1)) {
             val d = tree_dims(1)
