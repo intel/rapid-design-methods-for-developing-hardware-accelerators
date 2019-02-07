@@ -272,19 +272,18 @@ class Loaf extends LoafIfc {
 //  printf( "io.start,done,doneLoading,io.modeCompute: %d,%d,%d,%d\n", io.start, done, doneLoading, io.modeCompute)
 //  printf( "phase,c,io.off.valid,r,io.lof.valid,sendFlage,io.out.ready: %d,%d,%d,%d,%d,%d,%d\n", phase, c, io.off.valid, r, io.lof.valid, sendFlage, io.out.ready)
 
-  val validFlagEn = WireInit( false.B)
+  val flagEn = WireInit( false.B)
 
   val inputsNotValid = phase === 0.U && c === 0.U && (!io.off.valid || (r === 0.U && !io.lof.valid))
-  val validFlagVec = TappedShiftRegister( 14, phase === 0.U && !inputsNotValid, false.B, validFlagEn)
 
-  val validFlagMap = (for { (r,idx) <- validFlagVec zipWithIndex } yield {
-     val k = s"validFlag${(idx+1).toHexString}"
-     (k,r)
-  }).toMap
+  val validFlagVec = TappedShiftRegister( 14, phase === 0.U && !inputsNotValid, false.B, flagEn)
+  val validFlagMap = (for { (r,idx) <- validFlagVec zipWithIndex } yield (s"validFlag${(idx+1).toHexString}",r)).toMap
 
-  assert( validFlage === validFlagMap("validFlage"))
-  assert( validFlagd === validFlagMap("validFlagd"))
-  assert( validFlagc === validFlagMap("validFlagc"))
+  val sendFlagVec = TappedShiftRegister( 14, phase === 0.U && r === (ngr-1).U && !inputsNotValid, false.B, flagEn)
+  val sendFlagMap = (for { (r,idx) <- sendFlagVec zipWithIndex } yield (s"sendFlag${(idx+1).toHexString}",r)).toMap
+
+  val clearFlagVec = TappedShiftRegister( 12, phase === 0.U && r === 0.U && !inputsNotValid, false.B, flagEn)
+  val clearFlagMap = (for { (r,idx) <- clearFlagVec zipWithIndex } yield (s"clearFlag${(idx+1).toHexString}",r)).toMap
 
   when ( io.start && !done) {
 
@@ -302,7 +301,7 @@ class Loaf extends LoafIfc {
 
       when ( !outputsNotReady) {
 
-        validFlagEn := true.B
+        flagEn := true.B
 
         validFlage := validFlagd
         validFlagd := validFlagc
@@ -350,7 +349,7 @@ class Loaf extends LoafIfc {
         clearFlag2 := clearFlag1
         clearFlag1 := phase === 0.U && r === 0.U && !inputsNotValid
 
-        when ( sendFlage) {
+        when ( sendFlagMap("sendFlage")) {
           io.out.bits := bestBufe
           io.out.valid := true.B
         }
@@ -509,7 +508,7 @@ class Loaf extends LoafIfc {
             assert( false)
           }
 
-          when( clearFlagc || cand < best(j)) {
+          when( clearFlagMap("clearFlagc") || cand < best(j)) {
             best(j) := cand
           }
 
@@ -544,6 +543,10 @@ class Loaf extends LoafIfc {
 
 	when ( phase === 1.U) {
 //	  printf( "Evaluating validFlags...\n")
+
+	  val f = validFlagVec.foldLeft(true.B){ case (x,y) => x && !y}
+
+/*
           when ( !validFlag1 &&
             !validFlag2 &&
             !validFlag3 &&
@@ -560,6 +563,10 @@ class Loaf extends LoafIfc {
             !validFlage) {
             done := true.B
           }
+*/
+	  when (f) {
+            done := true.B
+	  }
         }
 
       }
