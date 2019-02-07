@@ -346,6 +346,10 @@ class Loaf extends LoafIfc {
           }
 
 	  stage( ctree_dims(0), tree_dims(0), (i:Int) => tm8(i)(j), (i:Int) => elements(i))
+	  stage( ctree_dims(1), tree_dims(1), (i:Int) => tm9(i)(j), (i:Int) => tm8(i)(j))
+	  stage( ctree_dims(2), tree_dims(2), (i:Int) => tma(i)(j), (i:Int) => tm9(i)(j))
+	  stage( ctree_dims(3), tree_dims(3), (i:Int) => tmb(i)(j), (i:Int) => tma(i)(j))
+	  stage( ctree_dims(4), tree_dims(4), (i:Int) => tmc(i)(j), (i:Int) => tmb(i)(j))
 
 /*
           for ( ii<-0 until elements_per_cl/ctree_dims(0)) {
@@ -361,7 +365,7 @@ class Loaf extends LoafIfc {
               assert( false)
             }
           }
-*/
+
 
           for ( ii<-0 until elements_per_cl/ctree_dims(1)) {
             val d = tree_dims(1)
@@ -418,6 +422,7 @@ class Loaf extends LoafIfc {
               assert( false)
             }
           }
+*/
 
           val d = tree_dims(5)
           val cand = Wire( SInt( bitwidth.W))
