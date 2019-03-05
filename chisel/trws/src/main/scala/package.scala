@@ -4,8 +4,8 @@ import chisel3.util._
 package object trws {
 //  val tree_dims = Array( 1, 1, 1, 1, 1, 1)
 //  val tree_dims = Array( 2, 1, 1, 1, 1, 1)
-//  val tree_dims = Array( 2, 2, 1, 1, 1, 1)
-  val tree_dims = Array( 2, 2, 2, 1, 1, 1)
+  val tree_dims = Array( 2, 2, 1, 1, 1, 1)
+//  val tree_dims = Array( 2, 2, 2, 1, 1, 1)
 //  val tree_dims = Array( 2, 2, 2, 2, 1, 1)
 //  val tree_dims = Array( 2, 2, 2, 2, 2, 1)
   val ctree_dims = tree_dims.scanLeft(1){ _ * _} drop 1

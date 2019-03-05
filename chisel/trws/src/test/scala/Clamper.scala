@@ -14,6 +14,7 @@ class ClamperTester( c: Clamper) extends StreamingPeekPokeTester(c) {
 
   val n = elements_per_cl*cl_per_row
   val n_slices = n*(n-1)/2
+  println( s"n: ${n} n_slices: ${n_slices} elements_per_cl: ${elements_per_cl} cl_per_row: ${cl_per_row}")
 
   val OUT = IndexedSeq.fill( n_slices){
     IndexedSeq.fill( n){ BigInt( rnd.nextInt( 1<<13) - (1<<12))}

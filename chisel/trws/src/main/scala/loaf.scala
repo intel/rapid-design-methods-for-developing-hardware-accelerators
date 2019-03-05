@@ -42,61 +42,61 @@ trait MACAbstractIfc extends BaseModule {
 class MACBlackBox extends BlackBox with HasBlackBoxInline with MACAbstractIfc {
   setInline("MACBlackBox.v",
   s"""|module MACBlackBox( input clock, input en, input [15:0] a, input [15:0] b, input [31:0] o, output [31:0] r);
-      |  reg [15:0] a2;
-      |  reg [15:0] b2;
-      |  reg [31:0] o2;
-      |  wire [36:0] r5;
-      |  reg [31:0] r6;
+      |  reg [15:0] a3;
+      |  reg [15:0] b3;
+      |  reg [31:0] o3;
+      |  wire [36:0] r6;
+      |  reg [31:0] r7;
       |
-      |  assign r = r6;
+      |  assign r = r7;
       |  always @(posedge clock) begin
       |    if ( en) begin
-      |      a2 <= a;
-      |      b2 <= b;
-      |      o2 <= o;
-      |      r6 <= r5[31:0];
+      |      a3 <= a;
+      |      b3 <= b;
+      |      o3 <= o;
+      |      r7 <= r6[31:0];
       |    end
       |  end
       |
-      |  mac u0 ( .ax({2'b0,a2}), .ay({2'b0,b2}),
-      |           .bx({4'b0,o2[31:18]}), .by(o2[17:0]),
+      |  mac u0 ( .ax({2'b0,a3}), .ay({2'b0,b3}),
+      |           .bx({4'b0,o3[31:18]}), .by(o3[17:0]),
       |           .aclr( 2'b0),
       |           .clk( {clock,clock,clock}), .ena( {en,en,en}),
-      |           .resulta( r5));
+      |           .resulta( r6));
       |
       |endmodule""".stripMargin)
 }
 
 class MAC extends Module with MACAbstractIfc {
 
-  val a2 = Reg( UInt(16.W))
   val a3 = Reg( UInt(16.W))
   val a4 = Reg( UInt(16.W))
-  val b2 = Reg( UInt(16.W))
+  val a5 = Reg( UInt(16.W))
   val b3 = Reg( UInt(16.W))
   val b4 = Reg( UInt(16.W))
-  val o2 = Reg( SInt(32.W))
+  val b5 = Reg( UInt(16.W))
   val o3 = Reg( SInt(32.W))
   val o4 = Reg( SInt(32.W))
+  val o5 = Reg( SInt(32.W))
 
-  val r5 = Reg( SInt(32.W))
   val r6 = Reg( SInt(32.W))
+  val r7 = Reg( SInt(32.W))
 
   when ( io.en) {
-    a2 := io.a
-    a3 := a2
+    a3 := io.a
     a4 := a3
-    b2 := io.b
-    b3 := b2
+    a5 := a4
+    b3 := io.b
     b4 := b3
-    o2 := io.o
-    o3 := o2
+    b5 := b4
+    o3 := io.o
     o4 := o3
-    r5 := (a4 * b4).asSInt + o4
-    r6 := r5
+    o5 := o4
+    r6 := (a5 * b5).asSInt + o5
+    r7 := r6
   }
 
-  io.r := r6
+  io.r := r7
 }
 
 class Loaf extends LoafIfc {

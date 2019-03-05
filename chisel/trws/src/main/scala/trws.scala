@@ -69,6 +69,55 @@ class trws extends Module {
 
 }
 
+class trwsWrapper extends Module {
+  val io = IO(new Bundle {
+    val start = Input( Bool())
+    val done = Output( Bool())
+
+    val modeLoad = Input( Bool())
+    val modeCompute = Input( Bool())
+
+    val loadIdx = Input( UInt(log2_ncontexts.W))
+    val computeIdx = Input( UInt(log2_ncontexts.W))
+
+    val gi = Flipped( DecoupledIO( USIMD()))
+    val wi = Flipped( DecoupledIO( SSIMD()))
+    val mi = Flipped( DecoupledIO( USIMD()))
+
+    val slc = Flipped( DecoupledIO( new Pair))
+    val lof = Flipped( DecoupledIO( new Pair))
+
+    val mo = DecoupledIO( USIMD)
+  })
+
+  val m = Module( new trws)
+  m.io.start := io.start
+  io.done := m.io.done
+
+  m.io.modeLoad := io.modeLoad
+  m.io.modeCompute := io.modeCompute
+
+  m.io.loadIdx := io.loadIdx
+  m.io.computeIdx := io.computeIdx
+
+  m.io.gi <> io.gi
+  m.io.wi <> io.wi
+  m.io.mi <> io.mi
+
+  m.io.slc <> io.slc
+  m.io.lof <> io.lof
+
+  io.mo.valid := m.io.mo.valid
+  io.mo.bits := m.io.mo.bits.bits
+
+  m.io.mo.ready := io.mo.ready
+
+}
+
 object trwsDriver extends App {
   Driver.execute( args, () => new trws)
+}
+
+object trwsWrapperDriver extends App {
+  Driver.execute( args, () => new trwsWrapper)
 }
