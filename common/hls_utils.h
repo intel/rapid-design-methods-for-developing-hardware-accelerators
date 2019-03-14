@@ -114,6 +114,14 @@ template<> struct Log2<1> { enum { Value = 0 }; };
 template<> struct Log2<0> { enum { Value = 0 }; };
 
 
+template <size_t V>
+struct Log2Upper
+{
+  enum { Value = Log2Upper<(V+1)/2>::Value + 1};
+};
+template<> struct Log2Upper<1> { enum { Value = 0 }; };
+
+
 template<size_t Delay>
 class ShiftMonitor {
   enum {ArrSize = Delay };
