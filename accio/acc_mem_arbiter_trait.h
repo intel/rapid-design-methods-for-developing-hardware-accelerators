@@ -20,31 +20,9 @@ enum ARBITER_TRAIT {
 template <unsigned int N>
 struct UpperLog2 {
   static inline int getValue() {
-    return Log2<N>::Value;
+    return Log2Upper<N>::Value;
   }
-
 };
-template <> inline int UpperLog2<1>::getValue() {
-  return 0;
-}
-template <> inline int UpperLog2<2>::getValue() {
-  return 1;
-}
-template <> inline int UpperLog2<3>::getValue() {
-  return 2;
-}
-template <> inline int UpperLog2<4>::getValue() {
-  return 2;
-}
-template <> inline int UpperLog2<5>::getValue() {
-  return 3;
-}
-template <> inline int UpperLog2<6>::getValue() {
-  return 3;
-}
-template <> inline int UpperLog2<7>::getValue() {
-  return 3;
-}
 
 template <ARBITER_TRAIT TRAIT=IO_ARBITER>
 class ArbiterTagResolver {
