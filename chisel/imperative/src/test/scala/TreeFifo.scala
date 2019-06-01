@@ -538,7 +538,7 @@ class MergeTest extends FlatSpec with Matchers {
 class StandaloneMergeP0Test extends FreeSpec with Matchers {
   "Merge with combinational path (false)" - {
     "StandaloneMergeP0 (wire connecting P0.ready to P0.valid) should fail" in {
-      a [firrtl.passes.PassExceptions] should be thrownBy {
+      a [firrtl.FIRRTLException] should be thrownBy {
         chisel3.iotesters.Driver( () => new StandaloneMergeP0, "firrtl") { c =>
           new StandaloneMergeP0Tester( c)
         }
