@@ -11,13 +11,17 @@ import compiler._
 class StandaloneSquashP extends Module {
   val io = IO( new Bundle{})
   val m = Module( new Squash)
+  m.io("Q").ready := DontCare
   m.io("P").valid := m.io("P").ready
+  m.io("P").bits := DontCare
 }
 
 class StandaloneSquashQ extends Module {
   val io = IO( new Bundle{})
   val m = Module( new Squash)
   m.io("Q").ready := m.io("Q").valid
+  m.io("P").valid := DontCare
+  m.io("P").bits := DontCare
 }
 
 class StandaloneSquashPTester(c:StandaloneSquashP) extends PeekPokeTester( c)

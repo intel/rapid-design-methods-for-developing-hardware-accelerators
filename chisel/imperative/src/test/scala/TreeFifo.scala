@@ -538,7 +538,7 @@ class MergeTest extends FlatSpec with Matchers {
 class StandaloneMergeP0Test extends FreeSpec with Matchers {
   "Merge with combinational path (false)" - {
     "StandaloneMergeP0 (wire connecting P0.ready to P0.valid) should fail" in {
-      a [firrtl.graph.PathNotFoundException] should be thrownBy {
+      a [firrtl.passes.PassExceptions] should be thrownBy {
         chisel3.iotesters.Driver( () => new StandaloneMergeP0, "firrtl") { c =>
           new StandaloneMergeP0Tester( c)
         }
@@ -558,7 +558,7 @@ class StandaloneMergeP1Test extends FreeSpec with Matchers {
 class StandaloneMergeQTest extends FreeSpec with Matchers {
   "Merge with combinational path (false)" - {
     "StandaloneMergeQ (wire connecting Q.valid to Q.ready) should fail" in {
-      a [firrtl.graph.PathNotFoundException] should be thrownBy {
+      a [firrtl.passes.PassExceptions] should be thrownBy {
         chisel3.iotesters.Driver( () => new StandaloneMergeQ, "firrtl") { c =>
           new StandaloneMergeQTester( c)
         }
@@ -571,18 +571,25 @@ class StandaloneSplitP extends Module {
   val io = IO( new Bundle { val dummy = Input(Bool())})
   val m = Module( new Split)
   m.io("P").valid := m.io("P").ready
+  m.io("P").bits := DontCare
 }
 
 class StandaloneSplitQ0 extends Module {
   val io = IO( new Bundle{})
   val m = Module( new Split)
   m.io("Q0").ready := m.io("Q0").valid
+  m.io("Q1").ready := DontCare
+  m.io("P").valid := DontCare
+  m.io("P").bits := DontCare
 }
 
 class StandaloneSplitQ1 extends Module {
   val io = IO( new Bundle{})
   val m = Module( new Split)
+  m.io("Q0").ready := DontCare
   m.io("Q1").ready := m.io("Q1").valid
+  m.io("P").valid := DontCare
+  m.io("P").bits := DontCare
 }
 
 class StandaloneSplitPTester(c:StandaloneSplitP) extends PeekPokeTester( c)
@@ -592,7 +599,7 @@ class StandaloneSplitQ1Tester(c:StandaloneSplitQ1) extends PeekPokeTester( c)
 class StandaloneSplitPTest extends FreeSpec with Matchers {
   "Split input has a (false) combinational path" - {
     "StandaloneSplitP (wire connecting P.ready to P.valid) should fail" in {
-      a [firrtl.graph.PathNotFoundException] should be thrownBy {
+      a [firrtl.passes.PassExceptions] should be thrownBy {
         chisel3.iotesters.Driver.execute( Array( "--backend-name", "verilator"), () => new StandaloneSplitP) { c =>
           new StandaloneSplitPTester( c)
         }
