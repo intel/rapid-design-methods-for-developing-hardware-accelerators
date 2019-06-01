@@ -1,0 +1,11 @@
+*~
+project/project/
+project/target/
+target/
+test_run_dir/
+*.v
+*.fir
+*.anno
+LazyStackComb/
+LazyStackWait/
+ucli.key
