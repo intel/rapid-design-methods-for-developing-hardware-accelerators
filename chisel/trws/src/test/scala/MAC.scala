@@ -9,6 +9,8 @@ import chisel3.iotesters._
 import firrtl_interpreter.{InterpretiveTester,InterpreterOptionsManager}
 import org.scalatest.{Matchers, FlatSpec}
 
+object WithVCSBackend extends org.scalatest.Tag("WithVCSBackend")
+
 class MACBlackBoxWrapper extends Module with MACAbstractIfc {
   val u = Module( new MAC/*MACBlackBox*/)
 
@@ -52,7 +54,7 @@ class MACTester( c: MACBlackBoxWrapper) extends PeekPokeTester(c) {
 
 }
 
-class MACTest extends FlatSpec with Matchers {
+class MACTest extends FlatSpec with Matchers{
 
 
   val QUARTUS_INSTALL_DIR="/p/atp/tools/altera/16.0.0.211-Pro/quartus"
@@ -88,7 +90,7 @@ class MACTest extends FlatSpec with Matchers {
   }
 
   behavior of "MAC"
-  it should "not have expect violations" in {
+  it should "not have expect violations" taggedAs(WithVCSBackend) in {
     chisel3.iotesters.Driver.execute( () => new MACBlackBoxWrapper, optionsManager) { c =>
       new MACTester( c)
     } should be (true)
