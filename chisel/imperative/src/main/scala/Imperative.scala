@@ -12,7 +12,7 @@ import firrtl.annotations.{Annotation}
 
 trait ShannonFactorAnnotator {
   self: Module =>
-     annotate(ChiselAnnotation( self, classOf[ShannonFactor], "RunShannonFactor"))
+//     annotate(ChiselAnnotation( self, classOf[ShannonFactor], "RunShannonFactor"))
 }
 
 class CustomDecoupledBundle(elts: (String, DecoupledIO[Data], Type)*) extends Record {
