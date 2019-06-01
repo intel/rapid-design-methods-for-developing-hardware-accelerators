@@ -1,7 +1,0 @@
-#!/bin/bash
-
-# This may be a brittle way to find $(root_dir)/utils/bin, is there a better way?
-path=`dirname "$0"`
-cmd="java -cp ${path}/firrtl.jar:target/scala-2.11/classes:~/tdd_using_chisel-testing_flows/reporters/target/scala-2.11/classes firrtl.Driver ${@:1}"
-eval $cmd
-
