@@ -23,7 +23,7 @@ CFLAGS+=-I${GTEST_DIR}/include
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
-LDFLAGS += ${SC_LIB} $(GTEST_DIR)/make/libgtest_main.a
+LDFLAGS += ${SC_LIB} $(GTEST_DIR)/mybuild/lib/libgtest.a
 
 all: $(OBJECTS)
 	g++ -pthread -o $(TARGET) $(OBJECTS) $(LDFLAGS)
