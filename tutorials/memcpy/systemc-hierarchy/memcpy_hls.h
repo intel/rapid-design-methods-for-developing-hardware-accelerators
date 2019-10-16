@@ -35,7 +35,8 @@
      for m in dut.modules.values():
        cog.outl("#include \"%s.h\"" % m.nm)
   ]]]*/
-//[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
+#include "frontend.h"
+//[[[end]]] (checksum: 0ea933b5cb4fdda58c617e3d644636f9)
 
 /*[[[cog
      cog.outl("class %s_hls : public sc_module" % dut.nm)
@@ -64,19 +65,20 @@ public:
          cog.outl("ga::tlm_fifo_%sout<%s > %s;" % (dut.isHier(WrDataPort(p.nm)),p.dataTy(),p.dataNmK()))
          cog.outl("")
     ]]]*/
-  ga::tlm_fifo_out<MemTypedReadReqType<CacheLine> > inpReqOut;
-  ga::tlm_fifo_in<MemTypedReadRespType<CacheLine> > inpRespIn;
+  ga::tlm_fifo_hier_out<MemTypedReadReqType<CacheLine> > inpReqOut;
+  ga::tlm_fifo_hier_in<MemTypedReadRespType<CacheLine> > inpRespIn;
 
   ga::tlm_fifo_out<MemTypedWriteReqType<CacheLine> > outReqOut;
-  ga::tlm_fifo_out<MemTypedWriteDataType<CacheLine> > outDataOut;
+  ga::tlm_fifo_hier_out<MemTypedWriteDataType<CacheLine> > outDataOut;
 
-  //[[[end]]] (checksum: fd9fde2da603878fca9336358740669c)
+  //[[[end]]] (checksum: d2e77dc0b537967782b7599a23d3a5e2)
   // Instantiate modules
   /*[[[cog
        for m in dut.modules.values():
          cog.outl("%s %s_inst;" % (m.nm, m.nm))
     ]]]*/
-  //[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
+  frontend frontend_inst;
+  //[[[end]]] (checksum: 445c6a7ac729a547f8fd33a2755eda99)
 
   // TLM fifos (between modules)
   /*[[[cog
@@ -121,7 +123,8 @@ public:
        , inpRespIn("inpRespIn")
        , outReqOut("outReqOut")
        , outDataOut("outDataOut")
-       //[[[end]]] (checksum: 2881ddb8430a98cd05d5dae52488ecb0)
+       , frontend_inst("frontend_inst")
+       //[[[end]]] (checksum: c49d02d3bb19ab2bc9ace0e0aba86cd5)
   {
     /*[[[cog
          for c in dut.cthreads.values():
@@ -129,16 +132,10 @@ public:
            cog.outl("async_reset_signal_is(rst, false);")
            cog.outl("")
       ]]]*/
-    SC_CTHREAD(inp_fetcher, clk.pos());
-    async_reset_signal_is(rst, false);
-
-    SC_CTHREAD(inp_addr_gen, clk.pos());
-    async_reset_signal_is(rst, false);
-
     SC_CTHREAD(out_addr_gen, clk.pos());
     async_reset_signal_is(rst, false);
 
-    //[[[end]]] (checksum: 773ff4522c18e0df27ce11fb3e624133)
+    //[[[end]]] (checksum: 29ee4569327928b6d57ea4a0d6591dd2)
     /*[[[cog
          for p in dut.inps:
            if "" == dut.isHier(RdReqPort(p.nm)):
@@ -151,11 +148,8 @@ public:
            if "" == dut.isHier(WrDataPort(p.nm)):
               cog.outl("%s.clk_rst(clk, rst);" % (p.dataNmK(),))
       ]]]*/
-    inpReqOut.clk_rst(clk, rst);
-    inpRespIn.clk_rst(clk, rst);
     outReqOut.clk_rst(clk, rst);
-    outDataOut.clk_rst(clk, rst);
-    //[[[end]]] (checksum: 0436c52fea41c23b502c1f072eb76632)
+    //[[[end]]] (checksum: 88420230b0770eef539d7969c989a51d)
 
 #ifndef USE_HLS
     /*[[[cog
@@ -185,7 +179,15 @@ public:
             for f in dut.tlm_fifos:
                cog.outl("{0}_inst.{1}({1});".format( m.nm, f.nm))
       ]]]*/
-    //[[[end]]] (checksum: d41d8cd98f00b204e9800998ecf8427e)
+    frontend_inst.clk(clk);
+    frontend_inst.rst(rst);
+    frontend_inst.start(start);
+    frontend_inst.config(config);
+    frontend_inst.done(done);
+    frontend_inst.inpReqOut(inpReqOut);
+    frontend_inst.inpRespIn(inpRespIn);
+    frontend_inst.outDataOut(outDataOut);
+    //[[[end]]] (checksum: 98a440c245ec746975e014d9395b4700)
 
   }
 
@@ -193,10 +195,8 @@ public:
      for c in dut.cthreads.values():
        cog.outl("#include \"%s-%s.h\"" % (dut.nm,c.nm))
   ]]]*/
-#include "memcpy-inp_fetcher.h"
-#include "memcpy-inp_addr_gen.h"
 #include "memcpy-out_addr_gen.h"
-//[[[end]]] (checksum: 484e6e29ad0d99d170f7f9de8f0c3cb6)
+//[[[end]]] (checksum: d5f38f3f7fdf65e8d9b08c9668272fe5)
 
 };
 
