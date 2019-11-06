@@ -47,12 +47,12 @@ class TypeRepacker[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends Module 
     io.in.nodeq()
     io.out.noenq()
     
-    val w_finish = Wire(init = (remainNum === 0.U)) 
+    val w_finish = WireInit(init = (remainNum === 0.U))
     when (io.out.ready && remainNum > 0.U) {
       val outData = inAsT2(ratio.U - remainNum)
       remainNum := remainNum - 1.U 
       
-      io.out.enq(io.out.bits.fromBits(outData.asUInt))
+      io.out.enq(outData.asTypeOf(io.out.bits))
       // last output, can read a new input
       when (remainNum === 1.U) {
         w_finish := true.B
@@ -60,7 +60,7 @@ class TypeRepacker[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends Module 
     }
     
     when (io.in.valid && w_finish) {
-      inAsT2 := inAsT2.fromBits(io.in.deq.asUInt)
+      inAsT2 := io.in.deq.asUInt.asTypeOf(inAsT2)
       remainNum := ratio.U
     }
     //printf("io.in.valid = %d io.in.bits.asUInt()=%d, remainNum = %d inAsT2(0) = %d io.out(0) = %d\n", io.in.valid, io.in.bits.asUInt(), remainNum, inAsT2(0), io.out.bits(0).asUInt())
@@ -73,21 +73,21 @@ class TypeRepacker[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends Module 
     
     val outAsT1 = Reg(Vec(ratio,UInt(in1width.W)))
     val remainNum = RegInit(ratio.U.cloneType, init = 0.U)     
-    val w_remainNum = Wire(ratio.U.cloneType, init = remainNum) 
+    val w_remainNum = WireInit(ratio.U.cloneType, init = remainNum)
 
     io.in.nodeq()
     io.out.noenq()
 
-    when (io.out.ready && (remainNum === ratio.U || (remainNum != 0.U && io.flush))) {
-      io.out.enq(io.out.bits.fromBits(outAsT1.asUInt))
+    when (io.out.ready && (remainNum === ratio.U || (remainNum =/= 0.U && io.flush))) {
+      io.out.enq(outAsT1.asUInt.asTypeOf(io.out.bits))
       io.cnt := remainNum
       // last input, can push output and get a new input
       w_remainNum := 0.U
     }
 
-    when (io.in.valid && w_remainNum != ratio.U) {
+    when (io.in.valid && w_remainNum =/= ratio.U) {
       val inData = io.in.deq
-      outAsT1(w_remainNum) := outAsT1(w_remainNum).fromBits(inData.asUInt())
+      outAsT1(w_remainNum) := inData.asUInt.asTypeOf(outAsT1(w_remainNum))
       remainNum := w_remainNum + 1.U
     }.otherwise {
       remainNum := w_remainNum
@@ -104,7 +104,7 @@ object TypeRepacker {
     tr.io.in.valid := in.valid 
     tr.io.in.bits := in.bits
     in.ready := tr.io.in.ready
-    tr.io.flush := Wire(init=false.B)
+    tr.io.flush := WireInit(init=false.B)
     if (moore) 
       MooreStage(tr.io.out)
     else 
@@ -117,7 +117,7 @@ object TypeRepacker {
     tr.io.in.valid := in.valid 
     tr.io.in.bits := in.bits
     in.ready := tr.io.in.ready
-    tr.io.flush := Wire(init=flush)
+    tr.io.flush := WireInit(init=flush)
     val out = Wire(Decoupled(to))
     out.valid := tr.io.out.valid
     tr.io.out.ready := out.ready
@@ -134,7 +134,7 @@ object TypeRepackerComb {
     tr.io.in.valid := in.valid // not using <> so that override is allowed
     tr.io.in.bits := in.bits
     in.ready := tr.io.in.ready
-    tr.io.flush := Wire(init=false.B)
+    tr.io.flush := WireInit(init=false.B)
     tr.io.out
   }
   def apply[T1 <: Data, T2 <: Data with PackedWithCount] (in: DecoupledIO[T1], to: T2, flush: Bool): DecoupledIO[T2]  = {
@@ -142,7 +142,7 @@ object TypeRepackerComb {
     tr.io.in.valid := in.valid // not using <> so that override is allowed
     tr.io.in.bits := in.bits
     in.ready := tr.io.in.ready
-    tr.io.flush := Wire(init=flush)
+    tr.io.flush := WireInit(init=flush)
     val out = Wire(Decoupled(to))
     out.valid := tr.io.out.valid
     tr.io.out.ready := out.ready
@@ -172,11 +172,11 @@ class TypeRepackerVec[T1 <: Data, T2<: Data] (gen1 : T1, rate1 : Int, gen2 : T2,
 
   tr.io.in.valid <> io.in.valid
   tr.io.in.ready <> io.in.ready
-  tr.io.in.bits := tr.io.in.bits.fromBits(io.in.bits.asUInt())
+  tr.io.in.bits := io.in.bits.asUInt.asTypeOf(tr.io.in.bits)
   
   io.out.valid <> tr.io.out.valid
   io.out.ready <> tr.io.out.ready
-  io.out.bits := io.out.bits.fromBits(tr.io.out.bits.asUInt())
+  io.out.bits := tr.io.out.bits.asUInt.asTypeOf(io.out.bits)
 }
 
 class TypeRepackerVecReg[T1 <: Data, T2<: Data] (gen1 : T1, rate1 : Int, gen2 : T2, rate2 : Int) extends Module {

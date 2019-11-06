@@ -82,7 +82,7 @@ class VecAddNoConfigTb[T <: UInt](val dut_factory : ()=>VecAddNoConfigIO[T])(imp
     val mem_probe = Input((memSize-1).U.cloneType)
     val mem_monitor = Output(UInt(params.CacheLineWidth.W))
     val mem_perf_monitor = Output(new MockMemoryPerfCounters)
-    val cnt_computed = Output(UInt(Int.MaxValue).cloneType)
+    val cnt_computed = Output(chiselTypeOf(Int.MaxValue.U))
   })
 
   val mem = Module(new MockMemory(memSize,Some(MemInit.init_func), 100))

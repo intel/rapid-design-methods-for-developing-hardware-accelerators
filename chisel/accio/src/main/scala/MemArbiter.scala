@@ -17,7 +17,7 @@ class MemSteerReged[T<:Data with HasMetadata]( gen : T, ways: Int, steerBit : In
   })
   
   val stage_out_N = Array.fill(ways)(Module(new DecoupledStage( gen )))
-  val out_stage_inps = Vec(stage_out_N.map(_.io.inp))
+  val out_stage_inps = VecInit(stage_out_N.map(_.io.inp))
   for (i <- 0 until ways) {
     stage_out_N(i).io.inp  <> out_stage_inps(i)
   }
@@ -37,7 +37,7 @@ class MemSteerReged[T<:Data with HasMetadata]( gen : T, ways: Int, steerBit : In
   val pendAuId = pendData.tag(steerBit+log2Ceil(ways)-1, steerBit)
 
 
-  val pendCopy = Wire(init = pendData)
+  val pendCopy = WireInit(init = pendData)
   pendCopy.tag := UIntUtils.replace(pendData.tag, steerBit, 0.U(log2Ceil(ways).W))
 
   //printf("In data %x %x\n", pendData.asUInt(), pendCopy.asUInt())
@@ -51,7 +51,7 @@ class MemSteerReged[T<:Data with HasMetadata]( gen : T, ways: Int, steerBit : In
   when (pendValid && out_stage_inps(pendAuId).ready || !pendValid) {
     pendValid := io.qin.valid
     when (io.qin.valid) {
-      pendData := Wire(init = io.qin.deq())
+      pendData := WireInit(init = io.qin.deq())
     }
   }
 
@@ -62,7 +62,7 @@ class MemSteerReged[T<:Data with HasMetadata]( gen : T, ways: Int, steerBit : In
 
 class RRArbiterWithTag [T<:Data with HasMetadata](gen : T, ways: Int, steerBit : Int) extends RRArbiter(gen, ways) {
   
-  val data = Wire(init = io.in(io.chosen).bits)
+  val data = WireInit(init = io.in(io.chosen).bits)
   when (io.out.valid) {
     data.tag := UIntUtils.replace(io.in(io.chosen).bits.tag, steerBit, io.chosen.asTypeOf(ways.U))
   }
@@ -164,4 +164,3 @@ object WriteMemArbiter  {
     (wrArb.io.req_out,wrArb.io.resp_in) 
   }
 }
-

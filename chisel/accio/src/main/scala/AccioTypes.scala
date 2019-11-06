@@ -351,7 +351,7 @@ object CacheLine {
   def numCLsFor[T<:Data](gen: T, size: UInt)(implicit params: AccParams) = {
     if(gen.getWidth <= params.CacheLineWidth && params.CacheLineWidth%gen.getWidth == 0) {
       val rem = size % (params.CacheLineWidth/gen.getWidth).U
-      size / (params.CacheLineWidth/gen.getWidth).U + Mux(rem != 0.U,1.U,0.U) 
+      size / (params.CacheLineWidth/gen.getWidth).U + Mux(rem =/= 0.U,1.U,0.U)
     } else {
       assert(false, "Not supported")
       size

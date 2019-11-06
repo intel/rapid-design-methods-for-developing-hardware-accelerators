@@ -33,7 +33,7 @@ class AccIn(val bufSize : Int )(implicit params : AccParams) extends Module with
   val creditQ = Module(new Queue(UInt(tagWidth), bufSize))
   val orderedReqsQ = Module(new Queue(UInt(tagWidth), bufSize))
   val respBuffer = SyncReadMem(bufSize, io.acc_out.bits.cloneType)
-  val respBufValids = RegInit(init = Vec.fill(bufSize){false.B})
+  val respBufValids = RegInit(VecInit(Seq.fill(bufSize){false.B}))
   
   val s_resetCreditQ :: s_main :: Nil = Enum(2)
   val state = RegInit(init = s_resetCreditQ)
@@ -71,15 +71,15 @@ class AccIn(val bufSize : Int )(implicit params : AccParams) extends Module with
     
     is (s_main) {
       //printf("credit available = %d\n", creditQ.io.deq.valid)
-      val w_hasReq = Wire(init = (remainReqCnt != 0.U))
-      val w_nextag = Wire(init = creditQ.io.deq.bits)
+      val w_hasReq = WireInit(remainReqCnt =/= 0.U)
+      val w_nextag = WireInit(creditQ.io.deq.bits)
 
-      when (remainReqCnt != 0.U) {
+      when (remainReqCnt =/= 0.U) {
         when (io.mem_out.ready && orderedReqsQ.io.enq.ready) {
       	  w_nextag := creditQ.io.deq.deq
         }
   
-        //when (remainReqCnt != 0.U && io.mem_out.ready && creditQ.io.deq.valid && orderedReqsQ.io.enq.ready) {
+        //when (remainReqCnt =/= 0.U && io.mem_out.ready && creditQ.io.deq.valid && orderedReqsQ.io.enq.ready) {
         when (creditQ.io.deq.valid) {
       	  val nextag = w_nextag//creditQ.io.deq.deq()
       	  when (orderedReqsQ.io.enq.ready) {
@@ -104,7 +104,7 @@ class AccIn(val bufSize : Int )(implicit params : AccParams) extends Module with
       when (!w_hasReq && io.acc_in.valid) {
         val acc_in_tx = io.acc_in.deq()
         //acc_in_tx.print
-        assert(acc_in_tx.burstSize != 0.U)
+        assert(acc_in_tx.burstSize =/= 0.U)
         remainReqCnt := acc_in_tx.burstSize
         nextReqAddr := acc_in_tx.addr
       }
@@ -132,7 +132,7 @@ class AccIn(val bufSize : Int )(implicit params : AccParams) extends Module with
         when (reqTagReg.valid || rdEn || memRdReqTag.valid) {
           pf("reqTagReg(%d)=%d, rdEn = %d, memRdReg(%d)=%d memData = %x\n",  reqTagReg.valid, reqTagReg.token, rdEn, memRdReqTag.valid, memRdReqTag.token, memRd.data)
         }
-        val w_memRdReqTag = Wire(init = memRdReqTag)
+        val w_memRdReqTag = WireInit(memRdReqTag)
         when(memRdReqTag.valid) {
           val rdResp = Mux(rdEnReg, memRd.data, memRdReg.data)
           io.acc_out.enq(AccMemRdResp(rdResp))
@@ -144,7 +144,7 @@ class AccIn(val bufSize : Int )(implicit params : AccParams) extends Module with
           }
         }
         
-        val w_reqTagReg = Wire(init = reqTagReg)
+        val w_reqTagReg = WireInit(reqTagReg)
         when (!w_memRdReqTag.valid && rdEn) {
           memRdReqTag := reqTagReg
           w_reqTagReg.valid := false.B
@@ -227,7 +227,7 @@ class AccUserIn[T<:Data] (gen: T, vecSize: Int, val bufSize: Int)(implicit param
   assert(params.CacheLineWidth%gen.getWidth == 0)
   
   
-  when(outstandingBurst != 0.U) {
+  when(outstandingBurst =/= 0.U) {
     val userOutData = Wire(io.user_out.bits.cloneType)
     userOutData.vec := repackedIO.bits
     userOutData.cnt := Mux(outstandingBurst >= vecSize.U, vecSize.U, outstandingBurst)

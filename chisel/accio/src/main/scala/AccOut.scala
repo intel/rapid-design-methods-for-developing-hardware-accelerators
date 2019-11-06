@@ -20,7 +20,7 @@ class AccOut ()(implicit params : AccParams) extends Module with AccioDebug {
   val remainReqCnt = RegInit(init=0.U)
   val nextReqAddr = RegInit(init=0.U)
   
-  val w_hasReq = Wire(init = (remainReqCnt != 0.U)) 
+  val w_hasReq = WireInit(remainReqCnt =/= 0.U)
   
   io.acc_req_in.nodeq()
   io.acc_data_in.nodeq()
@@ -28,11 +28,11 @@ class AccOut ()(implicit params : AccParams) extends Module with AccioDebug {
   io.mem_out.noenq()
 
   
-  val w_canGetNextReq = Wire(init = (remainReqCnt === 0.U))   
+  val w_canGetNextReq = WireInit(remainReqCnt === 0.U)
   
-  val w_wr_data = Wire(init = io.acc_data_in.bits)
+  val w_wr_data = WireInit(io.acc_data_in.bits)
 
-  when(remainReqCnt != 0.U) {
+  when(remainReqCnt =/= 0.U) {
     when (io.mem_out.ready) {
       io.acc_data_in.deq
     }

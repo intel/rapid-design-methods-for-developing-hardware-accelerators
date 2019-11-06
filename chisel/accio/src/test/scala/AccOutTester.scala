@@ -55,8 +55,8 @@ class TopAccOut extends Module {
   AccOut.io.acc_data_in.valid <> io.acc_data_in.valid
   AccOut.io.acc_data_in.ready <> io.acc_data_in.ready
   
-  AccOut.io.acc_req_in.bits :=  AccOut.io.acc_req_in.bits.fromBits(io.acc_req_in.bits) 
-  AccOut.io.acc_data_in.bits := AccOut.io.acc_data_in.bits.fromBits(io.acc_data_in.bits) 
+  AccOut.io.acc_req_in.bits :=  io.acc_req_in.bits.asTypeOf(AccOut.io.acc_req_in.bits)
+  AccOut.io.acc_data_in.bits := io.acc_data_in.bits.asTypeOf(AccOut.io.acc_data_in.bits)
   
   //printf("acc data in (v/r) %d/%d  data - %x - widths %d\n", io.acc_data_in.valid,io.acc_data_in.ready,io.acc_data_in.bits, io.acc_data_in.bits.getWidth.U)
    

@@ -20,7 +20,7 @@ class BitsToVec[T <: Data](gen : T, N : Int) extends Module {
   val WIDTH = gen.getWidth
   
   for (i <- 0 until N){
-    io.out.bits(i) := io.out.bits(i).fromBits(io.in.bits(i*WIDTH+WIDTH-1,i*WIDTH))
+    io.out.bits(i) := io.in.bits(i*WIDTH+WIDTH-1,i*WIDTH).asTypeOf(io.out.bits(i))
   }
   
   //printf("BitsToVec %d converted to %d (valid=%d, %d) ready = %d\n", io.in.bits(0).asUInt, io.out.bits(0).asUInt, io.in.valid, io.out.valid, io.out.ready)
@@ -73,11 +73,11 @@ class TopSimple[T1 <: Data, T2<: Data] (gen1 : T1, gen2 : T2) extends TopIf(gen1
 
   dut.io.in.valid := io.in_flat.valid
   dut.io.in.ready <> io.in_flat.ready
-  dut.io.in.bits := dut.io.in.bits.fromBits(io.in_flat.bits.asUInt())
+  dut.io.in.bits := io.in_flat.bits.asUInt.asTypeOf(dut.io.in.bits)
   
   io.out_flat.valid := dut.io.out.valid 
   io.out_flat.ready <> dut.io.out.ready 
-  io.out_flat.bits := io.out_flat.bits.fromBits(dut.io.out.bits.asUInt()) 
+  io.out_flat.bits := dut.io.out.bits.asUInt.asTypeOf(io.out_flat.bits)
 }
 
 

@@ -28,9 +28,8 @@ class VecAddNoConfigIO[T <: UInt](val gen : T, val vecLen : Int)(implicit params
     val mem_rd_resp  = Flipped(Decoupled( new MemRdResp))
     val mem_wr_req  = Decoupled( new MemWrReq)
     val mem_wr_resp  = Flipped(Decoupled( new MemWrResp))
-    val cnt_computed = Output(UInt(Int.MaxValue).cloneType)
+    val cnt_computed = Output(chiselTypeOf(Int.MaxValue.U))
   })
-
 }
 class VecAddNoConfig[T <: UInt](gen : T, vecLen : Int)(implicit params : AccParams) extends VecAddNoConfigIO(gen, vecLen){
   val va = Module(new SDFActor(2,1) {
@@ -41,7 +40,7 @@ class VecAddNoConfig[T <: UInt](gen : T, vecLen : Int)(implicit params : AccPara
     })
     
     override def func = {
-      io.out.bits := Vec.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) }
+      io.out.bits := VecInit(Seq.tabulate(vecLen) {i => io.in1.bits(i) + io.in2.bits(i) })
     }
   })
   val accin1 = Module (new AccIn(32))

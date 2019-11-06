@@ -48,7 +48,7 @@ class VecAddTb[T <: UInt](gen : T, vecSize : Int)(implicit params : AccParams) e
   mem.io.mem_wr_in <> va.io.mem_wr_req 
   mem.io.mem_wr_out <> va.io.mem_wr_resp 
   
-  va.io.config.bits := va.io.config.bits.fromBits(io.config.asUInt())  
+  va.io.config.bits := io.config.asTypeOf(va.io.config.bits)
   va.io.config.valid <> io.config.valid
   va.io.config.ready <> io.config.ready
   

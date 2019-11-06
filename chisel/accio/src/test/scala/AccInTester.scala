@@ -205,7 +205,7 @@ class Top (bufSize: Int) extends Module {
   accIn.io.acc_out.valid <> io.acc_out.valid
   accIn.io.acc_out.ready <> io.acc_out.ready
   
-  accIn.io.acc_in.bits :=  accIn.io.acc_in.bits.fromBits(io.acc_in.bits) 
+  accIn.io.acc_in.bits := io.acc_in.bits.asTypeOf(accIn.io.acc_in.bits)
   io.acc_out.bits := accIn.io.acc_out.bits.asUInt
    
 }
@@ -331,5 +331,3 @@ class AccUserInTester extends ChiselFlatSpec {
 //  }
 
 }
-
-
